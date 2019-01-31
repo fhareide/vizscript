@@ -1,0 +1,247 @@
+{
+	"comment": "Based on language-vb by Gorea235, extended to include Viz script by James Watton",
+	"fileTypes": [
+		"vs",
+		"v3script"
+	  ],
+	"foldingStartMarker": "(<(?i:(head|table|div|style|script|ul|ol|form|dl))\\b.*?>|\\{|^\\s*<?%?\\s*'?\\s*(?i:(sub|private\\s+Sub|public\\s+Sub|function|if|while|For))\\s*.*$)",
+	"foldingStopMarker": "(</(?i:(head|table|div|style|script|ul|ol|form|dl))>?|\\}|^\\s*<?%?\\s*\\s*'?\\s*(?i:(end|Next))\\s*.*$)",
+	"keyEquivalent": "^~A",
+	"name": "VizScript",
+	"patterns": [
+	  {
+		"include": "#round-brackets"
+	  },
+	  {
+		"name": "meta.ending-space",
+		"match": "\\n"
+	  },
+	  {
+		"name": "meta.leading-space",
+		"begin": "^(?=\\t)",
+		"end": "(?=[^\\t])",
+		"patterns": [
+		  {
+			"match": "(\\t)(\\t)?",
+			"captures": {
+			  "1": {
+				"name": "meta.odd-tab.tabs"
+			  },
+			  "2": {
+				"name": "meta.even-tab.tabs"
+			  }
+			}
+		  }
+		]
+	  },
+	  {
+		"name": "meta.leading-space",
+		"begin": "^(?= )",
+		"end": "(?=[^ ])",
+		"patterns": [
+		  {
+			"match": "(  )(  )?",
+			"captures": {
+			  "1": {
+				"name": "meta.odd-tab.spaces"
+			  },
+			  "2": {
+				"name": "meta.even-tab.spaces"
+			  }
+			}
+		  }
+		]
+	  },
+	  {
+		"name": "meta.function.viz",
+		"match": "^\\s*((?i:function|sub))\\s*([a-zA-Z_]\\w*)\\s*(\\()([^)]*)(\\))( as [a-zA-Z_]\\w*).*\\n?",
+  
+		"captures": {
+		  "1": {
+			"name": "storage.type.function.viz"
+		  },
+		  "2": {
+			"name": "entity.name.function.viz"
+		  },
+		  "3": {
+			"name": "punctuation.definition.parameters.viz"
+		  },
+		  "4": {
+			"name": "variable.parameter.function.viz",
+			"patterns": [
+				{
+				  "name": "storage.type.viz",
+				  "match": "(?i:\\s*\\b(Alpha|Base|BezierHandle|Camera|Center|Channel|ClipChannel|Color|Container|DateTime|Director|Expert|Geometry|Gesture|GestureRecognizer|Procedures|Grid|Image|InfoText|Key|Keyframe|Light|Material|Matrix|PluginInstance|Position|Rotation|Scaling|Scene|Script|ScriptSettings|SharedMemory|Stage|StringMap|System|Texture|Timecode|Touch|Trace|Uuid|Variant|Vertex|VizCommunication|Array|Boolean|Byte|Char|Date|Decimal|Double|Integer|Long|Object|Println|SByte|Short|Single|String|StringMap|UInteger|ULong|UShort)\\b)"
+				  
+				},
+				{
+				  "name": "keyword.control.viz",
+				  "match": "(as |byref |byval )"
+				}
+			  ]
+		  },
+		  "5": {
+			"name": "punctuation.definition.parameters.viz"
+		  },
+		  "6": {
+			"name": "keyword.control.viz"
+		  }
+		}
+	  },
+	  {
+		"begin": "(^[ \\t]+)?(?=')",
+		"beginCaptures": {
+		  "1": {
+			"name": "punctuation.whitespace.comment.leading.viz"
+		  }
+		},
+		"end": "(?!\\G)",
+		"patterns": [
+		  {
+			"begin": "'",
+			"beginCaptures": {
+			  "0": {
+				"name": "punctuation.definition.comment.viz"
+			  }
+			},
+			"end": "\\n",
+			"name": "comment.line.apostrophe.viz"
+		  }
+		]
+	  },
+	  {
+		"match": "(?i:\\b(REM)\\b)",
+		"name": "comment.line.apostrophe.viz"
+	  },
+	  {
+		"match": "(?i:\\b(If|Then|Else|ElseIf|Else If|End If|While|Wend|For|To|Each|In|Case|Select|End Select|Return|Continue|Do|Until|Loop|Next|With|End With|Exit Do|Exit For|Exit Function|Exit Property|Exit Sub|IIf|Catch|Finally|GoSub|GoTo|Step|Stop|Try|SyncLock|End SyncLock|Using|End Using)\\b)",
+		"name": "keyword.control.viz"
+	  },
+	  {
+		"match": "(?i:\\b(Mod|And|Not|Or|Xor|As|AndAlso|IsNot|Of|OrElse)\\b)",
+		"name": "keyword.control.viz"
+	  },
+	  {
+		"captures": {
+		  "1": {
+			"name": "storage.type.viz"
+		  },
+		  "2": {
+			"name": ""
+		  },
+		  "3": {
+			"name": "meta.separator.comma.viz"
+		  }
+		},
+		"match": "(?i:(dim)\\s*(?:(\\b[a-zA-Z_x7f-xff][a-zA-Z0-9_x7f-xff]*?\\b)\\s*(,?)))"
+	  },
+	  {
+		"match": "(?i:\\s*\\b(Class|End Class|Const|Dim|Redim|Function|Sub|Private Sub|Public Sub|End sub|End Function|Set|End Set|Let|Get|End Get|Randomize|Option Explicit|On Error Resume Next|On Error GoTo|Operator|End Operator|Enum|End Enum|Event|Delegate|Interface|End Interface|Declare|Lib|Module|End Module|Namespace|End Namespace|On|Property|End Property|Resume|Structure|End Structure)\\b\\s*)",
+		"name": "storage.type.viz"
+	  },
+	  {
+		"match": "(?i:\\s*\\b(Array|Boolean|Byte|Char|Date|Decimal|Double|Integer|Long|Object|Println|SByte|Short|Single|String|UInteger|ULong|UShort)\\b\\s*)",
+		"name": "storage.type.viz"
+	  },
+	  {
+		"match": "(?i:\\s*\\b(Alpha|Base|BezierHandle|Camera|Center|Channel|ClipChannel|Color|Container|DateTime|Director|Expert|Geometry|Gesture|GestureRecognizer|Procedures|Grid|Image|InfoText|Key|Keyframe|Light|Material|Matrix|PluginInstance|Position|Rotation|Scaling|Scene|Script|ScriptSettings|SharedMemory|Stage|StringMap|System|Texture|Timecode|Touch|Trace|Uuid|Variant|Vertex|VizCommunication)\\b\\s*)",
+		"name": "storage.type.viz"
+	  },
+	  {
+		"match": "(?i:\\s*\\b(AddHandler|AddressOf|Alias|DirectCast|Erase|Error|Global|Handles|Imports|Inherits|Like|Me|MyBase|MyClass|New|Option|RaiseEvent|RemoveHandler|Throw|TryCast)\\b\\s*)",
+		"name": "storage.type.viz"
+	  },
+	  {
+		"match": "(?i:\\s*\\b(Abs|Acos|AddContainer|AddDirector|AddHandler|AddHostToGroup|AddKeyframe|AddLogMessage|AddScreenOffset|AddTrace|AngleBetweenVectors|AnsiToUtf8|Append|Asc|Asin|Atan|Atan2|CBool|CColor|CDbl|Ceil|Chr|CInt|Clear|ClearHostGroup|ContainsKey|ContainsMouseCursor|Continue|ContinueActive|ContinueAnimation|ContinuePending|CopyTo|CopyToDirector|Cos|Cosh|CreateAlpha|CreateExpert|CreateFunction|CreateGeometry|CreateGlow|CreateHDR|CreateInfoText|CreateKey|CreateMaterial|CreateRootContainer|CreateRootDirector|CreateTexture|CStr|CTrace|CUuid|CVertex|Delete|DeleteAlpha|DeleteChildren|DeleteExpert|DeleteFile|DeleteFunction|DeleteGeometry|DeleteGlow|DeleteHDR|DeleteInfoText|DeleteKey|DeleteKeyframe|DeleteMaterial|DeleteTexture|Determinant|DirectoryExists|Distance|Distance2|DistanceToLine|DistanceToPlane|DistanceToPlaneSigned|DoubleToString|EndsWith|Erase|EraseChar|Exp|ExploreDocument|FaceOutputNormal|FileExists|Find|FindActionChannel|FindChannel|FindChannelOfObject|FindContainer|FindDirector|FindFirstNotOf|FindFirstOf|FindKeyframe|FindKeyframeOfObject|FindLastNotOf|FindLastOf|FindOrCreateChannelOfObject|FindSiblingSubContainer|FindSubContainer|FindSubDirector|FindSuperContainer|Fix|Floor|Flush|FlushActive|FlushPending|Frustum|GenerateNewUuid|Get|GetActionChannel|GetAnimationChannel|GetAnimationChannels|GetBezierHandle|GetBoundingBox|GetBoundingBoxDimensions|GetCamera|GetChannels|GetChannelsOfObject|GetChar|GetChildContainerByIndex|GetChildContainerContainingMouseCursor|GetClipChannel|GetClipName|GetClipNameActive|GetClipNamePending|GetContainerAndSubContainers|GetCurrentTime|GetDeterminant|GetDevice|GetDirector|GetDirectorOfMergedGeometry|GetDirectoryContent|GetElapsedTime|GetFirstActiveChildContainer|GetFunctionPluginInstance|GetGeometryPluginInstance|GetGrid|GetIndexOfFirstActiveChildContainer|GetKeyframe|GetKeyframes|GetKeys|GetLight|GetLocalIndex|GetNumberOfAnimationChannels|GetNumberOfClipChannel|GetNumberOfTimecodeSources|GetParameterBool|GetParameterColor|GetParameterContainer|GetParameterDouble|GetParameterInt|GetParameterString|GetRegisterChangedClipFrame|GetRegisterChangedClipMode|GetRegisterChangedClipModePending|GetReportValues|GetReportValuesPending|GetRotation|GetScaling|GetScaling2|GetScenePluginInstance|GetScreenBounds|GetScreenPointToGeomSurface|GetScreenPositionOrtho|GetScreenSizeOrtho|GetShaderPluginInstance|GetString|GetSubstring|GetTickCount|GetTimecode|GetTimecodeByIndex|GetTouch|GetTrace|GetTraceByIndex|GetTransformedBoundingBox|GetTransformedBoundingBoxDimensions|GetTranslation|GetType|GetUnlockedGrid|GetUVCoordinatesOfScreenPoint|GlNormal|GlVertex|HasAnimationChannels|HideAllChildContainers|Insert|Int|IntToString|Invert|IsAnimated|IsAnimationRunning|IsBacklayer|IsClipLoaded|IsClipLoadedActive|IsClipLoadedPending|IsFrontlayer|IsKeyDown|IsLButtonDown|IsMainlayer|IsMButtonDown|IsOnTop|IsRButtonDown|IsScreenPointInBoundingBox|IsVertexInBoundingBox|Join|Left|Len|LineLineIntersection|LoadBackScene|LoadFromDb|LoadFrontScene|LoadIdentity|LoadMainScene|LoadMatrix|LoadTextFile|LocalPosToScreenPos|LocalPosToWorldPos|Log|MakeLower|MakeUpper|Match|Max|Min|MirrorAroundLine|MirrorAroundVector|MouseOverIPDefineServer|MouseOverIPQuitServer|MouseOverIPRegister|MouseOverIPUndefineAllServers|MouseOverIPUndefineServer|MouseOverIPUnregister|MouseOverIPUnregisterAll|MoveAllChannelsToDirector|MoveTo|MoveToContainer|MoveToDirector|MoveToKeepTransformation|MTRegister|MTRegisterEx|MTSetPosition|MTUnregister|MultMatrix|Norm|Normalize|OnButtonDown6DOF|OnButtonUp6DOF|OnEnter|OnEnterSubContainer|OnExecAction|OnExecPerField|OnGesture|OnGuiStatus|OnInit|OnInitParameters|OnKeyDown|OnKeyUp|OnLButtonDown|OnLButtonUp|OnLeave|OnLeaveSubContainer|OnMButtonDown|OnMButtonUp|OnMouseMove|OnMouseWheel|OnMove6DOF|OnMoveRelative6DOF|OnMTControlButton|OnMTControlInactive|OnMTControlPZR2D|OnMTHit|OnMTMenu|OnParameterChanged|OnRButtonDown|OnRButtonUp|OnScale6DOF|OnTouchTrace|OpenDocument|Ortho|PadLeft|PadRight|Pause|PauseActive|PausePending|Perspective|PlaneLineIntersection|Play|PlayActive|PlayPending|PlaySound|Pop|Prepend|Println|Project|ProjectOnLine|ProjectOnVector|Push|PushButton|Random|Rebuild|RecomputeMatrix|RegisterChangedCallback|RegisterDirSelector|RegisterFileSelector|RegisterInfoText|RegisterParameterBool|RegisterParameterColor|RegisterParameterContainer|RegisterParameterDouble|RegisterParameterDropDown|RegisterParameterHList|RegisterParameterImage|RegisterParameterInt|RegisterParameterList|RegisterParameterSliderDouble|RegisterParameterSliderInt|RegisterParameterString|RegisterParameterText|RegisterPluginVersion|RegisterPushButton|RegisterRadioButton|RegisterTextChangedCallback|RemoveHandler|RemoveTrace|Replace|ReplaceChar|ResetPositionTracking|ResetRotationTracking|RFind|Right|Rotate|RotateX|RotateY|RotateZ|Round|SaveTextFile|SaveToDb|Scale|ScreenAbsoluteOffsetToLocalPlaneXYOffset|ScreenAbsoluteOffsetToLocalPlaneXZOffset|ScreenAbsoluteOffsetToLocalPlaneYZOffset|ScreenOffsetToContainerOffset|ScreenOffsetToLocalPlaneXYOffset|ScreenOffsetToLocalPlaneXZOffset|ScreenOffsetToLocalPlaneYZOffset|ScreenOffsetToWorldOffset|ScreenPosToLocalGrid|ScreenPosToLocalPlaneXY|ScreenPosToLocalPlaneXZ|ScreenPosToLocalPlaneYZ|ScreenPosToLocalPos|ScreenPosToWorldGrid|ScreenPosToWorldPos|Scrub|ScrubActive|ScrubPending|SendCommand|SendGuiParameterShow|SendGuiParameterUpdate|SendGuiRefresh|SendGuiStatus|SendRemoteCommand|SendVizCommandToHostGroup|SetAnimateParameter|SetCenterPositionLocked|SetCenterScreenGridPositionLocked|SetCenterScreenPositionLocked|SetChanged|SetClipName|SetClipNameBack2Back|SetClipNameBack2BackEx|SetClipNameEx|SetClipNamePending|SetClipNamePendingEx|SetHideParameter|SetParameterBool|SetParameterColor|SetParameterContainer|SetParameterDouble|SetParameterInt|SetParameterString|SetRegisterChangedClipFrame|SetRegisterChangedClipMode|SetRegisterChangedClipModePending|SetRegisterChangedPlayerStatus|SetScreenPositionOrtho|SetScreenSizeOrtho|Show|ShowAllChildContainers|ShowOneChildContainer|Sign|Sin|Sinh|Sort|Split|Sqr|Sqrt|SquaredNorm|StartAnimation|StartApplication|StartsWith|Stop|StopActive|StopAnimation|StopPending|StopSound|Substitute|SwapEofPending|SwapPending|Tan|TclSplit|TcpSend|TcpSendAsync|TcpSendAsyncStatus|ToString|Translate|Transpose|TriangleArea|TriangleCenter|Trim|Unproject|UnregisterChangedCallback|Update|UpdateAnimation|UpdateGuiParameterDoubleDefMinMax|UpdateGuiParameterEntries|UpdateGuiParameterIntDefMinMax|UpdateSceneTree|URLDecode|URLEncode|Utf8ToAnsi|WorldPosToLocalPos|WorldPosToScreenPos)\\b\\s*)",
+		"name": "support.function.viz"
+	  },
+	  {
+		"match": "(?i:\\b(Private|Public|Default|Static|Friend|ReadOnly|Const|Default|Implements|MustInherit|MustOverride|Narrowing|NotInheritable|NotOverridable|Optional|ByRef|ByVal|Overloads|Overridable|Overrides|ParamArray|Partial|Protected|Shadows|Shared|Widening|WriteOnly|WithEvents)\\b)",
+		"name": "storage.modifier.viz"
+	  },
+	  {
+		"match": "(?i:\\s*\\b(Empty|False|Nothing|Null|True)\\b)",
+		"name": "constant.language.viz"
+	  },
+	  {
+		"begin": "\"",
+		"beginCaptures": {
+		  "0": {
+			"name": "punctuation.definition.string.begin.viz"
+		  }
+		},
+		"patterns": [
+		  {
+			"match": "\\\\['\"\\\\nrtbfv0`]",
+			"name": "constant.character.escape.apostrophe.vizasp"
+		  }
+		],
+		"end": "\"",
+		"endCaptures": {
+		  "0": {
+			"name": "punctuation.definition.string.end.viz"
+		  }
+		},
+		"name": "string.quoted.double.viz"
+	  },
+	  {
+		"match": "(?i:(?<=as )(\\b[a-zA-Z_x7f-xff][a-zA-Z0-9_x7f-xff]*?\\b))",
+		"name": ""
+	  },
+	  {
+		"match": "(?i:\\b(Add|Asc|Atn|CBool|CByte|CCur|CDate|CDbl|Chr|CInt|CLng|Conversions|Cos|CreateObject|CSng|CStr|Date|DateAdd|DateDiff|DatePart|DateSerial|DateValue|Day|Derived|Math|Escape|Eval|Exists|Exp|Filter|FormatCurrency|FormatDateTime|FormatNumber|FormatPercent|GetLocale|GetObject|GetRef|Hex|Hour|InputBox|InStr|InStrRev|Int|Fix|IsArray|IsDate|IsEmpty|IsNull|IsNumeric|IsObject|Item|Items|Join|Keys|LBound|LCase|Left|Len|LoadPicture|Log|LTrim|RTrim|Trim|Maths|Mid|Minute|Month|MonthName|MsgBox|Now|Oct|Remove|RemoveAll|Replace|RGB|Right|Rnd|Round|ScriptEngine|ScriptEngineBuildVersion|ScriptEngineMajorVersion|ScriptEngineMinorVersion|Second|SetLocale|Sgn|Sin|Space|Split|Sqr|StrComp|String|StrReverse|Tan|Time|Timer|TimeSerial|TimeValue|TypeName|UBound|UCase|Unescape|VarType|Weekday|WeekdayName|Year|CChar|CDec|CSByte|CShort|CType|CUInt|CULng|CUShort|GetType|GetXMLNamespace|VizId)\\b)",
+		"name": "support.function.viz"
+	  },
+	  {
+		"match": "(?i:\\b(Abs|Acos|AddContainer|AddDirector|AddHandler|AddHostToGroup|AddKeyframe|AddLogMessage|AddScreenOffset|AddTrace|AngleBetweenVectors|AnsiToUtf8|Append|Asc|Asin|Atan|Atan2|CBool|CColor|CDbl|Ceil|Chr|CInt|Clear|ClearHostGroup|ContainsKey|ContainsMouseCursor|Continue|ContinueActive|ContinueAnimation|ContinuePending|CopyTo|CopyToDirector|Cos|Cosh|CreateAlpha|CreateExpert|CreateFunction|CreateGeometry|CreateGlow|CreateHDR|CreateInfoText|CreateKey|CreateMaterial|CreateRootContainer|CreateRootDirector|CreateTexture|CStr|CTrace|CUuid|CVertex|Delete|DeleteAlpha|DeleteChildren|DeleteExpert|DeleteFile|DeleteFunction|DeleteGeometry|DeleteGlow|DeleteHDR|DeleteInfoText|DeleteKey|DeleteKeyframe|DeleteMaterial|DeleteTexture|Determinant|DirectoryExists|Distance|Distance2|DistanceToLine|DistanceToPlane|DistanceToPlaneSigned|DoubleToString|EndsWith|Erase|EraseChar|Exp|ExploreDocument|FaceOutputNormal|FileExists|Find|FindActionChannel|FindChannel|FindChannelOfObject|FindContainer|FindDirector|FindFirstNotOf|FindFirstOf|FindKeyframe|FindKeyframeOfObject|FindLastNotOf|FindLastOf|FindOrCreateChannelOfObject|FindSiblingSubContainer|FindSubContainer|FindSubDirector|FindSuperContainer|Fix|Floor|Flush|FlushActive|FlushPending|Frustum|GenerateNewUuid|Get|GetActionChannel|GetAnimationChannel|GetAnimationChannels|GetBezierHandle|GetBoundingBox|GetBoundingBoxDimensions|GetCamera|GetChannels|GetChannelsOfObject|GetChar|GetChildContainerByIndex|GetChildContainerContainingMouseCursor|GetClipChannel|GetClipName|GetClipNameActive|GetClipNamePending|GetContainerAndSubContainers|GetCurrentTime|GetDeterminant|GetDevice|GetDirector|GetDirectorOfMergedGeometry|GetDirectoryContent|GetElapsedTime|GetFirstActiveChildContainer|GetFunctionPluginInstance|GetGeometryPluginInstance|GetGrid|GetIndexOfFirstActiveChildContainer|GetKeyframe|GetKeyframes|GetKeys|GetLight|GetLocalIndex|GetNumberOfAnimationChannels|GetNumberOfClipChannel|GetNumberOfTimecodeSources|GetParameterBool|GetParameterColor|GetParameterContainer|GetParameterDouble|GetParameterInt|GetParameterString|GetRegisterChangedClipFrame|GetRegisterChangedClipMode|GetRegisterChangedClipModePending|GetReportValues|GetReportValuesPending|GetRotation|GetScaling|GetScaling2|GetScenePluginInstance|GetScreenBounds|GetScreenPointToGeomSurface|GetScreenPositionOrtho|GetScreenSizeOrtho|GetShaderPluginInstance|GetString|GetSubstring|GetTickCount|GetTimecode|GetTimecodeByIndex|GetTouch|GetTrace|GetTraceByIndex|GetTransformedBoundingBox|GetTransformedBoundingBoxDimensions|GetTranslation|GetType|GetUnlockedGrid|GetUVCoordinatesOfScreenPoint|GlNormal|GlVertex|HasAnimationChannels|HideAllChildContainers|Insert|Int|IntToString|Invert|IsAnimated|IsAnimationRunning|IsBacklayer|IsClipLoaded|IsClipLoadedActive|IsClipLoadedPending|IsFrontlayer|IsKeyDown|IsLButtonDown|IsMainlayer|IsMButtonDown|IsOnTop|IsRButtonDown|IsScreenPointInBoundingBox|IsVertexInBoundingBox|Join|Left|Len|LineLineIntersection|LoadBackScene|LoadFromDb|LoadFrontScene|LoadIdentity|LoadMainScene|LoadMatrix|LoadTextFile|LocalPosToScreenPos|LocalPosToWorldPos|Log|MakeLower|MakeUpper|Match|Max|Min|MirrorAroundLine|MirrorAroundVector|MouseOverIPDefineServer|MouseOverIPQuitServer|MouseOverIPRegister|MouseOverIPUndefineAllServers|MouseOverIPUndefineServer|MouseOverIPUnregister|MouseOverIPUnregisterAll|MoveAllChannelsToDirector|MoveTo|MoveToContainer|MoveToDirector|MoveToKeepTransformation|MTRegister|MTRegisterEx|MTSetPosition|MTUnregister|MultMatrix|Norm|Normalize|OnButtonDown6DOF|OnButtonUp6DOF|OnEnter|OnEnterSubContainer|OnExecAction|OnExecPerField|OnGesture|OnGuiStatus|OnInit|OnInitParameters|OnKeyDown|OnKeyUp|OnLButtonDown|OnLButtonUp|OnLeave|OnLeaveSubContainer|OnMButtonDown|OnMButtonUp|OnMouseMove|OnMouseWheel|OnMove6DOF|OnMoveRelative6DOF|OnMTControlButton|OnMTControlInactive|OnMTControlPZR2D|OnMTHit|OnMTMenu|OnParameterChanged|OnRButtonDown|OnRButtonUp|OnScale6DOF|OnTouchTrace|OpenDocument|Ortho|PadLeft|PadRight|Pause|PauseActive|PausePending|Perspective|PlaneLineIntersection|Play|PlayActive|PlayPending|PlaySound|Pop|Prepend|Println|Project|ProjectOnLine|ProjectOnVector|Push|PushButton|Random|Rebuild|RecomputeMatrix|RegisterChangedCallback|RegisterDirSelector|RegisterFileSelector|RegisterInfoText|RegisterParameterBool|RegisterParameterColor|RegisterParameterContainer|RegisterParameterDouble|RegisterParameterDropDown|RegisterParameterHList|RegisterParameterImage|RegisterParameterInt|RegisterParameterList|RegisterParameterSliderDouble|RegisterParameterSliderInt|RegisterParameterString|RegisterParameterText|RegisterPluginVersion|RegisterPushButton|RegisterRadioButton|RegisterTextChangedCallback|RemoveHandler|RemoveTrace|Replace|ReplaceChar|ResetPositionTracking|ResetRotationTracking|RFind|Right|Rotate|RotateX|RotateY|RotateZ|Round|SaveTextFile|SaveToDb|Scale|ScreenAbsoluteOffsetToLocalPlaneXYOffset|ScreenAbsoluteOffsetToLocalPlaneXZOffset|ScreenAbsoluteOffsetToLocalPlaneYZOffset|ScreenOffsetToContainerOffset|ScreenOffsetToLocalPlaneXYOffset|ScreenOffsetToLocalPlaneXZOffset|ScreenOffsetToLocalPlaneYZOffset|ScreenOffsetToWorldOffset|ScreenPosToLocalGrid|ScreenPosToLocalPlaneXY|ScreenPosToLocalPlaneXZ|ScreenPosToLocalPlaneYZ|ScreenPosToLocalPos|ScreenPosToWorldGrid|ScreenPosToWorldPos|Scrub|ScrubActive|ScrubPending|SendCommand|SendGuiParameterShow|SendGuiParameterUpdate|SendGuiRefresh|SendGuiStatus|SendRemoteCommand|SendVizCommandToHostGroup|SetAnimateParameter|SetCenterPositionLocked|SetCenterScreenGridPositionLocked|SetCenterScreenPositionLocked|SetChanged|SetClipName|SetClipNameBack2Back|SetClipNameBack2BackEx|SetClipNameEx|SetClipNamePending|SetClipNamePendingEx|SetHideParameter|SetParameterBool|SetParameterColor|SetParameterContainer|SetParameterDouble|SetParameterInt|SetParameterString|SetRegisterChangedClipFrame|SetRegisterChangedClipMode|SetRegisterChangedClipModePending|SetRegisterChangedPlayerStatus|SetScreenPositionOrtho|SetScreenSizeOrtho|Show|ShowAllChildContainers|ShowOneChildContainer|Sign|Sin|Sinh|Sort|Split|Sqr|Sqrt|SquaredNorm|StartAnimation|StartApplication|StartsWith|Stop|StopActive|StopAnimation|StopPending|StopSound|Substitute|SwapEofPending|SwapPending|Tan|TclSplit|TcpSend|TcpSendAsync|TcpSendAsyncStatus|ToString|Translate|Transpose|TriangleArea|TriangleCenter|Trim|Unproject|UnregisterChangedCallback|Update|UpdateAnimation|UpdateGuiParameterDoubleDefMinMax|UpdateGuiParameterEntries|UpdateGuiParameterIntDefMinMax|UpdateSceneTree|URLDecode|URLEncode|Utf8ToAnsi|WorldPosToLocalPos|WorldPosToScreenPos|VizId)\\b)",
+		"name": "support.function.viz"
+	  },
+	  {
+		"match": "-?\\b((0(x|X)[0-9a-fA-F]*)|(([0-9]+\\.?[0-9]*)|(\\.[0-9]+))((e|E)(\\+|-)?[0-9]+)?)(L|l|UL|ul|u|U|F|f)?\\b",
+		"name": "constant.numeric.viz"
+	  },
+	  {
+		"captures": {
+		  "1": {
+			"name": "entity.name.function.viz"
+		  }
+		},
+		"match": "(?i:(\\b[a-zA-Z_x7f-xff][a-zA-Z0-9_x7f-xff]*?\\b)(?=\\(\\)?))",
+		"name": "support.function.viz"
+	  },
+	  {
+		"match": "(?i:((?<=(\\+|=|-|\\&|\\\\|/|<|>|\\(|,))\\s*\\b([a-zA-Z_x7f-xff][a-zA-Z0-9_x7f-xff]*?)\\b(?!(\\(|\\.))|\\b([a-zA-Z_x7f-xff][a-zA-Z0-9_x7f-xff]*?)\\b(?=\\s*(\\+|=|-|\\&|\\\\|/|<|>|\\(|\\)))))",
+		"name": ""
+	  },
+	  {
+		"match": "!|\\$|%|&|\\*|\\-\\-|\\-|\\+\\+|\\+|~|===|==|=|!=|!==|<=|>=|<<=|>>=|>>>=|<>|<|>|!|&&|\\|\\||\\?\\:|\\*=|/=|%=|\\+=|\\-=|&=|\\^=|\\b(New|#Region|#End Region|#Const|#If|#ElseIf|#End If)\\b",
+		"name": "keyword.operator.js"
+	  }
+	],
+	"repository": {
+	  "round-brackets": {
+		"begin": "\\(",
+		"beginCaptures": {
+		  "0": {
+			"name": "punctuation.section.round-brackets.begin.viz"
+		  }
+		},
+		"end": "\\)",
+		"endCaptures": {
+		  "0": {
+			"name": "punctuation.section.round-brackets.end.viz"
+		  }
+		},
+		"name": "meta.round-brackets",
+		"patterns": [
+		  {
+			"include": "source.viz"
+		  }
+		]
+	  }
+	},
+	"scopeName": "source.viz"
+  }
+  
+  
+  

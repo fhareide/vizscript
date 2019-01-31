@@ -38,7 +38,7 @@ export function activate(context: ExtensionContext) {
 	// Options to control the language client
 	let clientOptions: LanguageClientOptions = {
 		// Register the server for viz documents
-		documentSelector: ['plaintext','vs', 'viz', 'v3script'],
+		documentSelector: ['vs', 'viz', 'v3script'],
 		synchronize: {
 			// Notify the server about file changes to '.clientrc files contained in the workspace
 			fileEvents: workspace.createFileSystemWatcher('**/.clientrc')
