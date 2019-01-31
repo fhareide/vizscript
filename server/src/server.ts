@@ -367,10 +367,10 @@ function FindSymbol(statement: MultiLineStatement, uri: string, symbols: Set<VBS
 		return;
 	}
 
-	if(GetClassStart(statement, uri))
+	if(GetStructureStart(statement, uri))
 		return;
 
-	newSym = GetClassSymbol(statement, uri);
+	newSym = GetStructureSymbol(statement, uri);
 	if(newSym != null) {
 		symbols.add(newSym);
 		return;
@@ -414,32 +414,33 @@ let openMethod: OpenMethod = null;
 function GetMethodStart(statement: MultiLineStatement, uri: string): boolean {
 	let line = statement.GetFullStatement();
 
-	let rex:RegExp = /^[ \t]*(public[ \t]+|private[ \t]+)?(function|sub)([ \t]+)([a-zA-Z0-9\-\_]+)([ \t]*)(\(([a-zA-Z0-9\_\-, \t(\(\))]*)\))?[ \t]*$/gi;
+	let rex:RegExp = /^[ \t]*?(function|sub)[ \t]+([a-zA-Z0-9\-\_]+)[ \t]*(\(([a-zA-Z0-9\[\]\_\-, \t(\(\))]*)\))*[ \t]*(as)*[ \t]*([a-zA-Z0-9\-\_]*)?[ \t]*$/gi;
+
 	let regexResult = rex.exec(line);
 
-	if(regexResult == null || regexResult.length < 6)
+	if(regexResult == null || regexResult.length < 4)
 		return;
 
 	if(openMethod == null) {
 		let leadingSpaces = GetNumberOfFrontSpaces(line);
 		let preLength = leadingSpaces + regexResult.index;
 
-		for (var i = 1; i < 6; i++) {
+		for (var i = 1; i < 3; i++) {
 			var resElement = regexResult[i];
 			if(resElement != null)
 				preLength += resElement.length;
 		}
 
 		openMethod = {
-			visibility: regexResult[1],
-			type: regexResult[2],
-			name: regexResult[4],
+			visibility: "",
+			type: regexResult[1],
+			name: regexResult[2],
 			argsIndex: preLength + 1, // opening bracket
-			args: regexResult[7],
+			args: regexResult[4],
 			startPosition: statement.GetPostitionByCharacter(leadingSpaces),
 			nameLocation: ls.Location.create(uri, ls.Range.create(
-				statement.GetPostitionByCharacter(line.indexOf(regexResult[3])),
-				statement.GetPostitionByCharacter(line.indexOf(regexResult[3]) + regexResult[3].length))
+				statement.GetPostitionByCharacter(line.indexOf(regexResult[2])),
+				statement.GetPostitionByCharacter(line.indexOf(regexResult[2]) + regexResult[2].length))
 			),
 			statement: statement
 		};
@@ -459,7 +460,7 @@ function GetMethodStart(statement: MultiLineStatement, uri: string): boolean {
 function GetMethodSymbol(statement: MultiLineStatement, uri: string) : VBSSymbol[] {
 	let line: string = statement.GetFullStatement();
 
-	let classEndRegex:RegExp = /^[ \t]*end[ \t]+(function|sub)[ \t]*$/gi;
+	let classEndRegex:RegExp = /^[ \t]*end[ \t]+(function|sub)?[ \t]*$/gi;
 
 	let regexResult = classEndRegex.exec(line);
 
@@ -521,13 +522,15 @@ function GetParameterSymbols(args: string, argsIndex: number, statement: MultiLi
 		varSymbol.type = "";
 		varSymbol.visibility = "";
 
-		if(splittedByValByRefName.length == 1)
+		if(splittedByValByRefName.length == 3){
 			varSymbol.name = splittedByValByRefName[0].trim();
-		else if(splittedByValByRefName.length > 1)
+			varSymbol.type = splittedByValByRefName[2].trim();
+		}
+		else if(splittedByValByRefName.length > 3)
 		{
 			// ByVal or ByRef
-			varSymbol.type = splittedByValByRefName[0].trim();
-			varSymbol.name = splittedByValByRefName[1].trim();
+			varSymbol.type = splittedByValByRefName[1].trim();
+			varSymbol.name = splittedByValByRefName[3].trim();
 		}
 
 		let range = ls.Range.create(
@@ -814,10 +817,10 @@ function GetConstantSymbol(statement: MultiLineStatement, uri: string) : VBSCons
 	return symbol;
 }
 
-function GetClassStart(statement: MultiLineStatement, uri: string) : boolean {
+function GetStructureStart(statement: MultiLineStatement, uri: string) : boolean {
 	let line: string = statement.GetFullStatement();
 
-	let classStartRegex:RegExp = /^[ \t]*class[ \t]+([a-zA-Z0-9\-\_]+)[ \t]*$/gi;
+	let classStartRegex:RegExp = /^[ \t]*structure[ \t]+([a-zA-Z0-9\-\_]+)[ \t]*$/gi;
 	let regexResult = classStartRegex.exec(line);
 
 	if(regexResult == null || regexResult.length < 2)
@@ -830,10 +833,10 @@ function GetClassStart(statement: MultiLineStatement, uri: string) : boolean {
 	return true;
 }
 
-function GetClassSymbol(statement: MultiLineStatement, uri: string) : VBSClassSymbol {
+function GetStructureSymbol(statement: MultiLineStatement, uri: string) : VBSClassSymbol {
 	let line: string = statement.GetFullStatement();
 
-	let classEndRegex:RegExp = /^[ \t]*end[ \t]+class[ \t]*$/gi;
+	let classEndRegex:RegExp = /^[ \t]*end[ \t]+structure[ \t]*$/gi;
 
 	if(openClassName == null)
 		return null;

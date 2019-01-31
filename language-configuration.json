@@ -7,9 +7,9 @@
     },
     // symbols used as brackets
     "brackets": [
-        ["sub", "end sub"],
-        ["function", "end function"],
-        ["structure", "end structure"],
+    //    ["sub", "end sub"],
+    //    ["function", "end function"],
+    //    ["structure", "end structure"],
         ["[", "]"],
         ["(", ")"]
     ],

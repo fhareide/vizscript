@@ -54,7 +54,7 @@
 	  },
 	  {
 		"name": "meta.function.viz",
-		"match": "^\\s*((?i:function|sub))\\s*([a-zA-Z_]\\w*)\\s*(\\()([^)]*)(\\))( as [a-zA-Z_]\\w*).*\\n?",
+		"match": "^\\s*((?i:function|sub))\\s*([a-zA-Z_]\\w*)\\s*(\\()([^)]*)(\\))[ \t]+(as)[ \t]+([a-zA-Z\\[\\]_]\\w*).*\\n?",
   
 		"captures": {
 		  "1": {
@@ -72,7 +72,6 @@
 				{
 				  "name": "storage.type.viz",
 				  "match": "(?i:\\s*\\b(Alpha|Base|BezierHandle|Camera|Center|Channel|ClipChannel|Color|Container|DateTime|Director|Expert|Geometry|Gesture|GestureRecognizer|Procedures|Grid|Image|InfoText|Key|Keyframe|Light|Material|Matrix|PluginInstance|Position|Rotation|Scaling|Scene|Script|ScriptSettings|SharedMemory|Stage|StringMap|System|Texture|Timecode|Touch|Trace|Uuid|Variant|Vertex|VizCommunication|Array|Boolean|Byte|Char|Date|Decimal|Double|Integer|Long|Object|Println|SByte|Short|Single|String|StringMap|UInteger|ULong|UShort)\\b)"
-				  
 				},
 				{
 				  "name": "keyword.control.viz",
@@ -85,6 +84,9 @@
 		  },
 		  "6": {
 			"name": "keyword.control.viz"
+		  },
+		  "7": {
+			"name": "storage.type.viz"
 		  }
 		}
 	  },

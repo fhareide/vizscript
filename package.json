@@ -27,7 +27,14 @@
             "language": "viz",
             "scopeName": "source.viz",
             "path": "./syntaxes/viz.tmLanguage.json"
-        }],
+		}],
+		"themes": [
+            {
+                "label": "Viz Script Colors",
+                "uiTheme": "vs-dark",
+                "path": "./themes/Viz Script Colors-color-theme.json"
+            }
+        ],
 		"configuration": {
 			"type": "object",
 			"title": "Example configuration",
