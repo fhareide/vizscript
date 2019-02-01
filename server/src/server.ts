@@ -12,6 +12,7 @@ import { VBSClassSymbol } from './VBSSymbols/VBSClassSymbol';
 import { VBSMemberSymbol } from './VBSSymbols/VBSMemberSymbol';
 import { VBSVariableSymbol } from './VBSSymbols/VBSVariableSymbol';
 import { VBSConstantSymbol } from './VBSSymbols/VBSConstantSymbol';
+import { TextDocumentSyncKind } from 'vscode-languageserver';
 
 // Create a connection for the server. The connection uses Node's IPC as a transport
 let connection: ls.IConnection = ls.createConnection(new ls.IPCMessageReader(process), new ls.IPCMessageWriter(process));
@@ -35,33 +36,67 @@ connection.onInitialize((params): ls.InitializeResult => {
 			textDocumentSync: documents.syncKind,
 			documentSymbolProvider: true,
 			// Tell the client that the server support code complete
-			completionProvider: {
+			completionProvider:  {
 				resolveProvider: true
-			}
+			},
 		}
 	}
 });
 
+const pendingValidationRequests: { [uri: string]: NodeJS.Timer } = {};
+const validationDelayMs = 500;
+
 // The content of a text document has changed. This event is emitted
 // when the text document first opened or when its content has changed.
 documents.onDidChangeContent((change: ls.TextDocumentChangeEvent) => {
+	//connection.console.log("Document changed. version: " + change.document.version.toString());
+	//RefreshDocumentsSymbols(change.document.uri);
+	triggerValidation(change.document);
 });
+
+
+// a document has closed: clear all diagnostics
+documents.onDidClose(event => {
+	cleanPendingValidation(event.document);
+	connection.sendDiagnostics({ uri: event.document.uri, diagnostics: [] });
+});
+
+function cleanPendingValidation(textDocument: ls.TextDocument): void {
+	const request = pendingValidationRequests[textDocument.uri];
+	if (request) {
+		clearTimeout(request);
+		delete pendingValidationRequests[textDocument.uri];
+	}
+}
+
+function triggerValidation(textDocument: ls.TextDocument): void {
+	cleanPendingValidation(textDocument);
+	pendingValidationRequests[textDocument.uri] = setTimeout(() => {
+		delete pendingValidationRequests[textDocument.uri];
+		RefreshDocumentsSymbols(textDocument.uri);
+	}, validationDelayMs);
+}
+
 
 connection.onDidChangeWatchedFiles((changeParams: ls.DidChangeWatchedFilesParams) => {
 	for (let i = 0; i < changeParams.changes.length; i++) {
 		let event = changeParams.changes[i];
-
+		
 		switch(event.type) {
 		 case ls.FileChangeType.Changed:
+		 connection.console.log("changed!");
 		 case ls.FileChangeType.Created:
+		    connection.console.log("created!");
 			RefreshDocumentsSymbols(event.uri);
 			break;
 		case ls.FileChangeType.Deleted:
+			connection.console.log("deleted!");
 			symbolCache[event.uri] = null;
 			break;
 		}
 	}
 });
+
 
 // This handler provides the initial list of the completion items.
 connection.onCompletion((_textDocumentPosition: ls.TextDocumentPositionParams): ls.CompletionItem[] => {
@@ -79,12 +114,13 @@ function GetSymbolsOfDocument(uri: string) : ls.SymbolInformation[] {
 
 function SelectCompletionItems(textDocumentPosition: ls.TextDocumentPositionParams): ls.CompletionItem[] {
 	let symbols = symbolCache[textDocumentPosition.textDocument.uri];
-
+	
 	if(symbols == null) {
 		RefreshDocumentsSymbols(textDocumentPosition.textDocument.uri);
 		symbols = symbolCache[textDocumentPosition.textDocument.uri];
+		connection.console.log("Rebuilt: Symbols length: " + symbols.length.toString() + textDocumentPosition.textDocument.uri);
 	}
-
+    
 	let scopeSymbols = GetSymbolsOfScope(symbols, textDocumentPosition.position);
 	return VBSSymbol.GetLanguageServerCompletionItems(scopeSymbols);
 }
@@ -193,11 +229,11 @@ function PositionInRange(range: ls.Range, position: ls.Position): boolean {
 }
 
 let symbolCache: { [id: string] : VBSSymbol[]; } = {};
-function RefreshDocumentsSymbols(uri: string) {
+function RefreshDocumentsSymbols(uri: string){
 	let startTime: number = Date.now();
 	let symbolsList: VBSSymbol[] = CollectSymbols(documents.get(uri));
 	symbolCache[uri] = symbolsList;
-	console.info("Found " + symbolsList.length + " symbols in '" + uri + "': " + (Date.now() - startTime) + " ms");
+	connection.console.info("Found " + symbolsList.length + " symbols in '" + uri + "': " + (Date.now() - startTime) + " ms");
 }
 
 connection.onDocumentSymbol((docParams: ls.DocumentSymbolParams): ls.SymbolInformation[] => {
@@ -208,131 +244,55 @@ function CollectSymbols(document: ls.TextDocument): VBSSymbol[] {
 	let symbols: Set<VBSSymbol> = new Set<VBSSymbol>();
 	let lines = document.getText().split(/\r?\n/g);
 
-	let startMultiLine: number = -1;
-	let multiLines: string[] = [];
-
 	for (var i = 0; i < lines.length; i++) {
 		let line = lines[i];
-		
+
 		let containsComment = line.indexOf("'");
-		if(containsComment > -1)
+		//Removes comments from symbol lines
+		if(containsComment > -1) 
 			line = line.substring(0, containsComment);
 
-		if(startMultiLine == -1)
-			startMultiLine = i;
+		//Remove literal strings
+		let stringLiterals = /\"(([^\"]|\"\")*)\"/gi;
+		line.replace(stringLiterals, ReplaceBySpaces);
 
-		if(line.trim().endsWith("_")) {
-			multiLines.push(line.slice(0, -1));
-			continue;
-		} else {
-			multiLines.push(line);
-		}
+		let statement: LineStatement = new LineStatement();
+		statement.startLine = i;
+		statement.line = line;
+		statement.startCharacter = 0;
 
-		multiLines = ReplaceStringLiterals(multiLines);
-		let statements = SplitStatements(multiLines, startMultiLine);
 
-		statements.forEach(statement => {
-			FindSymbol(statement, document.uri, symbols);
-		});
-
-		startMultiLine =-1;
-		multiLines = [];
+		connection.console.info("Line " + i.toString() + " is " + statement.line);
+		//FindSymbol(statement, document.uri, symbols);
 	}
+
 
 	return Array.from(symbols);
 }
 
-class MultiLineStatement {
+class LineStatement {
 	startCharacter: number = 0;
 	startLine: number = -1;
-	lines: string[] = [];
+	line: string = "";
 
-	public GetFullStatement(): string {
-		return " ".repeat(this.startCharacter) + this.lines.join("");
+	public GetStatement(): string {
+		return this.line;
 	}
 
 	public GetPostitionByCharacter(charIndex: number) : ls.Position {
 		let internalIndex = charIndex - this.startCharacter;
 
-		for (let i = 0; i < this.lines.length; i++) {
-			let line = this.lines[i];
-			
-			if(internalIndex <= line.length) {
-				if(i == 0)
-					return ls.Position.create(this.startLine + i, internalIndex + this.startCharacter);
-				else
-					return ls.Position.create(this.startLine + i, internalIndex);
-
-			}
-
-			internalIndex = internalIndex - line.length;
-
-			if(internalIndex < 0)
-				break;
+		if(internalIndex < 0){
+		  console.warn("WARNING: cannot resolve " + charIndex + " in me: " + JSON.stringify(this));
+		  return null;
 		}
 
-		console.warn("WARNING: cannot resolve " + charIndex + " in me: " + JSON.stringify(this));
-		return null;
-	}
-}
 
-function SplitStatements(lines: string[], startLineIndex: number): MultiLineStatement[] {
-	let statement: MultiLineStatement = new MultiLineStatement();
-	let statements: MultiLineStatement[] = [];
-	let charOffset: number = 0;
-
-	for (var i = 0; i < lines.length; i++) {
-		var line = lines[i];
-		charOffset = 0;
-		let sts: string[] = line.split(":");
+		return ls.Position.create(this.startLine , internalIndex + this.startCharacter);
 		
-		if(sts.length == 1) {
-			statement.lines.push(sts[0]);
-			if(statement.startLine == -1) {
-				statement.startLine = startLineIndex + i;
-			}
-		} else {
-			for (var j = 0; j < sts.length; j++) {
-				var st = sts[j];
-				
-				if(statement.startLine == -1)
-					statement.startLine = startLineIndex + i;
-				
-				statement.lines.push(st);
-				
-				if(j == sts.length-1) {
-					break;
-				}
-				
-				statement.startCharacter = charOffset;
-				statements.push(statement);
-				statement = new MultiLineStatement();
-
-				charOffset += st.length 
-					+ 1; // ":"
-			}
-		}
 	}
-
-	if(statement.startLine != -1) {
-		statement.startCharacter = charOffset;
-		statements.push(statement);
-	}
-
-	return statements;
 }
 
-function ReplaceStringLiterals(lines:string[]) : string[] {
-	let newLines: string[] = [];
-
-	for (var i = 0; i < lines.length; i++) {
-		var line = lines[i];
-		let stringLiterals = /\"(([^\"]|\"\")*)\"/gi;
-		newLines.push(line.replace(stringLiterals, ReplaceBySpaces));
-	}
-
-	return newLines;
-}
 
 function ReplaceBySpaces(match: string) : string {
 	return " ".repeat(match.length);
@@ -344,7 +304,7 @@ function AddArrayToSet(s: Set<any>, a: any[]) {
 	});
 }
 
-function FindSymbol(statement: MultiLineStatement, uri: string, symbols: Set<VBSSymbol>) : void {
+function FindSymbol(statement: LineStatement, uri: string, symbols: Set<VBSSymbol>) : void {
 	let newSym: VBSSymbol;
 	let newSyms: VBSVariableSymbol[] = null;
 
@@ -406,13 +366,13 @@ class OpenMethod {
 	args: string;
 	startPosition: ls.Position;
 	nameLocation: ls.Location;
-	statement: MultiLineStatement;
+	statement: LineStatement;
 }
 
 let openMethod: OpenMethod = null;
 
-function GetMethodStart(statement: MultiLineStatement, uri: string): boolean {
-	let line = statement.GetFullStatement();
+function GetMethodStart(statement: LineStatement, uri: string): boolean {
+	let line = statement.line;
 
 	let rex:RegExp = /^[ \t]*?(function|sub)[ \t]+([a-zA-Z0-9\-\_]+)[ \t]*(\(([a-zA-Z0-9\[\]\_\-, \t(\(\))]*)\))*[ \t]*(as)*[ \t]*([a-zA-Z0-9\-\_]*)?[ \t]*$/gi;
 
@@ -457,8 +417,8 @@ function GetMethodStart(statement: MultiLineStatement, uri: string): boolean {
 	return false;
 }
 
-function GetMethodSymbol(statement: MultiLineStatement, uri: string) : VBSSymbol[] {
-	let line: string = statement.GetFullStatement();
+function GetMethodSymbol(statement: LineStatement, uri: string) : VBSSymbol[] {
+	let line: string = statement.line;
 
 	let classEndRegex:RegExp = /^[ \t]*end[ \t]+(function|sub)?[ \t]*$/gi;
 
@@ -504,7 +464,7 @@ function ReplaceAll(target: string, search: string, replacement: string): string
     return target.replace(new RegExp(search, 'g'), replacement);
 };
 
-function GetParameterSymbols(args: string, argsIndex: number, statement: MultiLineStatement, uri: string): VBSVariableSymbol[] {
+function GetParameterSymbols(args: string, argsIndex: number, statement: LineStatement, uri: string): VBSVariableSymbol[] {
 	let symbols: VBSVariableSymbol[] = [];
 
 	if(args == null || args == "")
@@ -569,13 +529,13 @@ class OpenProperty {
 	args: string;
 	startPosition: ls.Position;
 	nameLocation: ls.Location;
-	statement: MultiLineStatement;
+	statement: LineStatement;
 }
 
 let openProperty: OpenProperty = null;
 
-function GetPropertyStart(statement: MultiLineStatement, uri: string) : boolean {
-	let line: string = statement.GetFullStatement();
+function GetPropertyStart(statement: LineStatement, uri: string) : boolean {
+	let line: string = statement.line;
 
 	let propertyStartRegex:RegExp = /^[ \t]*(public[ \t]+|private[ \t]+)?(default[ \t]+)?(property[ \t]+)(let[ \t]+|set[ \t]+|get[ \t]+)([a-zA-Z0-9\-\_]+)([ \t]*)(\(([a-zA-Z0-9\_\-, \t(\(\))]*)\))?[ \t]*$/gi;
 	let regexResult = propertyStartRegex.exec(line);
@@ -619,8 +579,8 @@ function GetPropertyStart(statement: MultiLineStatement, uri: string) : boolean 
 	return false;
 }
 
-function GetPropertySymbol(statement: MultiLineStatement, uri: string) : VBSSymbol[] {
-	let line: string = statement.GetFullStatement();
+function GetPropertySymbol(statement: LineStatement, uri: string) : VBSSymbol[] {
+	let line: string = statement.line;
 
 	let classEndRegex:RegExp = /^[ \t]*end[ \t]+property[ \t]*$/gi;
 
@@ -658,8 +618,8 @@ function GetPropertySymbol(statement: MultiLineStatement, uri: string) : VBSSymb
 	return parametersSymbol.concat(symbol);
 }
 
-function GetMemberSymbol(statement: MultiLineStatement, uri: string) : VBSMemberSymbol {
-	let line: string = statement.GetFullStatement();
+function GetMemberSymbol(statement: LineStatement, uri: string) : VBSMemberSymbol {
+	let line: string = statement.line;
 
 	let memberStartRegex:RegExp = /^[ \t]*(public[ \t]+|private[ \t]+)([a-zA-Z0-9\-\_]+)[ \t]*$/gi;
 	let regexResult = memberStartRegex.exec(line);
@@ -698,23 +658,24 @@ function GetVariableNamesFromList(vars: string): string[] {
 	return vars.split(',').map(function(s) { return s.trim(); });
 }
 
-function GetVariableSymbol(statement: MultiLineStatement, uri: string) : VBSVariableSymbol[] {
-	let line: string = statement.GetFullStatement();
+function GetVariableSymbol(statement: LineStatement, uri: string) : VBSVariableSymbol[] {
+	let line: string = statement.line;
 
 	let variableSymbols: VBSVariableSymbol[] = [];
-	let memberStartRegex:RegExp = /^[ \t]*(dim[ \t]+)(([a-zA-Z0-9\-\_]+[ \t]*\,[ \t]*)*)([a-zA-Z0-9\-\_]+)[ \t]*$/gi;
+	let memberStartRegex:RegExp = /^[ \t]*(dim[ \t]+)([a-zA-Z0-9\-\_\,]+)*([ \t]as|[ \t]=)*[ \t]*([a-zA-Z0-9\-\_\"]+)[ \t]*([ \t]=)*[ \t]*([a-zA-Z0-9\-\.\_\"\(\)]*)$/gi;
 	let regexResult = memberStartRegex.exec(line);
 
 	if(regexResult == null || regexResult.length < 3)
 		return null;
 
 	// (dim[ \t]+)
-	let visibility = regexResult[1];
-	let variables = GetVariableNamesFromList(regexResult[2] + regexResult[4]);
+	let visibility = "";
+	let variables = GetVariableNamesFromList(regexResult[2]);
 	let intendention = GetNumberOfFrontSpaces(line);
 	let nameStartIndex = line.indexOf(line);
 	let firstElementOffset = visibility.length;
 	let parentName: string = "";
+	let type: string = regexResult[4]
 
 	if(openClassName != null)
 		parentName = openClassName;
@@ -731,7 +692,7 @@ function GetVariableSymbol(statement: MultiLineStatement, uri: string) : VBSVari
 		symbol.visibility = "";
 		symbol.type = "";
 		symbol.name = varName;
-		symbol.args = "";
+		symbol.args = type;
 		symbol.nameLocation = ls.Location.create(uri, 
 			GetNameRange(statement, varName )
 		);
@@ -750,10 +711,10 @@ function GetVariableSymbol(statement: MultiLineStatement, uri: string) : VBSVari
 	return variableSymbols;
 }
 
-function GetNameRange(statement: MultiLineStatement, name: string): ls.Range {
-	let line: string = statement.GetFullStatement();
+function GetNameRange(statement: LineStatement, name: string): ls.Range {
+	let line: string = statement.line;
 
-	let findVariableName = new RegExp("(" + name.trim() + "[ \t]*)(\,|$)","gi");
+	let findVariableName = new RegExp("(" + name.trim() + "[ \t]*)","gi");
 	let matches = findVariableName.exec(line);
 
 	let rng = ls.Range.create(
@@ -764,11 +725,11 @@ function GetNameRange(statement: MultiLineStatement, name: string): ls.Range {
 	return rng;
 }
 
-function GetConstantSymbol(statement: MultiLineStatement, uri: string) : VBSConstantSymbol {
+function GetConstantSymbol(statement: LineStatement, uri: string) : VBSConstantSymbol {
 	if(openMethod != null || openProperty != null)
 		return null;
 
-	let line: string = statement.GetFullStatement();
+	let line: string = statement.line;
 
 	let memberStartRegex:RegExp = /^[ \t]*(public[ \t]+|private[ \t]+)?const[ \t]+([a-zA-Z0-9\-\_]+)[ \t]*\=.*$/gi;
 	let regexResult = memberStartRegex.exec(line);
@@ -817,8 +778,8 @@ function GetConstantSymbol(statement: MultiLineStatement, uri: string) : VBSCons
 	return symbol;
 }
 
-function GetStructureStart(statement: MultiLineStatement, uri: string) : boolean {
-	let line: string = statement.GetFullStatement();
+function GetStructureStart(statement: LineStatement, uri: string) : boolean {
+	let line: string = statement.line;
 
 	let classStartRegex:RegExp = /^[ \t]*structure[ \t]+([a-zA-Z0-9\-\_]+)[ \t]*$/gi;
 	let regexResult = classStartRegex.exec(line);
@@ -833,8 +794,8 @@ function GetStructureStart(statement: MultiLineStatement, uri: string) : boolean
 	return true;
 }
 
-function GetStructureSymbol(statement: MultiLineStatement, uri: string) : VBSClassSymbol {
-	let line: string = statement.GetFullStatement();
+function GetStructureSymbol(statement: LineStatement, uri: string) : VBSClassSymbol {
+	let line: string = statement.line;
 
 	let classEndRegex:RegExp = /^[ \t]*end[ \t]+structure[ \t]*$/gi;
 
@@ -872,6 +833,31 @@ function GetStructureSymbol(statement: MultiLineStatement, uri: string) : VBSCla
 
 	return symbol;
 }
+
+/*
+connection.onDidOpenTextDocument((params) => {
+	// A text document got opened in VSCode.
+	// params.uri uniquely identifies the document. For documents store on disk this is a file URI.
+	// params.text the initial full content of the document.
+	connection.console.log("created!");
+	//RefreshDocumentsSymbols(params.textDocument.uri);
+	//connection.console.log(`${params.textDocument.uri} opened.`);
+});5
+connection.onDidChangeTextDocument((params) => {
+	// The content of a text document did change in VSCode.
+	// params.uri uniquely identifies the document.
+	// params.contentChanges describe the content changes to the document.
+	//RefreshDocumentsSymbols(params.textDocument.uri);
+	connection.console.log(`${params.textDocument.uri} changed: ${JSON.stringify(params.contentChanges)}`);
+});
+connection.onDidCloseTextDocument((params) => {
+	// A text document got closed in VSCode.
+	// params.uri uniquely identifies the document.
+	symbolCache[params.textDocument.uri] = null;
+	//connection.console.log(`${params.textDocument.uri} closed.`);
+});
+*/
+
 
 // Listen on the connection
 connection.listen();

@@ -47,8 +47,8 @@ export function activate(context: ExtensionContext) {
 
 	// Create the language client and start the client.
 	client = new LanguageClient(
-		'languageServerExample',
-		'Language Server Example',
+		'vizLanguageServer',
+		'VizScript Server',
 		serverOptions,
 		clientOptions
 	);

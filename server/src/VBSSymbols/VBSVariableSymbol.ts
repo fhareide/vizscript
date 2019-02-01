@@ -8,6 +8,7 @@ export class VBSVariableSymbol extends VBSSymbol {
 
 	public GetLsCompletionItem(): ls.CompletionItem {
 		let item = ls.CompletionItem.create(this.name);
+		item.documentation = this.visibility + " " + this.type + " " + this.name + "(" + this.args + ")"
 		item.filterText = this.name;
 		item.insertText = this.name;
 		item.kind = ls.CompletionItemKind.Variable;

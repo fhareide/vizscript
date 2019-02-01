@@ -4,10 +4,12 @@
 		"vs",
 		"v3script"
 	  ],
-	"foldingStartMarker": "(<(?i:(head|table|div|style|script|ul|ol|form|dl))\\b.*?>|\\{|^\\s*<?%?\\s*'?\\s*(?i:(sub|private\\s+Sub|public\\s+Sub|function|if|while|For))\\s*.*$)",
-	"foldingStopMarker": "(</(?i:(head|table|div|style|script|ul|ol|form|dl))>?|\\}|^\\s*<?%?\\s*\\s*'?\\s*(?i:(end|Next))\\s*.*$)",
+	"foldingStartMarker": "^(?i:(sub\\s+|function\\s+).*$)\\n?",
+	"foldingStopMarker": "(?i:(end\\s+)).*$\\n?",
 	"keyEquivalent": "^~A",
 	"name": "VizScript",
+
+	"scopeName": "source.viz",
 	"patterns": [
 	  {
 		"include": "#round-brackets"
@@ -54,7 +56,7 @@
 	  },
 	  {
 		"name": "meta.function.viz",
-		"match": "^\\s*((?i:function|sub))\\s*([a-zA-Z_]\\w*)\\s*(\\()([^)]*)(\\))[ \t]+(as)[ \t]+([a-zA-Z\\[\\]_]\\w*).*\\n?",
+		"match": "^\\s*((?i:function|sub))\\s*([a-zA-Z_]\\w*)\\s*(\\()([^)]*)(\\))[ \\t]+(as)[ \\t]+([a-zA-Z\\[\\]_]\\w*)[ \\t]*('.*$)\\n?",
   
 		"captures": {
 		  "1": {
@@ -87,6 +89,9 @@
 		  },
 		  "7": {
 			"name": "storage.type.viz"
+		  },
+		  "8": {
+			"name": "comment.line.apostrophe.viz"
 		  }
 		}
 	  },
@@ -241,8 +246,8 @@
 		  }
 		]
 	  }
-	},
-	"scopeName": "source.viz"
+	}
+	
   }
   
   
