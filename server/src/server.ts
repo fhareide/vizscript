@@ -13,7 +13,11 @@ import { VBSMemberSymbol } from './VBSSymbols/VBSMemberSymbol';
 import { VBSVariableSymbol } from './VBSSymbols/VBSVariableSymbol';
 import { VBSConstantSymbol } from './VBSSymbols/VBSConstantSymbol';
 import * as data from './intellisense_data.json';
+import { method } from 'bluebird';
+//import { Convert} from "./data_interface";
+//
 
+//const data = Convert.toWelcome("./intellisense_data.json");
 // Create a connection for the server. The connection uses Node's IPC as a transport
 let connection: ls.IConnection = ls.createConnection(new ls.IPCMessageReader(process), new ls.IPCMessageWriter(process));
 
@@ -75,6 +79,10 @@ function triggerValidation(textDocument: ls.TextDocument): void {
 	pendingValidationRequests[textDocument.uri] = setTimeout(() => {
 		delete pendingValidationRequests[textDocument.uri];
 		RefreshDocumentsSymbols(textDocument.uri);
+		if (symbolCache["builtin"] == null)
+		{
+			RefreshBuiltinSymbols();
+		}
 	}, validationDelayMs);
 }
 
@@ -98,56 +106,13 @@ connection.onDidChangeWatchedFiles((changeParams: ls.DidChangeWatchedFilesParams
 	}
 });
 
-/*
-private onCompletion(pos: LSP.TextDocumentPositionParams): LSP.CompletionItem[] {
-    this.connection.console.log(
-      `Asked for completions at ${pos.position.line}:${pos.position.character}`,
-    )
-    const symbolCompletions = this.analyzer.findSymbolCompletions(pos.textDocument.uri)
-
-    const programCompletions = this.executables.list().map((s: string) => {
-      return {
-        label: s,
-        kind: LSP.SymbolKind.Function,
-        data: {
-          name: s,
-          type: 'executable',
-        },
-      }
-    })
-
-    const builtinsCompletions = Builtins.LIST.map(builtin => ({
-      label: builtin,
-      kind: LSP.SymbolKind.Method, // ??
-      data: {
-        name: builtin,
-        type: 'builtin',
-      },
-    }))
-
-    return [...symbolCompletions, ...programCompletions, ...builtinsCompletions]
-  }
-*/
-function GetBuiltinCompletions(textDocumentPosition: ls.TextDocumentPositionParams): ls.CompletionItem[] {
-	let suggestions: ls.CompletionItem[] = [];
-	data.scopes.forEach(element => {
-		let newSuggestion = ls.CompletionItem.create(element.name);
-		newSuggestion.kind = ls.CompletionItemKind.Class;
-		newSuggestion.commitCharacters = ['.'];
-		newSuggestion.documentation = element.description;
-		suggestions.push(newSuggestion);
-	});
-
-	return suggestions;
-}
-
 // This handler provides the initial list of the completion items.
 connection.onCompletion((textDocumentPos: ls.TextDocumentPositionParams): ls.CompletionItem[] => {
 	connection.console.log(
 		`Asked for completions at ${textDocumentPos.position.line}:${textDocumentPos.position.character}`,
 	  )
 
-	  const builtinCompletions = GetBuiltinCompletions(textDocumentPos);
+	  const builtinCompletions = SelectBuiltinCompletionItems(textDocumentPos);
 
 	  const documentCompletions = SelectCompletionItems(textDocumentPos);
 
@@ -369,8 +334,6 @@ function FindSymbol(statement: LineStatement, uri: string, symbols: Set<VBSSymbo
 		AddArrayToSet(symbols, newSyms);
 		return;
 	}
-
-	
 
 	if(GetPropertyStart(statement, uri))
 		return;
@@ -888,6 +851,92 @@ function GetStructureSymbol(statement: LineStatement, uri: string) : VBSClassSym
 	return symbol;
 }
 
+function RefreshBuiltinSymbols(){
+	let startTime: number = Date.now();
+	let symbolsList: VBSSymbol[] = CollectBuiltinSymbols();
+	symbolCache["builtin"] = symbolsList;
+	connection.console.info("Found " + symbolsList.length + " builtin symbols in " + (Date.now() - startTime) + " ms");
+}
+
+function FindBuiltinSymbols(symbols: Set<VBSSymbol>) : void {
+
+	data.intellisense.scopes.scope.forEach(element => {
+		if (element.name == "Global Procedures")
+		{
+			element.methods.forEach(submethod => {
+				let symbol: VBSMethodSymbol = new VBSMethodSymbol();
+				symbol.visibility = "";
+				symbol.type = submethod.type;
+				symbol.name = submethod.name;
+				symbol.args = submethod.code_completion_hint;
+				symbol.parentName = "ROOT";
+				symbols.add(symbol);
+			});
+		}
+		else
+		{
+			let symbol: VBSClassSymbol = new VBSClassSymbol();
+			symbol.name = element.name;
+			symbol.parentName = "ROOT";
+			symbols.add(symbol);
+			
+			element.methods.forEach(submethod => {
+				let symbol: VBSMethodSymbol = new VBSMethodSymbol();
+				symbol.visibility = "";
+				symbol.type = submethod.type;
+				symbol.name = submethod.name;
+				symbol.args = submethod.code_completion_hint;
+				connection.console.log("Parent name for " + submethod.name + " is " + element.name);
+				symbol.parentName = element.name;
+			});
+			element.properties.forEach(properties => {
+				let symbol: VBSPropertySymbol = new VBSPropertySymbol();
+				symbol.visibility = "";
+				symbol.type = properties.type;
+				symbol.name = properties.name;
+				symbol.args = properties.code_completion_hint;
+				connection.console.log("Parent name for " + properties.name + " is " + element.name);
+				symbol.parentName = element.name;
+			});
+
+		}
+	});
+}
+
+function CollectBuiltinSymbols(): VBSSymbol[] {
+	let symbols: Set<VBSSymbol> = new Set<VBSSymbol>();
+	
+	FindBuiltinSymbols(symbols);
+
+
+	return Array.from(symbols);
+}
+
+function GetBuiltInSymbolsOfScope(symbols: VBSSymbol[], position: ls.Position): VBSSymbol[] {
+	let scopeSymbols: VBSSymbol[] = [];
+	symbols.forEach(symbol => {
+		//connection.console.log(symbol.parentName);
+		if (symbol.parentName == "ROOT")
+		{
+			scopeSymbols.push(symbol);
+		}
+	});
+
+	return scopeSymbols;
+}
+
+
+function SelectBuiltinCompletionItems(textDocumentPosition: ls.TextDocumentPositionParams): ls.CompletionItem[]{
+  let symbols = symbolCache["builtin"];
+    
+  if(symbols == null) {
+		RefreshBuiltinSymbols();
+		symbols = symbolCache["builtin"];
+		connection.console.log("Rebuilt: Builtin symbols length: " + symbols.length.toString());
+	}
+	let scopeSymbols = GetBuiltInSymbolsOfScope(symbols, textDocumentPosition.position);
+	return VBSSymbol.GetLanguageServerCompletionItems(scopeSymbols);
+}
 /*
 connection.onDidOpenTextDocument((params) => {
 	// A text document got opened in VSCode.
