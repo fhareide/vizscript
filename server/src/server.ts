@@ -45,7 +45,7 @@ connection.onInitialize((params): ls.InitializeResult => {
 });
 
 const pendingValidationRequests: { [uri: string]: NodeJS.Timer } = {};
-const validationDelayMs = 2000;
+const validationDelayMs = 500;
 
 // The content of a text document has changed. This event is emitted
 // when the text document first opened or when its content has changed.
@@ -134,7 +134,10 @@ connection.onCompletion((textDocumentPos: ls.TextDocumentPositionParams): ls.Com
 	connection.console.log(
 		`Asked for completions at ${textDocumentPos.position.line}:${textDocumentPos.position.character}`,
 	  )
-	return SelectCompletionItems(textDocumentPos);
+		const documentCompletions = SelectCompletionItems(textDocumentPos);
+
+
+	return documentCompletions;
 });
 
 connection.onCompletionResolve((complItem: ls.CompletionItem): ls.CompletionItem => {
