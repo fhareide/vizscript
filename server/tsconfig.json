@@ -5,7 +5,9 @@
 		"moduleResolution": "node",
 		"sourceMap": true,
 		"outDir": "out",
+		"resolveJsonModule": true,
 		"rootDir": "src",
+
 		"lib": ["es6"]
 	},
 	"include": ["src"],

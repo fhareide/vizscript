@@ -12,7 +12,7 @@ import { VBSClassSymbol } from './VBSSymbols/VBSClassSymbol';
 import { VBSMemberSymbol } from './VBSSymbols/VBSMemberSymbol';
 import { VBSVariableSymbol } from './VBSSymbols/VBSVariableSymbol';
 import { VBSConstantSymbol } from './VBSSymbols/VBSConstantSymbol';
-import { TextDocumentSyncKind, CompletionTriggerKind } from 'vscode-languageserver';
+import * as data from './intellisense_data.json';
 
 // Create a connection for the server. The connection uses Node's IPC as a transport
 let connection: ls.IConnection = ls.createConnection(new ls.IPCMessageReader(process), new ls.IPCMessageWriter(process));
@@ -128,16 +128,31 @@ private onCompletion(pos: LSP.TextDocumentPositionParams): LSP.CompletionItem[] 
     return [...symbolCompletions, ...programCompletions, ...builtinsCompletions]
   }
 */
+function GetBuiltinCompletions(textDocumentPosition: ls.TextDocumentPositionParams): ls.CompletionItem[] {
+	let suggestions: ls.CompletionItem[] = [];
+	data.scopes.forEach(element => {
+		let newSuggestion = ls.CompletionItem.create(element.name);
+		newSuggestion.kind = ls.CompletionItemKind.Class;
+		newSuggestion.commitCharacters = ['.'];
+		newSuggestion.documentation = element.description;
+		suggestions.push(newSuggestion);
+	});
+
+	return suggestions;
+}
 
 // This handler provides the initial list of the completion items.
 connection.onCompletion((textDocumentPos: ls.TextDocumentPositionParams): ls.CompletionItem[] => {
 	connection.console.log(
 		`Asked for completions at ${textDocumentPos.position.line}:${textDocumentPos.position.character}`,
 	  )
-		const documentCompletions = SelectCompletionItems(textDocumentPos);
+
+	  const builtinCompletions = GetBuiltinCompletions(textDocumentPos);
+
+	  const documentCompletions = SelectCompletionItems(textDocumentPos);
 
 
-	return documentCompletions;
+	return documentCompletions.concat(builtinCompletions);
 });
 
 connection.onCompletionResolve((complItem: ls.CompletionItem): ls.CompletionItem => {
