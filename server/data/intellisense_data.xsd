@@ -1,3 +1,4 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
 <xs:schema attributeFormDefault="unqualified" elementFormDefault="qualified" xmlns:xs="http://www.w3.org/2001/XMLSchema">
   <xs:element name="intellisense">
     <xs:complexType>
@@ -5,50 +6,50 @@
         <xs:element name="scopes">
           <xs:complexType>
             <xs:sequence>
-              <xs:element name="scope" maxOccurs="unbounded" minOccurs="0">
+              <xs:element maxOccurs="unbounded" name="scope">
                 <xs:complexType>
                   <xs:sequence>
-                    <xs:element type="xs:string" name="description"/>
+                    <xs:element name="description" type="xs:string" />
                     <xs:element name="properties">
-                      <xs:complexType mixed="true">
-                        <xs:sequence>
-                          <xs:element name="property" maxOccurs="unbounded" minOccurs="0">
+                      <xs:complexType>
+                        <xs:sequence minOccurs="0">
+                          <xs:element maxOccurs="unbounded" name="property">
                             <xs:complexType>
                               <xs:sequence>
-                                <xs:element type="xs:string" name="description"/>
-                                <xs:element type="xs:string" name="code_completion_hint"/>
-                                <xs:element type="xs:string" name="code_insight_hint"/>
+                                <xs:element name="description" type="xs:string" />
+                                <xs:element name="code_completion_hint" type="xs:string" />
+                                <xs:element name="code_insight_hint" type="xs:string" />
                               </xs:sequence>
-                              <xs:attribute type="xs:string" name="name" use="optional"/>
-                              <xs:attribute type="xs:string" name="type" use="optional"/>
-                              <xs:attribute type="xs:string" name="deprecated" use="optional"/>
-                              <xs:attribute type="xs:string" name="return_value_scope" use="optional"/>
+                              <xs:attribute name="name" type="xs:string" use="required" />
+                              <xs:attribute name="type" type="xs:string" use="required" />
+                              <xs:attribute name="deprecated" type="xs:boolean" use="required" />
+                              <xs:attribute name="return_value_scope" type="xs:string" use="required" />
                             </xs:complexType>
                           </xs:element>
                         </xs:sequence>
                       </xs:complexType>
                     </xs:element>
                     <xs:element name="member_methods">
-                      <xs:complexType mixed="true">
-                        <xs:sequence>
-                          <xs:element name="method" maxOccurs="unbounded" minOccurs="0">
+                      <xs:complexType>
+                        <xs:sequence minOccurs="0">
+                          <xs:element maxOccurs="unbounded" name="method">
                             <xs:complexType>
                               <xs:sequence>
-                                <xs:element type="xs:string" name="description"/>
-                                <xs:element type="xs:string" name="code_completion_hint"/>
-                                <xs:element type="xs:string" name="code_insight_hint"/>
+                                <xs:element name="description" type="xs:string" />
+                                <xs:element name="code_completion_hint" type="xs:string" />
+                                <xs:element name="code_insight_hint" type="xs:string" />
                               </xs:sequence>
-                              <xs:attribute type="xs:string" name="name" use="optional"/>
-                              <xs:attribute type="xs:string" name="type" use="optional"/>
-                              <xs:attribute type="xs:string" name="deprecated" use="optional"/>
-                              <xs:attribute type="xs:string" name="return_value_scope" use="optional"/>
+                              <xs:attribute name="name" type="xs:string" use="required" />
+                              <xs:attribute name="type" type="xs:string" use="required" />
+                              <xs:attribute name="deprecated" type="xs:boolean" use="required" />
+                              <xs:attribute name="return_value_scope" type="xs:string" use="required" />
                             </xs:complexType>
                           </xs:element>
                         </xs:sequence>
                       </xs:complexType>
                     </xs:element>
                   </xs:sequence>
-                  <xs:attribute type="xs:string" name="name" use="optional"/>
+                  <xs:attribute name="name" type="xs:string" use="required" />
                 </xs:complexType>
               </xs:element>
             </xs:sequence>
