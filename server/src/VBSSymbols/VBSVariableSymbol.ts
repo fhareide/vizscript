@@ -12,6 +12,7 @@ export class VBSVariableSymbol extends VBSSymbol {
 		item.filterText = this.name;
 		item.insertText = this.name;
 		item.kind = ls.CompletionItemKind.Variable;
+		item.data = this.type;
 		return item;
 	}
 }

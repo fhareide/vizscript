@@ -1,0 +1,214 @@
+﻿<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+  <head>
+    <meta http-equiv="Content-Type" content="text/xhtml;charset=UTF-8" />
+    <meta http-equiv="Content-Style-Type" content="text/css" />
+    <meta http-equiv="Content-Language" content="en" />
+    <link rel="stylesheet" href="Script.css" type="text/css" />
+    <title>Viz 3 Script - Data Sharing</title>
+  </head>
+
+
+<body>
+
+<a href="ScriptMain.html">Viz 3 Script</a>
+
+<h2>Viz 3 Script - Data Sharing</h2>
+
+
+
+<p>This
+document describes the data sharing mechanism provided by shared memory maps (SSM). An SSM
+is a map holding user-defined variables indexed by a string. It is exposed to the script interface via&nbsp; the <a href="DataTypeSharedMemory.html"><i>SharedMemory</i></a> data type. The variables are
+stored as <a href="DataTypeVariant.html"><i>Variant</i></a> objects and thus can hold objects of any other
+type. Any script has access to three SSMs:</p>
+
+
+
+
+<ul>
+
+
+
+ <li><tt><a href="DataTypeScene.html">Scene</a>.Map</tt>: This is the map local to the
+     current scene. Every scene has one map that can be used to exchange data
+     among the scripts in the scene.</li>
+
+
+
+ <li><tt><a href="DataTypeSystem.html">System</a>.Map</tt>:
+     The system-wide map. It allows for data sharing among the scenes currently
+     loaded into memory.</li>
+
+
+
+ <li><tt><a href="DataTypeVizCommunication.html">VizCommunication</a>.Map</tt>:
+     A distributed map that enables data sharing among the computers connected
+     to one viz database.</li>
+
+
+
+</ul>
+
+
+
+
+
+<p>Here is an
+example that shows how a scene map can be used to pass data from one
+script to
+another (within the same scene). The first script defines the
+OnEnterSubContainer, which is called whenever the mouse-cursor enters
+any of its
+sub-containers. In it, the name of the subcontainer
+is stored in the scene map under the key&nbsp;subcontainer_name.</p>
+
+
+
+
+<pre class="code">
+' Script 1:
+<strong>Sub</strong> OnEnterSubContainer(subContainer <strong>As</strong> Container)
+    Scene.Map["subcontainer_name"] = subContainer.Name
+<strong>End Sub</strong>
+</pre>
+
+
+
+
+<p>In a second
+script, we retrieve the previously stored value, cast it to a string, and
+output it as text (we assume that the container
+holding the script has a text geometry). </p>
+
+
+
+
+<pre class="code">
+' Script 2:
+<strong>Sub</strong> OnExecPerField()
+    Geometry.Text = (String)System.Map["subcontainer_name"]
+<strong>End Sub</strong>
+</pre>
+
+
+
+
+<h3>Reveiving Notification on Map Changes</h3>
+
+
+
+
+<p>Sometimes
+you want to be notified when a value in a SSM changes, so you don't have to
+poll for&nbsp;changes within <tt>OnExecPerField</tt>. This is done by calling a map's <tt>RegisterChangedCallback</tt> procedure,
+passing it the name of a key that you want to monitor. Now,
+whenever the variable identified by that key is changed, the <tt>OnSharedMemoryVariableChanged</tt> callback (if
+present) is invoked. Similarly, the <tt>OnSharedMemoryVariableDeleted</tt> callback
+is invoked, when the variable is deleted.
+
+</p>
+
+
+
+<h4>Example:</h4>
+
+
+
+
+<pre class="code">
+<strong>Sub</strong> OnInit()
+    Scene.Map.RegisterChangedCallback("subcontainer_name")
+<strong>End Sub</strong>
+
+<strong>Sub</strong> OnSharedMemoryVariableChanged(map <strong>As</strong> SharedMemory, mapKey <strong>As</strong> String)
+    <strong>If</strong> mapKey = "subcontainer_name" <strong>Then</strong>
+        Geometry.Text = (String)map["subcontainer_name"]
+    <strong>End If</strong>
+<strong>End Sub</strong>
+</pre>
+
+
+
+
+<p>Note that <tt>OnSharedMemoryVariableChanged</tt> is passed the map as well as the
+key whose variable&nbsp;has been changed.</p>
+
+
+
+
+<p>If you pass an empty string ("") to <tt>RegisterChangedCallback</tt>, <tt>OnSharedMemoryVariableChanged</tt> and <tt>OnSharedMemoryVariableDeleted</tt> will be invoked whenever <i>any</i> variable in the map is modified or
+deleted:</p>
+
+
+
+
+
+
+
+
+<pre class="code">
+<strong>Sub</strong> OnInit()
+    Scene.Map.RegisterChangedCallback("")
+<strong>End Sub</strong>
+
+<strong>Sub</strong> OnSharedMemoryVariableChanged(map <strong>As</strong> SharedMemory, mapKey <strong>As</strong> String)
+    ...
+<strong>End Sub</strong>
+</pre>
+
+
+<h3>VizCommunication.Map</h3>
+
+
+<p>The map exposed by the <a href="DataTypeVizCommunication.html"><i>VizCommunication</i></a> type is used to
+share data among the client computers connected to a viz
+database. Whenever a script on one client adds a new value or changes an
+existing value in the map, the change is propagated&nbsp;to the other clients
+via database messaging to update the local copy of each client's map. Note,
+however, that this does not necessarily mean that all local client maps are
+identical. When a client starts up <i>after</i> other clients have made changes
+to the <tt>VizCommunication.Map</tt>, it is not
+informed of those changes. To work around this limitation, one client can save
+the entire contents of the map by calling the map's <tt>SaveToDb</tt> procedure, and
+another client can read it by calling <tt>LoadFromDb</tt>.</p>
+<h3>Accessing Maps via the UDP interface</h3>
+Elements in the
+distributed memory map (VizCommunication.Map) can be set (but not
+retrieved) via a UDP interface exposed by viz. This option is
+particularly useful when writing external control applications. A C++
+library, the VizControlLib, is provided to encapsulate all required
+communication and serialization logic. The VizControlLib can be found
+in &lt;viz3 install directory&gt;/Tools/ControlLib. Please refer to the
+header files and the included test project for more information.
+
+<h3>Accessing Maps through the command interface</h3>
+<p>There is limited support for getting and setting map elements via
+the command interface. The maps are accessible through these locations:</p>
+<ul>
+  <li>&lt;scene&gt;*MAP for the scene specific map</li>
+  <li>GLOBAL*MAP for system-wide map</li>
+  <li>VIZ_COMMUNICATION*MAP for the distributed map</li>
+</ul>
+Here is a list of commands supported by each of these maps:<br />
+<ul>
+  <li>SET_BOOLEAN_ELEMENT and&nbsp;GET_BOOLEAN_ELEMENT</li>
+  <li>SET_INTEGER_ELEMENT and GET_INTEGER_ELEMENT</li>
+  <li>SET_DOUBLE_ELEMENT and GET_DOUBLE_ELEMENT</li>
+  <li>SET_STRING_ELEMENT and GET_STRING_ELEMENT</li>
+</ul>
+Examples:<br />
+<ul>
+  <li>VIZ_COMMUNICATION*MAP&nbsp;SET_DOUBLE_ELEMENT "my_double" 1.2</li>
+  <li>VIZ_COMMUNICATION*MAP GET_DOUBLE_ELEMENT "my_double"<br />
+=&gt; Answer = "1.2"<br />
+  </li>
+</ul>
+
+<h3>Accessing Maps from within Plugins</h3>
+Functions for getting and setting map elments are provided by the
+plugin interface. For more information, refer to the
+evPlugin_SHARED_MEMORY.h file, which is part of the plugin SDK
+(&lt;viz3 install directory&gt;/Plugin/src).
+</body>
+</html>

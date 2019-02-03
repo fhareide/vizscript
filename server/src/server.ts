@@ -14,6 +14,8 @@ import { VBSVariableSymbol } from './VBSSymbols/VBSVariableSymbol';
 import { VBSConstantSymbol } from './VBSSymbols/VBSConstantSymbol';
 import * as data from './intellisense_data.json';
 import { method } from 'bluebird';
+import { CompletionTriggerKind } from 'vscode-languageserver';
+import { ClientRequest } from 'http';
 //import { Convert} from "./data_interface";
 //
 
@@ -28,6 +30,21 @@ let documents: ls.TextDocuments = new ls.TextDocuments();
 // for open, change and close text document events
 documents.listen(connection);
 
+/*
+var wtj = require('website-to-json')
+wtj.extractData('C:/Program%20Files/Vizrt/Viz3/ScriptDoc/index.html', {
+  fields: ['data'],
+  parse: function($) {
+    return {
+      title: $("title").text(),
+      keywords: $('tr').text()
+    }
+  }
+})
+.then(function(res) {
+  connection.console.log("Converted " + JSON.stringify(res, null, 2));
+})
+*/
 
 // After the server has started the client sends an initialize request. The server receives
 // in the passed params the rootPath of the workspace plus the client capabilities.
@@ -90,7 +107,7 @@ function triggerValidation(textDocument: ls.TextDocument): void {
 connection.onDidChangeWatchedFiles((changeParams: ls.DidChangeWatchedFilesParams) => {
 	for (let i = 0; i < changeParams.changes.length; i++) {
 		let event = changeParams.changes[i];
-		
+		connection.console.log("OnDidChangeWatchedFiles triggered!");
 		switch(event.type) {
 		 case ls.FileChangeType.Changed:
 		 connection.console.log("changed!");
@@ -107,17 +124,52 @@ connection.onDidChangeWatchedFiles((changeParams: ls.DidChangeWatchedFilesParams
 });
 
 // This handler provides the initial list of the completion items.
-connection.onCompletion((textDocumentPos: ls.TextDocumentPositionParams): ls.CompletionItem[] => {
-	connection.console.log(
-		`Asked for completions at ${textDocumentPos.position.line}:${textDocumentPos.position.character}`,
-	  )
+connection.onCompletion((params: ls.CompletionParams,cancelToken: ls.CancellationToken): ls.CompletionItem[] => {
 
-	  const builtinCompletions = SelectBuiltinCompletionItems(textDocumentPos);
+	let builtinCompletions: ls.CompletionItem[] = []; 
 
-	  const documentCompletions = SelectCompletionItems(textDocumentPos);
+	let line: string = documents.get(params.textDocument.uri).getText(ls.Range.create(
+		ls.Position.create(params.position.line,0),
+		ls.Position.create(params.position.line,params.position.character))
+	);
+	
+	let memberStartRegex:RegExp = /[\.]?([a-zA-Z0-9\-\_]+)*[\.]$/gi;
+	let regexResult = memberStartRegex.exec(line);
 
+	if(regexResult != null && regexResult.length > 0){
+		let symbols = symbolCache[params.textDocument.uri];
+		let scopeSymbols = GetSymbolsOfScope(symbols, params.position);
+		let items: ls.CompletionItem[] = VBSSymbol.GetLanguageServerCompletionItems(scopeSymbols);
+		let builtinSymbols = symbolCache["builtin"];
+		items.forEach(item => {
+			if (item.label == regexResult[1])
+			{
+				let finalSymbols = GetBuiltInSymbolsOfScope(builtinSymbols,item.data);
+				connection.console.log("Current is: " + item.label + " should spawn help for " + item.data);
+				builtinCompletions = VBSSymbol.GetLanguageServerCompletionItems(finalSymbols);
+			}
+		});
+		scopeSymbols = GetBuiltInSymbolsOfScope(builtinSymbols, "root");
+		items = VBSSymbol.GetLanguageServerCompletionItems(scopeSymbols);
+		items.forEach(item => {
+			if (item.label == regexResult[1])
+			{
+				let finalSymbols = GetBuiltInSymbolsOfScope(builtinSymbols,item.data);
+				connection.console.log("Current is: " + item.label + " should spawn help for " + item.label);
+				builtinCompletions = VBSSymbol.GetLanguageServerCompletionItems(finalSymbols);
+			}
+		});
+		return builtinCompletions;
+	}
+	else
+	{
+	const documentCompletions = SelectCompletionItems(params);
+
+	builtinCompletions = SelectBuiltinCompletionItems(params);
 
 	return documentCompletions.concat(builtinCompletions);
+	}
+	 
 });
 
 connection.onCompletionResolve((complItem: ls.CompletionItem): ls.CompletionItem => {
@@ -137,7 +189,7 @@ function SelectCompletionItems(textDocumentPosition: ls.TextDocumentPositionPara
 		symbols = symbolCache[textDocumentPosition.textDocument.uri];
 		connection.console.log("Rebuilt: Symbols length: " + symbols.length.toString() + textDocumentPosition.textDocument.uri);
 	}
-    
+	
 	let scopeSymbols = GetSymbolsOfScope(symbols, textDocumentPosition.position);
 	return VBSSymbol.GetLanguageServerCompletionItems(scopeSymbols);
 }
@@ -250,7 +302,7 @@ function RefreshDocumentsSymbols(uri: string){
 	let startTime: number = Date.now();
 	let symbolsList: VBSSymbol[] = CollectSymbols(documents.get(uri));
 	symbolCache[uri] = symbolsList;
-	connection.console.info("Found " + symbolsList.length + " symbols in '" + uri + "': " + (Date.now() - startTime) + " ms");
+	//connection.console.info("Found " + symbolsList.length + " symbols in '" + uri + "': " + (Date.now() - startTime) + " ms");
 }
 
 connection.onDocumentSymbol((docParams: ls.DocumentSymbolParams): ls.SymbolInformation[] => {
@@ -638,14 +690,15 @@ function GetPropertySymbol(statement: LineStatement, uri: string) : VBSSymbol[] 
 function GetMemberSymbol(statement: LineStatement, uri: string) : VBSMemberSymbol {
 	let line: string = statement.line;
 
-	let memberStartRegex:RegExp = /^[ \t]*(public[ \t]+|private[ \t]+)([a-zA-Z0-9\-\_]+)[ \t]*$/gi;
+	let memberStartRegex:RegExp = /^[ \t]*([a-zA-Z0-9\-\_\,]+)[ \t]+as[ \t]+([a-zA-Z0-9\-\_\,\[\]]+).*$/gi;
 	let regexResult = memberStartRegex.exec(line);
 
 	if(regexResult == null || regexResult.length < 3)
 		return null;
 
-	let visibility = regexResult[1];
-	let name = regexResult[2];
+	let visibility = "";
+	let name = regexResult[1];
+	let type = regexResult[2];
 	let intendention = GetNumberOfFrontSpaces(line);
 	let nameStartIndex = line.indexOf(line);
 
@@ -656,7 +709,7 @@ function GetMemberSymbol(statement: LineStatement, uri: string) : VBSMemberSymbo
 	
 	let symbol: VBSMemberSymbol = new VBSMemberSymbol();
 	symbol.visibility = visibility;
-	symbol.type = "";
+	symbol.type = type
 	symbol.name = name;
 	symbol.args = "";
 	symbol.symbolRange = range;
@@ -707,9 +760,9 @@ function GetVariableSymbol(statement: LineStatement, uri: string) : VBSVariableS
 		let varName = variables[i];
 		let symbol: VBSVariableSymbol = new VBSVariableSymbol();
 		symbol.visibility = "";
-		symbol.type = "";
+		symbol.type = type;
 		symbol.name = varName;
-		symbol.args = type;
+		symbol.args = "";
 		symbol.nameLocation = ls.Location.create(uri, 
 			GetNameRange(statement, varName )
 		);
@@ -855,7 +908,7 @@ function RefreshBuiltinSymbols(){
 	let startTime: number = Date.now();
 	let symbolsList: VBSSymbol[] = CollectBuiltinSymbols();
 	symbolCache["builtin"] = symbolsList;
-	connection.console.info("Found " + symbolsList.length + " builtin symbols in " + (Date.now() - startTime) + " ms");
+	//connection.console.info("Found " + symbolsList.length + " builtin symbols in " + (Date.now() - startTime) + " ms");
 }
 
 function FindBuiltinSymbols(symbols: Set<VBSSymbol>) : void {
@@ -869,7 +922,7 @@ function FindBuiltinSymbols(symbols: Set<VBSSymbol>) : void {
 				symbol.type = submethod.type;
 				symbol.name = submethod.name;
 				symbol.args = submethod.code_completion_hint;
-				symbol.parentName = "ROOT";
+				symbol.parentName = "root";
 				symbols.add(symbol);
 			});
 		}
@@ -877,7 +930,8 @@ function FindBuiltinSymbols(symbols: Set<VBSSymbol>) : void {
 		{
 			let symbol: VBSClassSymbol = new VBSClassSymbol();
 			symbol.name = element.name;
-			symbol.parentName = "ROOT";
+			symbol.parentName = "root";
+			symbol.type = element.name;
 			symbols.add(symbol);
 			
 			element.methods.forEach(submethod => {
@@ -886,8 +940,9 @@ function FindBuiltinSymbols(symbols: Set<VBSSymbol>) : void {
 				symbol.type = submethod.type;
 				symbol.name = submethod.name;
 				symbol.args = submethod.code_completion_hint;
-				connection.console.log("Parent name for " + submethod.name + " is " + element.name);
+				//connection.console.log("Parent name for " + submethod.name + " is " + element.name);
 				symbol.parentName = element.name;
+				symbols.add(symbol);
 			});
 			element.properties.forEach(properties => {
 				let symbol: VBSPropertySymbol = new VBSPropertySymbol();
@@ -895,8 +950,9 @@ function FindBuiltinSymbols(symbols: Set<VBSSymbol>) : void {
 				symbol.type = properties.type;
 				symbol.name = properties.name;
 				symbol.args = properties.code_completion_hint;
-				connection.console.log("Parent name for " + properties.name + " is " + element.name);
+				//connection.console.log("Parent name for " + properties.name + " is " + element.name);
 				symbol.parentName = element.name;
+				symbols.add(symbol);
 			});
 
 		}
@@ -912,12 +968,13 @@ function CollectBuiltinSymbols(): VBSSymbol[] {
 	return Array.from(symbols);
 }
 
-function GetBuiltInSymbolsOfScope(symbols: VBSSymbol[], position: ls.Position): VBSSymbol[] {
+function GetBuiltInSymbolsOfScope(symbols: VBSSymbol[], type: string): VBSSymbol[] {
 	let scopeSymbols: VBSSymbol[] = [];
 	symbols.forEach(symbol => {
-		//connection.console.log(symbol.parentName);
-		if (symbol.parentName == "ROOT")
+		//connection.console.log("Parent name: " + symbol.parentName + " type: " + type);
+		if(symbol.parentName == type)
 		{
+			connection.console.log("Name: " + symbol.name + " Parent: " + symbol.parentName);
 			scopeSymbols.push(symbol);
 		}
 	});
@@ -934,7 +991,7 @@ function SelectBuiltinCompletionItems(textDocumentPosition: ls.TextDocumentPosit
 		symbols = symbolCache["builtin"];
 		connection.console.log("Rebuilt: Builtin symbols length: " + symbols.length.toString());
 	}
-	let scopeSymbols = GetBuiltInSymbolsOfScope(symbols, textDocumentPosition.position);
+	let scopeSymbols = GetBuiltInSymbolsOfScope(symbols, "root");
 	return VBSSymbol.GetLanguageServerCompletionItems(scopeSymbols);
 }
 /*

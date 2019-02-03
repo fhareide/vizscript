@@ -1,0 +1,41 @@
+﻿<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+  <head>
+    <meta http-equiv="Content-Type" content="text/xhtml;charset=UTF-8" />
+    <meta http-equiv="Content-Style-Type" content="text/css" />
+    <meta http-equiv="Content-Language" content="en" />
+    <link rel="stylesheet" href="Script.css" type="text/css" />
+    <title>Viz 3 Script - Examples</title>
+  </head>
+
+
+<body>
+
+<a href="ScriptMain.html">Viz 3 Script</a>
+
+<h2>Viz 3 Script - Examples</h2>
+
+<h3>OnEnter/OnLeave</h3>
+<pre class="code">
+sub OnEnter()
+    alpha.value = 100.0
+end sub
+
+sub OnLeave()
+    alpha.value = 50.0
+end sub
+
+sub OnExecPerField()
+    dim cube as Container
+    cube = Scene.FindContainer("Cube")
+    if scaling.x &gt; 1.5 then
+        cube.material.diffuse.red = 0.0
+    else
+        cube.material.diffuse.red = 100.0
+    end if
+end sub
+</pre>
+
+
+</body>
+</html>

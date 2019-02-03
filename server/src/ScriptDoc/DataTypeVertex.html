@@ -1,0 +1,38 @@
+<html>
+<head><title>Vertex</title>
+<link rel="stylesheet" href="Script.css" type="text/css" />
+</head>
+<body>
+<a href="ScriptRef.html">Script Reference</a>
+<h2>Vertex</h2>
+<h3>Description</h3>
+A vertex/vector consisting of 3 double components. The components can be accessed either via the <i>x</i>, <i>y</i> and <i>z</i> members, or using the index operator []. For example, v.y and v[1] both refer to the y component.
+<h3>Properties</h3>
+<table border=1 cellpadding=3 cellspacing=0>
+<tr><td><b>Length</b> As <a href="DataTypeDouble.html">Double</a> <i>[read-only]</i></td><td>The length of the vector</td></tr>
+<tr><td><b>X</b> As <a href="DataTypeDouble.html">Double</a></td><td>The x component</td></tr>
+<tr><td><b>Y</b> As <a href="DataTypeDouble.html">Double</a></td><td>The y component</td></tr>
+<tr><td><b>Z</b> As <a href="DataTypeDouble.html">Double</a></td><td>The z component</td></tr>
+</table>
+<h3>Member Procedures</h3>
+<table border=1 cellpadding=3 cellspacing=0>
+<tr><td>Function <b>DistanceToLine</b>(linePoint1 As <a href="DataTypeVertex.html">Vertex</a>, linePoint2 As <a href="DataTypeVertex.html">Vertex</a>) As <a href="DataTypeDouble.html">Double</a></td><td>&nbsp;</td></tr>
+<tr><td>Function <b>DistanceToPlane</b>(planeNormal As <a href="DataTypeVertex.html">Vertex</a>, planePoint As <a href="DataTypeVertex.html">Vertex</a>) As <a href="DataTypeDouble.html">Double</a></td><td>&nbsp;</td></tr>
+<tr><td>Function <b>DistanceToPlaneSigned</b>(planeNormal As <a href="DataTypeVertex.html">Vertex</a>, planePoint As <a href="DataTypeVertex.html">Vertex</a>) As <a href="DataTypeDouble.html">Double</a></td><td>&nbsp;</td></tr>
+<tr><td>Function <b>FaceOutputNormal</b>(v1 As <a href="DataTypeVertex.html">Vertex</a>, v2 As <a href="DataTypeVertex.html">Vertex</a>, v3 As <a href="DataTypeVertex.html">Vertex</a>) As <a href="DataTypeDouble.html">Double</a></td><td>Calculates the face-output-normal of the passed 3 vertices.</td></tr>
+<tr><td>Function <b>MirrorAroundLine</b>(linePoint1 As <a href="DataTypeVertex.html">Vertex</a>, linePoint2 As <a href="DataTypeVertex.html">Vertex</a>) As <a href="DataTypeVertex.html">Vertex</a></td><td>&nbsp;</td></tr>
+<tr><td>Function <b>MirrorAroundVector</b>(v As <a href="DataTypeVertex.html">Vertex</a>) As <a href="DataTypeVertex.html">Vertex</a></td><td>&nbsp;</td></tr>
+<tr><td>Function <b>Norm</b>() As <a href="DataTypeDouble.html">Double</a></td><td>Returns the length of the vector.</td></tr>
+<tr><td>Function <b>Normalize</b>() As <a href="DataTypeDouble.html">Double</a></td><td>Normalizes the vertex, i.e. scales it to length 1.</td></tr>
+<tr><td>Function <b>Project</b>(viewMat As <a href="DataTypeMatrix.html">Matrix</a>, projMat As <a href="DataTypeMatrix.html">Matrix</a>, x As <a href="DataTypeInteger.html">Integer</a>, y As <a href="DataTypeInteger.html">Integer</a>, width As <a href="DataTypeInteger.html">Integer</a>, height As <a href="DataTypeInteger.html">Integer</a>) As <a href="DataTypeBoolean.html">Boolean</a></td><td>&nbsp;</td></tr>
+<tr><td>Function <b>Project</b>(mat As <a href="DataTypeMatrix.html">Matrix</a>, halfwidth As <a href="DataTypeInteger.html">Integer</a>, halfweight As <a href="DataTypeInteger.html">Integer</a>) As <a href="DataTypeBoolean.html">Boolean</a></td><td>&nbsp;</td></tr>
+<tr><td>Function <b>ProjectOnLine</b>(linePoint1 As <a href="DataTypeVertex.html">Vertex</a>, linePoint2 As <a href="DataTypeVertex.html">Vertex</a>) As <a href="DataTypeVertex.html">Vertex</a></td><td>&nbsp;</td></tr>
+<tr><td>Function <b>ProjectOnVector</b>(v As <a href="DataTypeVertex.html">Vertex</a>) As <a href="DataTypeVertex.html">Vertex</a></td><td>&nbsp;</td></tr>
+<tr><td>Function <b>SquaredNorm</b>() As <a href="DataTypeDouble.html">Double</a></td><td>Returns the squared length of the vector.</td></tr>
+<tr><td>Sub <b>Unproject</b>(viewMat As <a href="DataTypeMatrix.html">Matrix</a>, projMat As <a href="DataTypeMatrix.html">Matrix</a>, x As <a href="DataTypeInteger.html">Integer</a>, y As <a href="DataTypeInteger.html">Integer</a>, width As <a href="DataTypeInteger.html">Integer</a>, height As <a href="DataTypeInteger.html">Integer</a>)</td><td>&nbsp;</td></tr>
+<tr><td>Function <b>Unproject</b>(viewMat As <a href="DataTypeMatrix.html">Matrix</a>, projMat As <a href="DataTypeMatrix.html">Matrix</a>, x As <a href="DataTypeInteger.html">Integer</a>, y As <a href="DataTypeInteger.html">Integer</a>, width As <a href="DataTypeInteger.html">Integer</a>, height As <a href="DataTypeInteger.html">Integer</a>, plane1 As <a href="DataTypeVertex.html">Vertex</a>, plane2 As <a href="DataTypeVertex.html">Vertex</a>, plane3 As <a href="DataTypeVertex.html">Vertex</a>) As <a href="DataTypeBoolean.html">Boolean</a></td><td>&nbsp;</td></tr>
+<tr><td><font color="#808080">Sub <b>GlNormal</b>()</font></td><td>Deprecated.</td></tr>
+<tr><td><font color="#808080">Sub <b>GlVertex</b>()</font></td><td>Deprecated.</td></tr>
+</table>
+</body>
+</html>

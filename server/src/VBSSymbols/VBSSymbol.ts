@@ -24,6 +24,7 @@ export class VBSSymbol {
 		item.filterText = this.name;
 		item.insertText = this.name;
 		item.kind = ls.CompletionItemKind.Text;
+		item.data = this.type;
 		return item;
 	}
 	

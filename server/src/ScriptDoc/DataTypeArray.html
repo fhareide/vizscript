@@ -1,0 +1,26 @@
+<html>
+<head><title>Array</title>
+<link rel="stylesheet" href="Script.css" type="text/css" />
+</head>
+<body>
+<a href="ScriptRef.html">Script Reference</a>
+<h2>Array[Type]</h2>
+<h3>Description</h3>
+A dynamic, one-dimensional array. The element type must be specified in brackets. Use the index operator [] to access individual elements. Negative indices refer to elements at the end of the array.
+<h3>Properties</h3>
+<table border=1 cellpadding=3 cellspacing=0>
+<tr><td><b>LBound</b> As <a href="DataTypeInteger.html">Integer</a> <i>[read-only]</i></td><td>The index of the first elment (always 0)</td></tr>
+<tr><td><b>Size</b> As <a href="DataTypeInteger.html">Integer</a></td><td>The size of the array (this member can be set to change the size)</td></tr>
+<tr><td><b>UBound</b> As <a href="DataTypeInteger.html">Integer</a> <i>[read-only]</i></td><td>The index of the last elment (-1 if the array is empty)</td></tr>
+</table>
+<h3>Member Procedures</h3>
+<table border=1 cellpadding=3 cellspacing=0>
+<tr><td>Sub <b>Clear</b>()</td><td>erases all elements</td></tr>
+<tr><td>Sub <b>Erase</b>(index As <a href="DataTypeInteger.html">Integer</a>)</td><td>Erases the element at 'index'.</td></tr>
+<tr><td>Sub <b>Insert</b>(index As <a href="DataTypeInteger.html">Integer</a>, element As Type)</td><td>Inserts a new element at 'index'.</td></tr>
+<tr><td>Sub <b>Pop</b>()</td><td>removes the last element</td></tr>
+<tr><td>Sub <b>Push</b>(element As Type)</td><td>Inserts a new element at the end of the array.</td></tr>
+<tr><td>Function <b>Sort</b>(object As <a href="DataTypeBase.html">Base</a>, comparisonFunction As <a href="DataTypeString.html">String</a>) As <a href="DataTypeBoolean.html">Boolean</a></td><td>Sorts the array. <i>comparisonFunction</i> must be the name of a user-defined comparison function that takes two arguments of type <i>Type</i> and returns an integer. The return value must be -1 if the the first arguement is smaller than the second, 1 if the first argument is greater than the second, and 0 if the arguments are equal. <i>object</i> is the this pointer passed to the comparison function. It may be <i>null</i> if the camparison function does not access any member variables. The comparison function must be defined in the same script as the <i>Type</i> (if it is a structure) or in the script where <i>Sort</i> is called.</td></tr>
+</table>
+</body>
+</html>

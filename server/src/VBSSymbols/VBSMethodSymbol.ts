@@ -16,6 +16,7 @@ export class VBSMethodSymbol extends VBSSymbol {
 		item.filterText = this.name;
 		item.insertText = this.name + "(" + this.args + ")";
 		item.kind = ls.CompletionItemKind.Method;
+		item.data = this.type;
 		return item;
 	}
 }

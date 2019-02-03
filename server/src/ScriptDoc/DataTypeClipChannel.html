@@ -1,0 +1,152 @@
+<html>
+<head><title>ClipChannel</title>
+<link rel="stylesheet" href="Script.css" type="text/css" />
+</head>
+<body>
+<a href="ScriptRef.html">Script Reference</a>
+<h2>ClipChannel</h2>
+<h3>Base type</h3>
+<a href="DataTypeBase.html">Base</a>
+<h3>Description</h3>
+A ClipChannel object. The <i>ClipChannel</i> member of the Base type provides access to the clip channel. Use System.GetClipChannel(number as Integer), whereas <i>number</i> >= 0, to get a ClipChannel instance. See also examples section ClipChannel.
+<h3>Properties</h3>
+<table border=1 cellpadding=3 cellspacing=0>
+<tr><td><b>Alpha</b> As <a href="DataTypeDouble.html">Double</a></td><td>Get/Set the <i>Alpha</i> value for the channel.</td></tr>
+<tr><td><b>AutoRun</b> As <a href="DataTypeBoolean.html">Boolean</a></td><td>Get/Set the autorun mode. If <i>true</i> then the clip start playing automatically upon load.</td></tr>
+<tr><td><b>ClipChannelID</b> As <a href="DataTypeInteger.html">Integer</a> <i>[read-only]</i></td><td>Get the clip channel number.</td></tr>
+<tr><td><b>CropBottom</b> As <a href="DataTypeDouble.html">Double</a></td><td>Get/Set the <i>Crop Bottom</i> value for the channel.</td></tr>
+<tr><td><b>CropLeft</b> As <a href="DataTypeDouble.html">Double</a></td><td>Get/Set the <i>Crop Left</i> value for the channel.</td></tr>
+<tr><td><b>CropRight</b> As <a href="DataTypeDouble.html">Double</a></td><td>Get/Set the <i>Crop Right</i> value for the channel.</td></tr>
+<tr><td><b>CropTop</b> As <a href="DataTypeDouble.html">Double</a></td><td>Get/Set the <i>Crop Top</i> value for the channel.</td></tr>
+<tr><td><b>CurrentFrame</b> As <a href="DataTypeInteger.html">Integer</a> <i>[read-only]</i></td><td>Get the current frame.</td></tr>
+<tr><td><b>CurrentFramePending</b> As <a href="DataTypeInteger.html">Integer</a> <i>[read-only]</i></td><td>Get the current frame of the pending clip.</td></tr>
+<tr><td><b>Duration</b> As <a href="DataTypeInteger.html">Integer</a> <i>[read-only]</i></td><td>Get the number of frames of the current clip.</td></tr>
+<tr><td><b>DurationPending</b> As <a href="DataTypeInteger.html">Integer</a> <i>[read-only]</i></td><td>Get the number of frames of the pending clip.</td></tr>
+<tr><td><b>Eventpool</b> As <a href="DataTypeEventpool.html">Eventpool</a> <i>[read-only]</i></td><td>(<i>Inherited from <a href="DataTypeBase.html">Base</a>)</i> Gets system eventpool.</td></tr>
+<tr><td><b>FrameIn</b> As <a href="DataTypeInteger.html">Integer</a></td><td>Get/Set the <i>In</i> frame.</td></tr>
+<tr><td><b>FrameInActive</b> As <a href="DataTypeInteger.html">Integer</a></td><td>Get/Set the <i>In</i> frame on the active clip player.</td></tr>
+<tr><td><b>FrameInOut</b> As <a href="DataTypeInteger.html">Integer</a></td><td>Set the <i>In</i> and <i>Out</i> frame.</td></tr>
+<tr><td><b>FrameInOutActive</b> As <a href="DataTypeInteger.html">Integer</a></td><td>Set the <i>In</i> and <i>Out</i> frame on the active clip player.</td></tr>
+<tr><td><b>FrameInOutPending</b> As <a href="DataTypeInteger.html">Integer</a></td><td>Set the <i>In</i> and <i>Out</i> frame on the pending clip player.</td></tr>
+<tr><td><b>FrameInPending</b> As <a href="DataTypeInteger.html">Integer</a></td><td>Get/Set the <i>In</i> frame on the pending clip player.</td></tr>
+<tr><td><b>FrameOut</b> As <a href="DataTypeInteger.html">Integer</a></td><td>Get/Set the <i>Out</i> frame.</td></tr>
+<tr><td><b>FrameOutActive</b> As <a href="DataTypeInteger.html">Integer</a></td><td>Get/Set the <i>Out</i> frame on the active clip player.</td></tr>
+<tr><td><b>FrameOutPending</b> As <a href="DataTypeInteger.html">Integer</a></td><td>Get/Set the <i>Out</i> frame on the pending clip player.</td></tr>
+<tr><td><b>Height</b> As <a href="DataTypeDouble.html">Double</a></td><td>Get/Set the <i>Height</i> value for the channel.</td></tr>
+<tr><td><b>LoopCount</b> As <a href="DataTypeInteger.html">Integer</a></td><td>Get/Set the loop count for 3/4-point loop.</td></tr>
+<tr><td><b>LoopInFrame</b> As <a href="DataTypeInteger.html">Integer</a></td><td>Get/Set the loop in time for 3/4-point loop.</td></tr>
+<tr><td><b>LoopMode</b> As <a href="DataTypeBoolean.html">Boolean</a></td><td>Get/Set the loop mode. If <i>true</i> (=default), then the clip will be looped.</td></tr>
+<tr><td><b>LoopModeActive</b> As <a href="DataTypeBoolean.html">Boolean</a></td><td>Get/Set the loop mode on the active clip player. If <i>true</i> (=default), then the clip will be looped.</td></tr>
+<tr><td><b>LoopModePending</b> As <a href="DataTypeBoolean.html">Boolean</a></td><td>Get/Set the loop mode on the pending clip player. If <i>true</i> (=default), then the clip will be looped.</td></tr>
+<tr><td><b>LoopOutFrame</b> As <a href="DataTypeInteger.html">Integer</a></td><td>Get/Set the loop out time for 3/4-point loop.</td></tr>
+<tr><td><b>ModeOnLoadError</b> As <a href="DataTypeInteger.html">Integer</a></td><td>Determines the mode upon an error situation when loading a clip. none|pause|stop|flush</td></tr>
+<tr><td><b>ModeOnLoadError_FLUSH</b> As <a href="DataTypeInteger.html">Integer</a> <i>[read-only]</i></td><td>Constant for <i>mode on load error</i> flush.</td></tr>
+<tr><td><b>ModeOnLoadError_NONE</b> As <a href="DataTypeInteger.html">Integer</a> <i>[read-only]</i></td><td>Constant for <i>mode on load error</i> none.</td></tr>
+<tr><td><b>ModeOnLoadError_PAUSE</b> As <a href="DataTypeInteger.html">Integer</a> <i>[read-only]</i></td><td>Constant for <i>mode on load error</i> pause.</td></tr>
+<tr><td><b>ModeOnLoadError_STOP</b> As <a href="DataTypeInteger.html">Integer</a> <i>[read-only]</i></td><td>Constant for <i>mode on load error</i> stop.</td></tr>
+<tr><td><b>PendingClipSupported</b> As <a href="DataTypeBoolean.html">Boolean</a> <i>[read-only]</i></td><td>Determines if support for loading pending clips is available.</td></tr>
+<tr><td><b>PlayBackSpeed</b> As <a href="DataTypeDouble.html">Double</a></td><td>Get/Set the playback speed.</td></tr>
+<tr><td><b>PlayBackSpeedActive</b> As <a href="DataTypeDouble.html">Double</a></td><td>Get/Set the playback speed on the active clip player.</td></tr>
+<tr><td><b>PlayBackSpeedPending</b> As <a href="DataTypeDouble.html">Double</a></td><td>Get/Set the playback speed on the pending clip palyer.</td></tr>
+<tr><td><b>PlayerStatus_PENDINGREADY</b> As <a href="DataTypeInteger.html">Integer</a> <i>[read-only]</i></td><td>Constant for <i>current player status </i> PENDINGREADY.</td></tr>
+<tr><td><b>PlayMode</b> As <a href="DataTypeInteger.html">Integer</a> <i>[read-only]</i></td><td>Get the current mode of the clip channel.</td></tr>
+<tr><td><b>PlayMode_ERROR</b> As <a href="DataTypeInteger.html">Integer</a> <i>[read-only]</i></td><td>Constant for <i>current mode </i> ERROR.</td></tr>
+<tr><td><b>PlayMode_NONE</b> As <a href="DataTypeInteger.html">Integer</a> <i>[read-only]</i></td><td>Constant for <i>current mode </i> NONE.</td></tr>
+<tr><td><b>PlayMode_PLAY</b> As <a href="DataTypeInteger.html">Integer</a> <i>[read-only]</i></td><td>Constant for <i>current mode </i> PLAYING.</td></tr>
+<tr><td><b>PlayMode_PLAY_PENDING</b> As <a href="DataTypeInteger.html">Integer</a> <i>[read-only]</i></td><td>Constant for <i>current mode </i> PLAYING_PENDING.</td></tr>
+<tr><td><b>PlayMode_SCRUB</b> As <a href="DataTypeInteger.html">Integer</a> <i>[read-only]</i></td><td>Constant for <i>current mode </i> SCRUBBING.</td></tr>
+<tr><td><b>PlayMode_SCRUB_EOF</b> As <a href="DataTypeInteger.html">Integer</a> <i>[read-only]</i></td><td>Constant for <i>current mode </i> SCRUBBING_EOF.</td></tr>
+<tr><td><b>PlayMode_STOP</b> As <a href="DataTypeInteger.html">Integer</a> <i>[read-only]</i></td><td>Constant for <i>current mode </i> STOP.</td></tr>
+<tr><td><b>PlayModePending</b> As <a href="DataTypeInteger.html">Integer</a> <i>[read-only]</i></td><td>Get the current mode of the pending clip player.</td></tr>
+<tr><td><b>PosX</b> As <a href="DataTypeDouble.html">Double</a></td><td>Get/Set the <i>Position X</i> value for the channel.</td></tr>
+<tr><td><b>PosY</b> As <a href="DataTypeDouble.html">Double</a></td><td>Get/Set the <i>Position Y</i> value for the channel.</td></tr>
+<tr><td><b>RepeatMode</b> As <a href="DataTypeInteger.html">Integer</a></td><td>Get/Set the repeat mode for playback and pause. none|field|frame.</td></tr>
+<tr><td><b>RepeatMode_FIELD</b> As <a href="DataTypeInteger.html">Integer</a> <i>[read-only]</i></td><td>Constant for <i>repeat mode</i> field.</td></tr>
+<tr><td><b>RepeatMode_FRAME</b> As <a href="DataTypeInteger.html">Integer</a> <i>[read-only]</i></td><td>Constant for <i>repeat mode</i> frame.</td></tr>
+<tr><td><b>RepeatMode_NONE</b> As <a href="DataTypeInteger.html">Integer</a> <i>[read-only]</i></td><td>Constant for <i>repeat mode</i> none.</td></tr>
+<tr><td><b>RepeatModeActive</b> As <a href="DataTypeInteger.html">Integer</a></td><td>Get/Set the repeat mode for playback and pause on the active clip player. none|field|frame.</td></tr>
+<tr><td><b>RepeatModePending</b> As <a href="DataTypeInteger.html">Integer</a></td><td>Get/Set the repeat mode for playback and pause on the pending clip player. none|field|frame.</td></tr>
+<tr><td><b>ReverseFields</b> As <a href="DataTypeBoolean.html">Boolean</a></td><td>If <i>true</i> swap fields when playing interlaced material backwards.</td></tr>
+<tr><td><b>ReverseFieldsActive</b> As <a href="DataTypeBoolean.html">Boolean</a></td><td>If <i>true</i> swap fields when playing interlaced material backwards on the active clip player.</td></tr>
+<tr><td><b>ReverseFieldsPending</b> As <a href="DataTypeBoolean.html">Boolean</a></td><td>If <i>true</i> swap fields when playing interlaced material backwards on the pending clip player.</td></tr>
+<tr><td><b>Scene</b> As <a href="DataTypeScene.html">Scene</a> <i>[read-only]</i></td><td>(<i>Inherited from <a href="DataTypeBase.html">Base</a>)</i> Gets the current scene.</td></tr>
+<tr><td><b>Stage</b> As <a href="DataTypeStage.html">Stage</a> <i>[read-only]</i></td><td>(<i>Inherited from <a href="DataTypeBase.html">Base</a>)</i> Gets the current stage.</td></tr>
+<tr><td><b>System</b> As <a href="DataTypeSystem.html">System</a> <i>[read-only]</i></td><td>(<i>Inherited from <a href="DataTypeBase.html">Base</a>)</i> Gets system wide data.</td></tr>
+<tr><td><b>UpscaleLuma</b> As <a href="DataTypeBoolean.html">Boolean</a></td><td>If <i>true</i> then upscale the luma value in the separate key file.</td></tr>
+<tr><td><b>UpscaleLumaActive</b> As <a href="DataTypeBoolean.html">Boolean</a></td><td>If <i>true</i> then upscale the luma value in the separate key file on the active clip player.</td></tr>
+<tr><td><b>UpscaleLumaPending</b> As <a href="DataTypeBoolean.html">Boolean</a></td><td>If <i>true</i> then upscale the luma value in the separate key file on the pending clip player.</td></tr>
+<tr><td><b>Valid</b> As <a href="DataTypeBoolean.html">Boolean</a> <i>[read-only]</i></td><td>(<i>Inherited from <a href="DataTypeBase.html">Base</a>)</i> Returns true if the object is valid.</td></tr>
+<tr><td><b>VizCommunication</b> As <a href="DataTypeVizCommunication.html">VizCommunication</a> <i>[read-only]</i></td><td>(<i>Inherited from <a href="DataTypeBase.html">Base</a>)</i> Gets the VizCommunication object.</td></tr>
+<tr><td><b>VizEventName</b> As <a href="DataTypeString.html">String</a> <i>[read-only]</i></td><td>(<i>Inherited from <a href="DataTypeBase.html">Base</a>)</i> The object event name which could be used in <i>registerAsListener</i> and the corresponding callback (the viz object event name could change)</td></tr>
+<tr><td><b>VizId</b> As <a href="DataTypeInteger.html">Integer</a></td><td>(<i>Inherited from <a href="DataTypeBase.html">Base</a>)</i> Gets or sets the internal id of this object.</td></tr>
+<tr><td><b>Width</b> As <a href="DataTypeDouble.html">Double</a></td><td>Get/Set the <i>Width</i> value for the channel.</td></tr>
+</table>
+<h3>Member Procedures</h3>
+<table border=1 cellpadding=3 cellspacing=0>
+<tr><td>Function <b>AnimationLoopConfigured</b>() As <a href="DataTypeBoolean.html">Boolean</a></td><td>Returns true if the channel has a valid animation loop, false otherwise.</td></tr>
+<tr><td>Sub <b>AnimationLoopFlush</b>()</td><td>Resets all values to their default values.</td></tr>
+<tr><td>Sub <b>AnimationLoopStop</b>()</td><td>Sets the loop count to 0 and stops the actual loop.</td></tr>
+<tr><td>Sub <b>AnimationStageScrub</b>(param_1 As <a href="DataTypeInteger.html">Integer</a>)</td><td>Resets all values to their default values.</td></tr>
+<tr><td>Sub <b>Continue</b>()</td><td>Resume playback from Pause.</td></tr>
+<tr><td>Sub <b>ContinueActive</b>()</td><td>Resume playback from Pause in active clip player.</td></tr>
+<tr><td>Sub <b>ContinuePending</b>()</td><td>Resume playback from Pause in pending clip player.</td></tr>
+<tr><td>Function <b>ConvertFramesToSeconds</b>(param_1 As <a href="DataTypeInteger.html">Integer</a>) As <a href="DataTypeDouble.html">Double</a></td><td>Converts frames to seconds.</td></tr>
+<tr><td>Function <b>ConvertSecondsToFrames</b>(param_1 As <a href="DataTypeDouble.html">Double</a>) As <a href="DataTypeInteger.html">Integer</a></td><td>Converts seconds to frames.</td></tr>
+<tr><td>Function <b>FindChannelOfObject</b>(channelName As <a href="DataTypeString.html">String</a>) As <a href="DataTypeChannel.html">Channel</a></td><td><i>(Inherited from <a href="DataTypeBase.html">Base</a>)</i> Finds an animation channel acting on this object. If this function is called on a type that cannot be animated (such as <i>Director</i>), it returns <i>null</i>. <br>You can limit the search to a particular director by using the syntax "directorName$channelName" for the <i>channelName</i> argument. Nested directors may be specified like this: "directorName1$directorName2$channelName".</td></tr>
+<tr><td>Function <b>FindKeyframeOfObject</b>(keyframeName As <a href="DataTypeString.html">String</a>) As <a href="DataTypeKeyframe.html">Keyframe</a></td><td><i>(Inherited from <a href="DataTypeBase.html">Base</a>)</i> Finds a keyframe acting on the object. If this function is called on a type that cannot be animated (such as <i>Director</i>), it returns <i>null</i>. <br>You can limit the search to a particular director by using the syntax "directorName$keyframeName" for the <i>keyframeName</i> argument. Nested directors may be specified like this: "directorName1$directorName2$keyframeName".</td></tr>
+<tr><td>Function <b>FindOrCreateChannelOfObject</b>(channelName As <a href="DataTypeString.html">String</a>) As <a href="DataTypeChannel.html">Channel</a></td><td><i>(Inherited from <a href="DataTypeBase.html">Base</a>)</i> This function works like FindChannelOfObject except that if no animation channel with the specifed name exists, a new one is created.</td></tr>
+<tr><td>Sub <b>Flush</b>()</td><td>Unload active and pending clip.</td></tr>
+<tr><td>Sub <b>FlushActive</b>()</td><td>Unload active clip.</td></tr>
+<tr><td>Sub <b>FlushPending</b>()</td><td>Unload pending clip.</td></tr>
+<tr><td>Function <b>GetChannelsOfObject</b>(<em>[out] </em>v As <a href="DataTypeArray.html">Array</a>[<a href="DataTypeChannel.html">Channel</a>]) As <a href="DataTypeInteger.html">Integer</a></td><td><i>(Inherited from <a href="DataTypeBase.html">Base</a>)</i> Fills the array <i>v</i> with the animation channels acting on this object, returning the number of channels. If this function is called on a type that cannot be animated (such as <i>Director</i>), <i>v</i> will be empty.</td></tr>
+<tr><td>Function <b>GetClipName</b>() As <a href="DataTypeString.html">String</a></td><td>Get the <i>ClipName</i> currently loaded.</td></tr>
+<tr><td>Function <b>GetClipNameAbsolute</b>(ClipName As <a href="DataTypeString.html">String</a>) As <a href="DataTypeString.html">String</a></td><td>Get absolute clip name.</td></tr>
+<tr><td>Function <b>GetClipNameActive</b>() As <a href="DataTypeString.html">String</a></td><td>Get the <i>ClipName</i> currently loaded in the active clip player.</td></tr>
+<tr><td>Function <b>GetClipNamePending</b>() As <a href="DataTypeString.html">String</a></td><td>Get the <i>ClipName</i> currently loaded in the pending clip player.</td></tr>
+<tr><td>Function <b>GetFramesPerSecond</b>() As <a href="DataTypeDouble.html">Double</a></td><td>Get the frames per second.</td></tr>
+<tr><td>Function <b>GetRegisterChangedClipFrame</b>() As <a href="DataTypeString.html">String</a></td><td>Returns the registered <i>ShmKey</i> set by SetRegisterChangedClipFrame or an empty string if not set.</td></tr>
+<tr><td>Function <b>GetRegisterChangedClipMode</b>() As <a href="DataTypeString.html">String</a></td><td>Returns the registered <i>ShmKey</i> set by SetRegisterChangedClipMode or an empty string if not set.</td></tr>
+<tr><td>Function <b>GetRegisterChangedClipModePending</b>() As <a href="DataTypeString.html">String</a></td><td>Returns the registered <i>ShmKey</i> set by SetRegisterChangedClipModePending or an empty string if not set.</td></tr>
+<tr><td>Sub <b>GetReportValues</b>(<em>[out] </em>Duration As <a href="DataTypeInteger.html">Integer</a>, <em>[out] </em>CurrentFrame As <a href="DataTypeInteger.html">Integer</a>, <em>[out] </em>PlayMode As <a href="DataTypeInteger.html">Integer</a>)</td><td>Shortcut for Duration(), CurrentFrame(), PlayMode().</td></tr>
+<tr><td>Sub <b>GetReportValuesPending</b>(<em>[out] </em>Duration As <a href="DataTypeInteger.html">Integer</a>, <em>[out] </em>CurrentFrame As <a href="DataTypeInteger.html">Integer</a>, <em>[out] </em>PlayMode As <a href="DataTypeInteger.html">Integer</a>)</td><td>Shortcut for Duration(), CurrentFrame(), PlayMode().</td></tr>
+<tr><td>Function <b>IsAnimated</b>() As <a href="DataTypeBoolean.html">Boolean</a></td><td><i>(Inherited from <a href="DataTypeBase.html">Base</a>)</i> Returns true if there are animation channels for this object. If this function is called on a type that cannot be animated (such as <i>Director</i>), it always returns <i>false</i>.</td></tr>
+<tr><td>Function <b>IsClipLoaded</b>(ClipName As <a href="DataTypeString.html">String</a>) As <a href="DataTypeBoolean.html">Boolean</a></td><td>Determines if given clip is loaded in activeor pending clip player.</td></tr>
+<tr><td>Function <b>IsClipLoadedActive</b>(ClipName As <a href="DataTypeString.html">String</a>) As <a href="DataTypeBoolean.html">Boolean</a></td><td>Determines if given clip is loaded in active clip player.</td></tr>
+<tr><td>Function <b>IsClipLoadedPending</b>(ClipName As <a href="DataTypeString.html">String</a>) As <a href="DataTypeBoolean.html">Boolean</a></td><td>Determines if given clip is loaded in pending clip player.</td></tr>
+<tr><td>Function <b>IsInterlaced</b>() As <a href="DataTypeBoolean.html">Boolean</a></td><td>Returns true if the clip is interlaced, false otherwise.</td></tr>
+<tr><td>Sub <b>Pause</b>()</td><td>Pauses the clip on this channel.</td></tr>
+<tr><td>Sub <b>PauseActive</b>()</td><td>Pauses the active clip on this channel.</td></tr>
+<tr><td>Sub <b>PausePending</b>()</td><td>Pauses the pending clip on this channel.</td></tr>
+<tr><td>Sub <b>Play</b>(StartFrame As <a href="DataTypeInteger.html">Integer</a>)</td><td>Start <i>Playing</i> from <i>StartFrame</i> position.</td></tr>
+<tr><td>Sub <b>PlayActive</b>(StartFrame As <a href="DataTypeInteger.html">Integer</a>)</td><td>Start <i>Playing</i> the active clip player from <i>StartFrame</i> position.</td></tr>
+<tr><td>Sub <b>PlayPending</b>(StartFrame As <a href="DataTypeInteger.html">Integer</a>)</td><td>Start <i>Playing</i> the pending clip player from <i>StartFrame</i> position.</td></tr>
+<tr><td>Sub <b>QueueDelete</b>(param_1 As <a href="DataTypeInteger.html">Integer</a>)</td><td>Deletes the clip from the given position in the queue.</td></tr>
+<tr><td>Sub <b>QueueFlush</b>()</td><td>Empties the complete clip queue.</td></tr>
+<tr><td>Sub <b>QueueInsert</b>(<em>[out] </em>ClipName As <a href="DataTypeString.html">String</a>, <em>[out] </em>FrameIn As <a href="DataTypeInteger.html">Integer</a>, <em>[out] </em>FrameOut As <a href="DataTypeInteger.html">Integer</a>, <em>[out] </em>AutoStart As <a href="DataTypeBoolean.html">Boolean</a>, <em>[out] </em>Position As <a href="DataTypeInteger.html">Integer</a>)</td><td>Inserts a clip at the given position in the queue.</td></tr>
+<tr><td>Function <b>QueueList</b>() As <a href="DataTypeString.html">String</a></td><td>Returns the list of queued clip.</td></tr>
+<tr><td>Sub <b>QueueMove</b>(<em>[out] </em>Source As <a href="DataTypeInteger.html">Integer</a>, <em>[out] </em>Target As <a href="DataTypeInteger.html">Integer</a>)</td><td>Moves a clip from the given position to a new one in the queue.</td></tr>
+<tr><td>Sub <b>QueueReplace</b>(<em>[out] </em>ClipName As <a href="DataTypeString.html">String</a>, <em>[out] </em>FrameIn As <a href="DataTypeInteger.html">Integer</a>, <em>[out] </em>FrameOut As <a href="DataTypeInteger.html">Integer</a>, <em>[out] </em>AutoStart As <a href="DataTypeBoolean.html">Boolean</a>, <em>[out] </em>Position As <a href="DataTypeInteger.html">Integer</a>)</td><td>Replaces a clip at the given postion with the new one.</td></tr>
+<tr><td>Function <b>RequestClipStatus</b>() As <a href="DataTypeString.html">String</a></td><td>Requests the clip channel to broadcast its status.</td></tr>
+<tr><td>Sub <b>Scrub</b>(Frame As <a href="DataTypeInteger.html">Integer</a>)</td><td>Scrub the clip to <i>Frame</i> position.</td></tr>
+<tr><td>Sub <b>ScrubActive</b>(Frame As <a href="DataTypeInteger.html">Integer</a>)</td><td>Scrub the active clip to <i>Frame</i> position.</td></tr>
+<tr><td>Sub <b>ScrubPending</b>(Frame As <a href="DataTypeInteger.html">Integer</a>)</td><td>Scrub the pending clip to <i>Frame</i> position.</td></tr>
+<tr><td>Sub <b>SetChanged</b>()</td><td><i>(Inherited from <a href="DataTypeBase.html">Base</a>)</i> Mark this object as changed.</td></tr>
+<tr><td>Sub <b>SetClipName</b>(ClipName As <a href="DataTypeString.html">String</a>)</td><td>Load <i>ClipName</i> into clip channel with FrameIn set to 0 and FrameOut set to cliplength. Respects AutoRun.</td></tr>
+<tr><td>Sub <b>SetClipNameBack2Back</b>(ClipName As <a href="DataTypeString.html">String</a>)</td><td>Load <i>ClipName</i> as Back2Back into pending clip player with FrameIn set to 0 and FrameOut set to cliplength. Respects AutoRun.</td></tr>
+<tr><td>Sub <b>SetClipNameBack2BackEx</b>(ClipName As <a href="DataTypeString.html">String</a>, FrameIn As <a href="DataTypeInteger.html">Integer</a>, FrameOut As <a href="DataTypeInteger.html">Integer</a>, AutoRun As <a href="DataTypeBoolean.html">Boolean</a>)</td><td>Load <i>ClipName</i> as Back2Back into pending clip player with parameters in/out and AutoRun.</td></tr>
+<tr><td>Sub <b>SetClipNameEx</b>(ClipName As <a href="DataTypeString.html">String</a>, FrameIn As <a href="DataTypeInteger.html">Integer</a>, FrameOut As <a href="DataTypeInteger.html">Integer</a>, AutoRun As <a href="DataTypeBoolean.html">Boolean</a>)</td><td>Load <i>ClipName</i> into clip channel with parameters in/out and AutoRun.</td></tr>
+<tr><td>Sub <b>SetClipNamePending</b>(ClipName As <a href="DataTypeString.html">String</a>)</td><td>Load <i>ClipName</i> into pending clip player with FrameIn set to 0 and FrameOut set to cliplength. Respects AutoRun.</td></tr>
+<tr><td>Sub <b>SetClipNamePendingEx</b>(ClipName As <a href="DataTypeString.html">String</a>, FrameIn As <a href="DataTypeInteger.html">Integer</a>, FrameOut As <a href="DataTypeInteger.html">Integer</a>, AutoRun As <a href="DataTypeBoolean.html">Boolean</a>)</td><td>Load <i>ClipName</i> into pending clip player with parameters in/out and AutoRun.</td></tr>
+<tr><td>Sub <b>SetNextCueIsInstant</b>(param_1 As <a href="DataTypeBoolean.html">Boolean</a>)</td><td>Cue command should be executed on the spot.</td></tr>
+<tr><td>Sub <b>SetRegisterChangedClipFrame</b>(ShmKey As <a href="DataTypeString.html">String</a>)</td><td>Causes <i>ShmKey</i> to be set to the current frame whenever it changes.An empty string removes the binding.</td></tr>
+<tr><td>Sub <b>SetRegisterChangedClipMode</b>(ShmKey As <a href="DataTypeString.html">String</a>)</td><td>Causes <i>ShmKey</i> to be set to the new mode whenever it changes.An empty string removes the binding.</td></tr>
+<tr><td>Sub <b>SetRegisterChangedClipModePending</b>(ShmKey As <a href="DataTypeString.html">String</a>)</td><td>Causes <i>ShmKey</i> to be set to the new mode whenever it changes.An empty string removes the binding.</td></tr>
+<tr><td>Sub <b>SetRegisterChangedPlayerStatus</b>(ShmKey As <a href="DataTypeString.html">String</a>)</td><td>Causes <i>ShmKey</i> to be set to the new status whenever it changes.An empty string removes the binding.</td></tr>
+<tr><td>Sub <b>Stop</b>()</td><td>Stops the clip on this channel.</td></tr>
+<tr><td>Sub <b>StopActive</b>()</td><td>Stops the active clip on this channel.</td></tr>
+<tr><td>Sub <b>StopPending</b>()</td><td>Stops the pending clip on this channel.</td></tr>
+<tr><td>Sub <b>SwapEofPending</b>()</td><td>Activate pending clip at EOF of activ clip.</td></tr>
+<tr><td>Sub <b>SwapPending</b>()</td><td>Activate pending clip .</td></tr>
+</table>
+</body>
+</html>

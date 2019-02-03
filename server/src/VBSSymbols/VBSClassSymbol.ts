@@ -11,6 +11,7 @@ export class VBSClassSymbol extends VBSSymbol {
 		item.filterText = this.name;
 		item.insertText = this.name;
 		item.kind = ls.CompletionItemKind.Class;
+		item.data = this.type;
 		return item;
 	}
 }

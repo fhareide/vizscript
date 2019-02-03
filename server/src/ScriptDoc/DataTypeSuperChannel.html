@@ -1,0 +1,63 @@
+<html>
+<head><title>SuperChannel</title>
+<link rel="stylesheet" href="Script.css" type="text/css" />
+</head>
+<body>
+<a href="ScriptRef.html">Script Reference</a>
+<h2>SuperChannel</h2>
+<h3>Base type</h3>
+<a href="DataTypeAVChannel.html">AVChannel</a>
+<h3>Description</h3>
+Super-channel objects
+<h3>Properties</h3>
+<table border=1 cellpadding=3 cellspacing=0>
+<tr><td><b>A</b> As <a href="DataTypeProxyChannel.html">ProxyChannel</a> <i>[read-only]</i></td><td>Get sub-channel A.</td></tr>
+<tr><td><b>Alpha</b> As <a href="DataTypeDouble.html">Double</a></td><td>(<i>Inherited from <a href="DataTypeAVChannel.html">AVChannel</a>)</i> Alpha of this AVChannel</td></tr>
+<tr><td><b>B</b> As <a href="DataTypeProxyChannel.html">ProxyChannel</a> <i>[read-only]</i></td><td>Get sub-channel B.</td></tr>
+<tr><td><b>Center</b> As <a href="DataTypeVertex.html">Vertex</a></td><td>(<i>Inherited from <a href="DataTypeAVChannel.html">AVChannel</a>)</i> Transformation center of this AVChannel</td></tr>
+<tr><td><b>ContentBorderColor</b> As <a href="DataTypeColor.html">Color</a></td><td>(<i>Inherited from <a href="DataTypeAVChannel.html">AVChannel</a>)</i> AVChannel content border color</td></tr>
+<tr><td><b>ContentCenter</b> As <a href="DataTypeVertex.html">Vertex</a></td><td>(<i>Inherited from <a href="DataTypeAVChannel.html">AVChannel</a>)</i> AVChannel content relative center in percent</td></tr>
+<tr><td><b>ContentCropBottom</b> As <a href="DataTypeInteger.html">Integer</a></td><td>(<i>Inherited from <a href="DataTypeAVChannel.html">AVChannel</a>)</i> AVChannel content bottom crop</td></tr>
+<tr><td><b>ContentCropLeft</b> As <a href="DataTypeInteger.html">Integer</a></td><td>(<i>Inherited from <a href="DataTypeAVChannel.html">AVChannel</a>)</i> AVChannel content left crop</td></tr>
+<tr><td><b>ContentCropRight</b> As <a href="DataTypeInteger.html">Integer</a></td><td>(<i>Inherited from <a href="DataTypeAVChannel.html">AVChannel</a>)</i> AVChannel content right crop</td></tr>
+<tr><td><b>ContentCropTop</b> As <a href="DataTypeInteger.html">Integer</a></td><td>(<i>Inherited from <a href="DataTypeAVChannel.html">AVChannel</a>)</i> AVChannel content top crop</td></tr>
+<tr><td><b>ContentPosition</b> As <a href="DataTypeVertex.html">Vertex</a></td><td>(<i>Inherited from <a href="DataTypeAVChannel.html">AVChannel</a>)</i> AVChannel content relative position in percent</td></tr>
+<tr><td><b>ContentSize</b> As <a href="DataTypeVertex.html">Vertex</a></td><td>(<i>Inherited from <a href="DataTypeAVChannel.html">AVChannel</a>)</i> AVChannel content relative size in percent</td></tr>
+<tr><td><b>ContentZoomMode</b> As <a href="DataTypeInteger.html">Integer</a></td><td>(<i>Inherited from <a href="DataTypeAVChannel.html">AVChannel</a>)</i> AVChannel content zoom mode</td></tr>
+<tr><td><b>ControlledAnimation</b> As <a href="DataTypeBoolean.html">Boolean</a></td><td>(<i>Inherited from <a href="DataTypeAVChannel.html">AVChannel</a>)</i> Is animation controlled by parent Scene or by this AVChannel</td></tr>
+<tr><td><b>CropBottom</b> As <a href="DataTypeDouble.html">Double</a></td><td>(<i>Inherited from <a href="DataTypeAVChannel.html">AVChannel</a>)</i> Bottom crop of this AVChannel</td></tr>
+<tr><td><b>CropLeft</b> As <a href="DataTypeDouble.html">Double</a></td><td>(<i>Inherited from <a href="DataTypeAVChannel.html">AVChannel</a>)</i> Left crop of this AVChannel</td></tr>
+<tr><td><b>CropRight</b> As <a href="DataTypeDouble.html">Double</a></td><td>(<i>Inherited from <a href="DataTypeAVChannel.html">AVChannel</a>)</i> Right crop of this AVChannel</td></tr>
+<tr><td><b>CropTop</b> As <a href="DataTypeDouble.html">Double</a></td><td>(<i>Inherited from <a href="DataTypeAVChannel.html">AVChannel</a>)</i> Top crop of this AVChannel</td></tr>
+<tr><td><b>ForceKey</b> As <a href="DataTypeBoolean.html">Boolean</a></td><td>(<i>Inherited from <a href="DataTypeAVChannel.html">AVChannel</a>)</i> Force key of this AVChannel</td></tr>
+<tr><td><b>KeepAspect</b> As <a href="DataTypeBoolean.html">Boolean</a></td><td>(<i>Inherited from <a href="DataTypeAVChannel.html">AVChannel</a>)</i> Keep aspect of this AVChannel</td></tr>
+<tr><td><b>MasterVolume</b> As <a href="DataTypeDouble.html">Double</a></td><td>(<i>Inherited from <a href="DataTypeAVChannel.html">AVChannel</a>)</i> Master volume of this AVChannel</td></tr>
+<tr><td><b>Pending</b> As <a href="DataTypeProxyChannel.html">ProxyChannel</a> <i>[read-only]</i></td><td>Get pending sub-channel. This channel is not valid during transitions. Check with <i>IsValid</i>.</td></tr>
+<tr><td><b>Playing</b> As <a href="DataTypeProxyChannel.html">ProxyChannel</a> <i>[read-only]</i></td><td>Get playing sub-channel. This channel is not valid during transitions. Check with <i>IsValid</i>.</td></tr>
+<tr><td><b>Position</b> As <a href="DataTypeVertex.html">Vertex</a></td><td>(<i>Inherited from <a href="DataTypeAVChannel.html">AVChannel</a>)</i> Position of this AVChannel</td></tr>
+<tr><td><b>ScreenCenter</b> As <a href="DataTypeVertex.html">Vertex</a></td><td>(<i>Inherited from <a href="DataTypeAVChannel.html">AVChannel</a>)</i> Transformation center of this AVChannel (in Pixels)</td></tr>
+<tr><td><b>ScreenCropBottom</b> As <a href="DataTypeDouble.html">Double</a></td><td>(<i>Inherited from <a href="DataTypeAVChannel.html">AVChannel</a>)</i> Bottom crop of this AVChannel (in Pixels)</td></tr>
+<tr><td><b>ScreenCropLeft</b> As <a href="DataTypeDouble.html">Double</a></td><td>(<i>Inherited from <a href="DataTypeAVChannel.html">AVChannel</a>)</i> Left crop of this AVChannel (in Pixels)</td></tr>
+<tr><td><b>ScreenCropRight</b> As <a href="DataTypeDouble.html">Double</a></td><td>(<i>Inherited from <a href="DataTypeAVChannel.html">AVChannel</a>)</i> Right crop of this AVChannel (in Pixels)</td></tr>
+<tr><td><b>ScreenCropTop</b> As <a href="DataTypeDouble.html">Double</a></td><td>(<i>Inherited from <a href="DataTypeAVChannel.html">AVChannel</a>)</i> Top crop of this AVChannel (in Pixels)</td></tr>
+<tr><td><b>ScreenPosition</b> As <a href="DataTypeVertex.html">Vertex</a></td><td>(<i>Inherited from <a href="DataTypeAVChannel.html">AVChannel</a>)</i> Position of this AVChannel (in Pixels)</td></tr>
+<tr><td><b>ScreenSize</b> As <a href="DataTypeVertex.html">Vertex</a></td><td>(<i>Inherited from <a href="DataTypeAVChannel.html">AVChannel</a>)</i> Size of this AVChannel (in Pixels)</td></tr>
+<tr><td><b>Size</b> As <a href="DataTypeVertex.html">Vertex</a></td><td>(<i>Inherited from <a href="DataTypeAVChannel.html">AVChannel</a>)</i> Size of this AVChannel</td></tr>
+<tr><td><b>TransitionAB</b> As <a href="DataTypeDirector.html">Director</a> <i>[read-only]</i></td><td>Get director transition.</td></tr>
+<tr><td><b>TransitionABManual</b> As <a href="DataTypeDirector.html">Director</a></td><td>Get or set director transition.</td></tr>
+<tr><td><b>TransitionABReverse</b> As <a href="DataTypeBoolean.html">Boolean</a></td><td>Get or set director transition reverse direction.</td></tr>
+<tr><td><b>TransitionAutoMode</b> As <a href="DataTypeBoolean.html">Boolean</a></td><td>Get or set status of transition mode.</td></tr>
+<tr><td><b>TransitionBA</b> As <a href="DataTypeDirector.html">Director</a> <i>[read-only]</i></td><td>Get director transition.</td></tr>
+<tr><td><b>TransitionBAManual</b> As <a href="DataTypeDirector.html">Director</a></td><td>Get or set director transition.</td></tr>
+<tr><td><b>TransitionBAReverse</b> As <a href="DataTypeBoolean.html">Boolean</a></td><td>Get or set director transition reverse direction.</td></tr>
+</table>
+<h3>Member Procedures</h3>
+<table border=1 cellpadding=3 cellspacing=0>
+<tr><td>Function <b>GetAudioChannelVolume</b>(param_1 As <a href="DataTypeInteger.html">Integer</a>) As <a href="DataTypeDouble.html">Double</a></td><td><i>(Inherited from <a href="DataTypeAVChannel.html">AVChannel</a>)</i> Volume of audio channel (up to 16 channels)</td></tr>
+<tr><td>Function <b>IsValid</b>() As <a href="DataTypeBoolean.html">Boolean</a></td><td>Is this a valid SuperChannel</td></tr>
+<tr><td>Function <b>IsValid</b>() As <a href="DataTypeBoolean.html">Boolean</a></td><td><i>(Inherited from <a href="DataTypeAVChannel.html">AVChannel</a>)</i> Checks if this AVChannel is valid</td></tr>
+<tr><td>Function <b>SetAudioChannelVolume</b>(param_1 As <a href="DataTypeInteger.html">Integer</a>) As <a href="DataTypeDouble.html">Double</a></td><td><i>(Inherited from <a href="DataTypeAVChannel.html">AVChannel</a>)</i> Volume of audio channel (up to 16 channels)</td></tr>
+<tr><td>Function <b>Toggle</b>() As <a href="DataTypeBoolean.html">Boolean</a></td><td>Toggles playing and pending channel</td></tr>
+</table>
+</body>
+</html>

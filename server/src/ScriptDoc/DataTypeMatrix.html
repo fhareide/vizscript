@@ -1,0 +1,39 @@
+<html>
+<head><title>Matrix</title>
+<link rel="stylesheet" href="Script.css" type="text/css" />
+</head>
+<body>
+<a href="ScriptRef.html">Script Reference</a>
+<h2>Matrix</h2>
+<h3>Description</h3>
+A 4x4 matrix. The index operator [] can be used to access individual entries, with indices 0, 1, 2, 3 referring to the entries of the first column, 4, 5, 6, 7 to the second, etc.
+<h3>Properties</h3>
+<table border=1 cellpadding=3 cellspacing=0>
+</table>
+<h3>Member Procedures</h3>
+<table border=1 cellpadding=3 cellspacing=0>
+<tr><td>Sub <b>Frustum</b>(left As <a href="DataTypeDouble.html">Double</a>, right As <a href="DataTypeDouble.html">Double</a>, bottom As <a href="DataTypeDouble.html">Double</a>, top As <a href="DataTypeDouble.html">Double</a>, near As <a href="DataTypeDouble.html">Double</a>, far As <a href="DataTypeDouble.html">Double</a>)</td><td>&nbsp;</td></tr>
+<tr><td>Function <b>GetDeterminant</b>() As <a href="DataTypeDouble.html">Double</a></td><td>&nbsp;</td></tr>
+<tr><td>Function <b>GetRotation</b>() As <a href="DataTypeVertex.html">Vertex</a></td><td>&nbsp;</td></tr>
+<tr><td>Function <b>GetRotationXYZ</b>(v As <a href="DataTypeVertex.html">Vertex</a>, v2 As <a href="DataTypeVertex.html">Vertex</a>) As <a href="DataTypeBoolean.html">Boolean</a></td><td>This function can be used to retrieve the rotations used by a container. The return value is true if two solutions for the x, y and z rotation were found. If the return value is false, the solution is undefined (x rotation is either 90 or 270 degrees).</td></tr>
+<tr><td>Function <b>GetRotationZXY</b>(v As <a href="DataTypeVertex.html">Vertex</a>, v2 As <a href="DataTypeVertex.html">Vertex</a>) As <a href="DataTypeBoolean.html">Boolean</a></td><td>This function can be used to retrieve the rotations used by a camera. The return value is true if two solutions for the x, y and z rotation were found. If the return value is false, the solution is undefined (x rotation is either 90 or 270 degrees).</td></tr>
+<tr><td>Function <b>GetScaling</b>() As <a href="DataTypeVertex.html">Vertex</a></td><td>&nbsp;</td></tr>
+<tr><td>Function <b>GetScaling2</b>() As <a href="DataTypeVertex.html">Vertex</a></td><td>Returns the squared scaling factors.</td></tr>
+<tr><td>Function <b>GetTranslation</b>() As <a href="DataTypeVertex.html">Vertex</a></td><td>&nbsp;</td></tr>
+<tr><td>Function <b>Invert</b>() As <a href="DataTypeBoolean.html">Boolean</a></td><td>&nbsp;</td></tr>
+<tr><td>Sub <b>LoadIdentity</b>()</td><td>&nbsp;</td></tr>
+<tr><td>Sub <b>LoadMatrix</b>()</td><td>Performs a glLoadMatrix().</td></tr>
+<tr><td>Sub <b>MultMatrix</b>()</td><td>Performs a glMultMatrix().</td></tr>
+<tr><td>Sub <b>Ortho</b>(left As <a href="DataTypeDouble.html">Double</a>, right As <a href="DataTypeDouble.html">Double</a>, bottom As <a href="DataTypeDouble.html">Double</a>, top As <a href="DataTypeDouble.html">Double</a>, near As <a href="DataTypeDouble.html">Double</a>, far As <a href="DataTypeDouble.html">Double</a>)</td><td>&nbsp;</td></tr>
+<tr><td>Sub <b>Perspective</b>(fov As <a href="DataTypeDouble.html">Double</a>, aspect As <a href="DataTypeDouble.html">Double</a>, near As <a href="DataTypeDouble.html">Double</a>, far As <a href="DataTypeDouble.html">Double</a>)</td><td>&nbsp;</td></tr>
+<tr><td>Sub <b>Rotate</b>(angle As <a href="DataTypeDouble.html">Double</a>, v As <a href="DataTypeVertex.html">Vertex</a>)</td><td>&nbsp;</td></tr>
+<tr><td>Sub <b>Rotate</b>(v As <a href="DataTypeVertex.html">Vertex</a>)</td><td>&nbsp;</td></tr>
+<tr><td>Sub <b>RotateX</b>(angle As <a href="DataTypeDouble.html">Double</a>)</td><td>&nbsp;</td></tr>
+<tr><td>Sub <b>RotateY</b>(angle As <a href="DataTypeDouble.html">Double</a>)</td><td>&nbsp;</td></tr>
+<tr><td>Sub <b>RotateZ</b>(angle As <a href="DataTypeDouble.html">Double</a>)</td><td>&nbsp;</td></tr>
+<tr><td>Sub <b>Scale</b>(v As <a href="DataTypeVertex.html">Vertex</a>)</td><td>&nbsp;</td></tr>
+<tr><td>Sub <b>Translate</b>(v As <a href="DataTypeVertex.html">Vertex</a>)</td><td>&nbsp;</td></tr>
+<tr><td>Sub <b>Transpose</b>()</td><td>&nbsp;</td></tr>
+</table>
+</body>
+</html>

@@ -85,6 +85,7 @@
 	"dependencies": {
 		"cxml": "^0.3.1",
 		"cxsd": "^0.1.1",
-		"rxjs": "^6.4.0"
+		"rxjs": "^6.4.0",
+		"website-to-json": "^1.0.22"
 	}
 }

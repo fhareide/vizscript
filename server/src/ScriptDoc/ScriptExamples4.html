@@ -1,0 +1,123 @@
+﻿<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+  <head>
+    <meta http-equiv="Content-Type" content="text/xhtml;charset=UTF-8" />
+    <meta http-equiv="Content-Style-Type" content="text/css" />
+    <meta http-equiv="Content-Language" content="en" />
+    <link rel="stylesheet" href="Script.css" type="text/css" />
+    <title>Viz 3 Script - Examples</title>
+  </head>
+
+
+<body>
+
+<a href="ScriptMain.html">Viz 3 Script</a>
+
+<h2>Viz 3 Script - Examples</h2>
+
+<h3>Planets</h3>
+<pre class="code">
+dim MAXNUM, NUM as Integer
+dim MAXMASS, G, POS1X, POS1Z as Double
+
+MAXNUM = 40
+NUM = 9
+MAXMASS = 1000000
+G = 0.006674
+POS1X = 0
+POS1Z = 0
+structure Planet
+  rx, ry, vx, vy, mass as double
+end structure
+
+dim planetContainers as Array[Container]
+dim masses as Array[Planet]
+dim lastPlanetIndex as integer
+
+sub OnInit()
+    dim c as Container
+    dim i as Integer
+    dim dx, dy, r, v as double
+
+    c = ChildContainer
+
+    do while c &lt;&gt; null
+        planetContainers.push c
+        c = c.NextContainer
+    loop
+
+    masses.size = planetContainers.size
+    lastPlanetIndex = planetContainers.size - 1
+
+    if lastPlanetIndex &lt; 0 then exit sub
+
+    ' the sun
+    masses[0].rx = 0.0
+    masses[0].ry = 0.0
+    masses[0].vx = 2.0
+    masses[0].vy = 0.0
+    masses[0].mass = 300000000
+
+    ' the planets
+    for i = 1 to lastPlanetIndex
+        dx = random() * 20000.0 - 10000.0
+        dy = random() * 20000.0 - 10000.0
+
+        if dx &lt;= 0.0 and dx &gt; -500.0 then dx = -500.0
+        if dx &gt;  0.0 and dx &lt;  500.0 then dx =  500.0
+
+        if dy &lt;= 0.0 and dy &gt; -500.0 then dy = -500.0
+        if dy &gt;  0.0 and dy &lt;  500.0 then dy = 500.0
+
+        masses[i].rx = POS1X + dx
+        masses[i].ry = POS1Z + dy
+
+        r = sqrt(dx * dx + dy * dy)
+        masses[i].mass = random() * MAXMASS
+        v = sqrt(G * masses[0].mass / r)
+        masses[i].vx = dy / r * v
+        masses[i].vy = -dx / r * v
+    next
+end sub
+
+sub OnExecPerField()
+    dim ax, az, ar, r2, dx, dy as Double
+    dim i, j as Integer
+
+    for i = 0 to lastPlanetIndex
+        planetContainers[i].position.x = masses[i].rx * 0.01
+        planetContainers[i].position.y = masses[i].ry * 0.01
+    next
+
+    ' calculate new velocities
+
+    for i = 0 to lastPlanetIndex
+        ax = 0
+        az = 0
+
+        for j = 0 to lastPlanetIndex
+            if j &lt;&gt; i then
+                dx = masses[j].rx - masses[i].rx
+                dy = masses[j].ry - masses[i].ry
+                r2 = dx*dx + dy*dy
+                ar = masses[j].mass / (r2 * sqrt(r2))
+                ax += ar * dx
+                az += ar * dy
+            end if
+        next
+
+        masses[i].vx += ax * G
+        masses[i].vy += az * G
+    next
+
+    ' calculate new positions
+
+    for i = 0 to lastPlanetIndex
+        masses[i].rx += masses[i].vx
+        masses[i].ry += masses[i].vy
+    next
+end sub
+</pre>
+
+</body>
+</html>

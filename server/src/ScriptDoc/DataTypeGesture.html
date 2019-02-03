@@ -1,0 +1,21 @@
+<html>
+<head><title>Gesture</title>
+<link rel="stylesheet" href="Script.css" type="text/css" />
+</head>
+<body>
+<a href="ScriptRef.html">Script Reference</a>
+<h2>Gesture</h2>
+<h3>Description</h3>
+Holds data of a single gesture event.
+<h3>Properties</h3>
+<table border=1 cellpadding=3 cellspacing=0>
+<tr><td><b>Event</b> As <a href="DataTypeInteger.html">Integer</a> <i>[read-only]</i></td><td>Returns the gesture event type (GESTURE_MANIPULATION_START, GESTURE_MANIPULATION_STOP, GESTURE_MOMENTUM_START, GESTURE_MOMENTUM_STOP, GESTURE_TAP, GESTURE_DOUBLE_TAP, GESTURE_TAP_HOLD, GESTURE_TRANSFORMATION, GESTURE_PATTERN).</td></tr>
+<tr><td><b>PatternId</b> As <a href="DataTypeInteger.html">Integer</a> <i>[read-only]</i></td><td>Returns the Id of the recognized gesture pattern (PATTERN_INVALID, PATTERN_RIGHT, PATTERN_LEFT, PATTERN_UP, PATTERN_DOWN, PATTERN_CIRCLE, PATTERN_SQUARE, PATTERN_TRIANGLE)</td></tr>
+<tr><td><b>Pressure</b> As <a href="DataTypeDouble.html">Double</a> <i>[read-only]</i></td><td>Returns the normalized pressure value in the range 0.0 to 1.0.</td></tr>
+<tr><td><b>Recognizer</b> As <a href="DataTypeGestureRecognizer.html">GestureRecognizer</a> <i>[read-only]</i></td><td>Returns the recognizer which generated this gesture.</td></tr>
+<tr><td><b>TraceCount</b> As <a href="DataTypeInteger.html">Integer</a> <i>[read-only]</i></td><td>Returns the number of traces involved in this gesture.</td></tr>
+<tr><td><b>Valid</b> As <a href="DataTypeBoolean.html">Boolean</a> <i>[read-only]</i></td><td>Returns true if the object is valid.</td></tr>
+<tr><td><b>xy</b> As <a href="DataTypeVertex.html">Vertex</a> <i>[read-only]</i></td><td>Returns the gesture position in screen-coordinates.</td></tr>
+</table>
+</body>
+</html>

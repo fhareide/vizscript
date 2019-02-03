@@ -1,0 +1,390 @@
+﻿<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+    <meta http-equiv="Content-Type" content="text/xhtml;charset=UTF-8" />
+    <meta http-equiv="Content-Style-Type" content="text/css" />
+    <meta http-equiv="Content-Language" content="en" />
+    <link rel="stylesheet" href="Script.css" type="text/css" />
+    <title>Viz 3 Script - Callback Procedures</title>
+</head>
+
+
+<body>
+
+    <a href="ScriptMain.html">Viz 3 Script</a>
+
+
+    <h2>Viz 3 Script - Callback Procedures</h2>
+
+
+    <p>
+        Here is a list of callback procedures recognized by the script
+        engine. When defined in a script, these procedures are called by
+        the system in response to events such as keyboard and mouse input.
+        All of them are supported by container scripts, while only six (<strong>
+            OnInitParameters,
+            OnInit, OnExecPerField, OnExecAction, OnParameterChanged, OnRequestStatusUpdate
+        </strong>)
+        are meaningful in scene scripts.
+    </p>
+
+
+    <p>Sub <strong>OnInitParameters</strong>()</p>
+    <blockquote>
+        <p>
+            This procedure must contain all <strong>
+                Register...
+            </strong>calls (such as <strong>RegisterParameterInt</strong>), which are used to define the script's parameters.
+            For locally defined scripts, this callback is invoked once
+            for every script instance, immediately before <strong>OnInit</strong>,
+            while for plugin scripts, it is called at system startup.
+        </p>
+    </blockquote>
+
+    <p>Sub <strong>OnInit</strong>()</p>
+    <blockquote>
+        <p>
+            Called after a script instance has been created (e.g. by
+            pressing <em>Compile and Run</em> or by loading a scene with
+            a script). Initialization code should be placed here. Container scripts
+            can access saved scene-tree values already.
+        </p>
+    </blockquote>
+
+    <p>Sub <strong>OnPostLoad</strong>()</p>
+    <blockquote>
+        <p>Called on scene scripts after the whole scene tree was loaded and initialized.</p>
+    </blockquote>
+
+    <p>Sub <strong>OnEnter</strong>()</p>
+    <blockquote>
+        <p>
+            Called when the mouse cursor enters the area occupied by
+            the script's container in the output window. If the
+            container's <strong>ExactPicking</strong> property, which is <em>true</em>
+            by default, is set to <em>false</em>, it is sufficient that
+            the mouse cursor hits the container's bounding box for <strong>OnEnter</strong>
+            to be called.<br />
+            Attention: Due to the necessary object hit-testing (picking) using this callback
+            can have impacts on the overall render performance.
+        </p>
+    </blockquote>
+
+    <p>Sub <strong>OnLeave</strong>()</p>
+    <blockquote>
+        <p>
+            The reverse of <strong>OnEnter</strong>: Called when the
+            mouse cursor leaves the container's area. This procedure is
+            called only if <strong>OnEnter </strong>has previously been
+            called for the script's container.<br />
+            Attention: Due to the necessary object hit-testing (picking) using this callback
+            can have impacts on the overall render performance.
+        </p>
+    </blockquote>
+
+    <p>Sub <strong>OnEnterSubContainer</strong>(<em>subContainer</em> As Container)</p>
+    <blockquote>
+        <p>
+            Called when the mouse cursor enters the area occupied by
+            a sub-container of the script's container. Otherwise identical
+            to <strong>OnEnter</strong>.<br />
+            Attention: Due to the necessary object hit-testing (picking) using this callback
+            can have impacts on the overall render performance.
+        </p>
+    </blockquote>
+
+    <p>Sub <strong>OnLeaveSubContainer</strong>(<em>subContainer</em> As Container)</p>
+    <blockquote>
+        <p>
+            Called when the mouse cursor leaves the area occupied
+            by a sub-container of the script's container.<br />
+            Attention: Due to the necessary object hit-testing (picking) using this callback
+            can have impacts on the overall render performance.
+        </p>
+    </blockquote>
+
+    <p>Sub <strong>OnExecPerField</strong>()</p>
+    <blockquote>
+        <p>Called once for every field.</p>
+    </blockquote>
+
+    <p>Sub <strong>OnExecAction</strong>(<em>buttonId</em> As Integer)</p>
+    <blockquote>
+        <p>
+            Called when the user clicks on any push button defined by <strong>RegisterPushButton</strong>.
+            If the script defines several push buttons, use <em>buttonId </em>
+            to determine which button has been clicked on.
+        </p>
+    </blockquote>
+
+    <p>Sub <strong>OnGuiStatus</strong>()</p>
+    <blockquote>
+        <p>
+            Called if the GUI wants to refresh the state of the UI.
+            This would be the proper place where the plugin can set the UI state
+            to enabled/disabled with <strong>SendGuiStatus</strong> or shown/hidden
+            with <strong>SendGuiParameterShow</strong>.
+        </p>
+    </blockquote>
+
+    <p>Sub <strong>OnParameterChanged</strong>(<em>parameterName</em> As String)</p>
+    <blockquote>
+        <p>
+            Called whenever the user changes the value of script
+            parameter defined by any of the <strong>RegisterParameter... </strong>functions.
+        </p>
+    </blockquote>
+
+    <p>Sub <strong>OnKeyDown</strong>(<em>keyCode</em> As Integer)</p>
+    <blockquote>
+        <p>
+            Called whenever the user presses a key. <em>keycode</em>
+            identifies the key pressed. Possible values are: KEY_A,
+            KEY_B, ..., KEY_Z, KEY_0, ..., KEY_9, KEY_HOME, KEY_END,
+            KEY_PAGEUP, KEY_PAGEDN, KEY_UP, KEY_DOWN, KEY_LEFT,
+            KEY_RIGHT, KEY_INSERT, KEY_DELETE, KEY_BEGIN, KEY_MULTIPLY,
+            KEY_DIVIDE, KEY_ESCAPE, KEY_RETURN, KEY_ENTER, KEY_SEPARATOR,
+            KEY_SPACE, KEY_BACKSPACE, KEY_TAB, KEY_CONTROL, KEY_MENU,
+            KEY_ALT, KEY_SHIFT, KEY_F1, ... KEY_F12, KEY_SCROLL_LOCK,
+            KEY_PAUSE, NUMPAD_INSERT, NUMPAD_END, NUMPAD_DOWN,
+            NUMPAD_PGDN, NUMPAD_LEFT, NUMPAD_BEGIN, NUMPAD_RIGHT,
+            NUMPAD_HOME, NUMPAD_UP, NUMPAD_PGUP, NUMPAD0, ..., NUMPAD9
+        </p>
+    </blockquote>
+
+    <p>Sub <strong>OnKeyUp</strong>(<em>keyCode</em> As Integer)</p>
+    <blockquote>
+        <p>Called whenever the user releases a key.</p>
+    </blockquote>
+
+    <p>
+        Sub <strong>OnButtonDown6DOF</strong>(<em>button</em> As Integer, <em>pos</em>
+        As Vertex, <em>rot</em> As Vertex)
+    </p>
+    <blockquote>
+        <p>
+            Called when the user clicks on a scene grid. <em>button</em> defines the
+            ID of the pressed button, <em>pos</em> specifies the 3D world position of the cursor
+            and <em>rot</em> gives you the actual rotation.
+        </p>
+    </blockquote>
+
+    <p>
+        Sub <strong>OnButtonUp6DOF</strong>(<em>button</em> As Integer, <em>pos</em>
+        As Vertex, <em>rot</em> As Vertex)
+    </p>
+    <blockquote>
+        <p>Called whenever the user releases a mouse button.</p>
+    </blockquote>
+
+    <p>
+        Sub <strong>OnMove6DOF</strong>(<em>button</em> As Integer, <em>pos</em>
+        As Vertex, <em>rot</em> As Vertex)
+    </p>
+    <blockquote>
+        <p>
+            Called when the user moves the cursor on a scene grid. <em>button</em> defines the
+            ID of the pressed button, <em>pos</em> specifies the 3D world position of the cursor
+            and <em>rot</em> gives you the actual rotation.
+        </p>
+    </blockquote>
+
+    <p>
+        Sub <strong>OnMoveRelative6DOF</strong>(<em>button</em> As Integer, <em>pos</em>
+        As Vertex, <em>rot</em> As Vertex)
+    </p>
+    <blockquote>
+        <p>
+            Called when the user moves the cursor on a scene grid. <em>button</em> defines the
+            ID of the pressed button, <em>pos</em> specifies the offset vector to the last 6DOF
+            position of the cursor and <em>rot</em> gives you the actual rotation.
+        </p>
+    </blockquote>
+
+    <p>
+        Sub <strong>OnScale6DOF</strong>(<em>button</em> As Integer, <em>scale</em>
+        As Vertex)
+    </p>
+    <blockquote>
+        <p>
+            Called when the user performs a scale operation (e.g.: with a multi-touch
+            device) on a scene grid. <em>button</em> defines the ID of the pressed button
+            and <em>scale</em> specifies the actual scale factor.
+        </p>
+    </blockquote>
+
+    <p>
+        Sub <strong>OnMTHit</strong>(<em>stroke</em> As Integer, <em>x</em>
+        As Integer, <em>y</em> As Integer)
+    </p>
+    <blockquote>
+        <p>
+            Called when the user touches this object (where this scriptplugininstance
+            resides on) at a multi-touch device. <em>stroke</em> gives you the stroke ID
+            of the multi-touch operation. <em>x</em> and <em>y</em> specify the hit
+            position in screen coordinates. This callback is used to instantiate a
+            certain control in the multi-touch server.<br />
+            Attention: Due to the necessary object hit-testing (picking) using this callback
+            can have impacts on the overall render performance.
+        </p>
+    </blockquote>
+
+    <p>Sub <strong>OnMTMenu</strong>(<em>x</em> As Integer, <em>y</em> As Integer)</p>
+    <blockquote>
+        <p>
+            Called when the user performs a menu gesture on the multi-touch device.
+            <em>x</em> and <em>y</em> specify the hit position in screen coordinates.<br />
+            Attention: Due to the necessary object hit-testing (picking) using this callback
+            can have impacts on the overall render performance.
+        </p>
+    </blockquote>
+
+    <p>
+        Sub <strong>OnMTControlPZR2D</strong>(<em>x</em> As Integer, <em>y</em> As Integer
+        <em>rot</em> As Vertex, <em>scale</em> As Vertex, <em>pressure</em> As Double)
+    </p>
+    <blockquote>
+        <p>
+            Called when a PZR2D control was registered. <em>x</em> and <em>y</em>
+            specify the hit position in screen coordinates, <em>rot</em> gives you the
+            object rotation, <em>scale</em> holds the scale factor and <em>pressure</em>
+            contains the current mean contact pressure.
+        </p>
+    </blockquote>
+
+    <p>
+        Sub <strong>OnMTControlButton</strong>(<em>strokes</em> As Integer,
+        <em>pressure</em> As Double)
+    </p>
+    <blockquote>
+        <p>
+            Called when a Button control was registered. <em>strokes</em>
+            contains the current hit count on the button object and
+            <em>pressure</em> defines the mean contact pressure.
+        </p>
+    </blockquote>
+
+    <p>Sub <strong>OnMTControlInactive</strong>()</p>
+    <blockquote>
+        <p>
+            Called when a registered multi-touch control became inactive (all
+            strokes were removed from the object).
+        </p>
+    </blockquote>
+
+    <p>Sub <strong>OnTouchTrace</strong>(<em>trace</em> As Trace, <em>touch</em> As Touch)</p>
+    <blockquote>
+        <p>
+            Called when a new trace is created or when a touch is added to an existing trace.<br />
+            <em>touch</em> contains the new touch.<br />
+            The newly added touch can be also retrieved easily with <em>trace.LastTouch</em>.<br />
+            Note that trace IDs and stroke IDs of other callbacks are identical
+            (e.g.: OnMTHit can be easily used for hit testing of traces).
+        </p>
+    </blockquote>
+
+    <p>Sub <strong>OnGesture</strong>(<em>gesture</em> As Gesture)</p>
+    <blockquote>
+        <p>
+            After a <em>GestureRecognizer</em> was fed with an input <em>Trace</em> this callback <br />
+            will be executed with the resulting events.<br />
+            <em>gesture</em> contains all properties of the current event.
+        </p>
+    </blockquote>
+
+    <p>
+        Sub <strong>OnMouseMove</strong>(<em>x</em> As Integer, <em>y</em>
+        As Integer)
+    </p>
+    <blockquote>
+        <p>
+            Called whenever the mouse cursor is moved within the
+            output window. <em>x</em> and <em>y</em> specify the cursor
+            position in screen coordinates.
+        </p>
+    </blockquote>
+
+    <p>
+        Sub <strong>OnLButtonDown</strong>()<br />
+        Sub <strong>OnMButtonDown</strong>()<br />
+        Sub <strong>OnRButtonDown</strong>()
+    </p>
+    <blockquote>
+        <p>
+            Called whenever the user presses the left/middle/right
+            mouse button.<br />
+            Attention: Due to the necessary object hit-testing (picking) using these callbacks
+            can have impacts on the overall render performance.
+        </p>
+    </blockquote>
+
+    <p>
+        Sub <strong>OnLButtonUp</strong>()<br />
+        Sub <strong>OnMButtonUp</strong>()<br />
+        Sub <strong>OnRButtonUp</strong>()
+    </p>
+    <blockquote>
+        <p>
+            Called whenever the user releases the left/middle/right
+            mouse button.<br />
+            Attention: Due to the necessary object hit-testing (picking) using these callbacks
+            can have impacts on the overall render performance.
+        </p>
+    </blockquote>
+
+    <p>Sub <strong>OnMouseWheel</strong>(<em>distance</em> As Integer)</p>
+    <blockquote>
+        <p>
+            Called whenever the mouse wheel is rotated within the
+            output window.
+        </p>
+    </blockquote>
+
+    <p>sub <strong>OnSharedMemoryVariableChanged</strong>(<em>map</em> As SharedMemory, <em>mapKey</em> As String)</p>
+    <blockquote>
+        <p>
+            Called when a variable in a <em>SharedMemory</em> map is changed. The <em>SharedMemory</em> map
+            and the name of the variable are passed to this procedure as parameters. The name of the variable
+            must previously be registered to the <em>SharedMemory</em> map by calling its <em>RegisterChangedCallback</em>
+            procedure.
+        </p>
+    </blockquote>
+
+    <p>sub <strong>OnSharedMemoryVariableDeleted</strong>(<em>map</em> As SharedMemory, <em>mapKey</em> As String)</p>
+    <blockquote>
+        <p>
+            Called when a variable in a <em>SharedMemory</em> map is deleted. The <em>SharedMemory</em> map
+            and the name of the variable are passed to this procedure as parameters. The name of the variable
+            must previously be registered to the <em>SharedMemory</em> map by calling its <em>RegisterChangedCallback</em>
+            procedure.
+        </p>
+    </blockquote>
+
+    <p>sub <strong>OnGeometryChanged</strong>(<em>geom</em> As Geometry)</p>
+    <blockquote>
+        <p>
+            Called when a geometry changed which was registered with <em>RegisterChangedCallback</em>
+            or <em>RegisterTextChangedCallback</em> before.
+        </p>
+    </blockquote>
+
+    <p>Sub <strong>OnRequestStatusUpdate</strong>(<em>requestId</em> as Integer, <em>status</em> as Integer, <em>objectId</em> as Integer)</p>
+    <blockquote>
+        <p>
+            Called whenever an asynchronous request changes its status.
+            <strong>OnRequestStatusUpdate</strong> is mainly used after calls to <strong>Container.createTextureBgl</strong> and
+            <strong>Container.createGeometryBgl</strong>.
+            The <em>requestId</em> identifies the corresponding request, its <em>status</em> is 0 on success, nonzero on failure.
+            The <em>objectId</em> identifies the object that was affected by the request.
+        </p>
+    </blockquote>
+
+    <p>sub <strong>OnPreview</strong>(<em>active</em> As Integer)</p>
+    <blockquote>
+        The callback is used to inform Scripts and Plugins that the engine switches to preview mode (active == 1) or
+        back (active == 0). To enter or leave Preview mode the command <em>"SCENE PREVIEW active"</em> is used. For
+        example: <em>"RENDERER*MAIN_LAYER PREVIEW 1"</em> and <em>"RENDERER*MAIN_LAYER PREVIEW 0"</em>
+    </blockquote>
+
+</body>
+</html>
