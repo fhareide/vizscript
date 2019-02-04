@@ -79,6 +79,7 @@ This type provides access to system-wide parameters and procedures.
 <tr><td>Function <b>GetElapsedTime</b>() As <a href="DataTypeDouble.html">Double</a></td><td>Gets the time (in seconds) that has passed since Viz was started.</td></tr>
 <tr><td>Function <b>GetLiveChannel</b>(param_1 As <a href="DataTypeInteger.html">Integer</a>) As <a href="DataTypeLiveChannel.html">LiveChannel</a></td><td>Gets the Live Channel n . where n is a zero based index up to exluding GetNumberOfLiveChannel()</td></tr>
 <tr><td>Function <b>GetNumberOfActiveClipChannel</b>() As <a href="DataTypeInteger.html">Integer</a></td><td>Gets the number of available and active Clip Channels</td></tr>
+<tr><td>Function <b>GetNumberOfActiveLiveChannel</b>() As <a href="DataTypeInteger.html">Integer</a></td><td>Gets the number of available and active Live Channels</td></tr>
 <tr><td>Function <b>GetNumberOfClipChannel</b>() As <a href="DataTypeInteger.html">Integer</a></td><td>Gets the number of available Clip Channels</td></tr>
 <tr><td>Function <b>GetNumberOfLiveChannel</b>() As <a href="DataTypeInteger.html">Integer</a></td><td>Gets the number of available Live Channels</td></tr>
 <tr><td>Function <b>GetNumberOfTimecodeSources</b>() As <a href="DataTypeInteger.html">Integer</a></td><td>Returns the number of registered timecodes.</td></tr>
@@ -99,8 +100,8 @@ This type provides access to system-wide parameters and procedures.
 <tr><td>Function <b>MouseOverIPRegister</b>() As <a href="DataTypeBoolean.html">Boolean</a></td><td>Register the viz engine as client to receive mouse events from all defined VizMouseServer</td></tr>
 <tr><td>Function <b>MouseOverIPRegister</b>(serverID As <a href="DataTypeInteger.html">Integer</a>) As <a href="DataTypeBoolean.html">Boolean</a></td><td>Register the viz engine as client to receive mouse events from this VizMouseServer</td></tr>
 <tr><td>Function <b>MouseOverIPUndefineAllServers</b>() As <a href="DataTypeBoolean.html">Boolean</a></td><td>Undefine all known VizMouseServers.</td></tr>
-<tr><td>Function <b>MouseOverIPUndefineServer</b>(serverID As <a href="DataTypeInteger.html">Integer</a>) As <a href="DataTypeBoolean.html">Boolean</a></td><td>Undefine the VizMouseServer with the ID serverID.</td></tr>
 <tr><td>Function <b>MouseOverIPUndefineServer</b>(serverAddress As <a href="DataTypeString.html">String</a>, serverPort As <a href="DataTypeInteger.html">Integer</a>, localPort As <a href="DataTypeInteger.html">Integer</a>) As <a href="DataTypeBoolean.html">Boolean</a></td><td>Unefine the VizMouseServer with the address <i>serverAddress</i>, the server port <i>serverPort</i> and the local listening port <i>localPort</i></td></tr>
+<tr><td>Function <b>MouseOverIPUndefineServer</b>(serverID As <a href="DataTypeInteger.html">Integer</a>) As <a href="DataTypeBoolean.html">Boolean</a></td><td>Undefine the VizMouseServer with the ID serverID.</td></tr>
 <tr><td>Function <b>MouseOverIPUnregister</b>() As <a href="DataTypeBoolean.html">Boolean</a></td><td>Unregister the viz engine from all defined VizMouseServer</td></tr>
 <tr><td>Function <b>MouseOverIPUnregister</b>(serverID As <a href="DataTypeInteger.html">Integer</a>) As <a href="DataTypeBoolean.html">Boolean</a></td><td>Unregister the viz engine from this VizMouseServer</td></tr>
 <tr><td>Function <b>MouseOverIPUnregisterAll</b>() As <a href="DataTypeBoolean.html">Boolean</a></td><td>Unregister all viz engines from all defined VizMouseServer</td></tr>
