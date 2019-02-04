@@ -95,11 +95,11 @@ function triggerValidation(textDocument: ls.TextDocument): void {
 	cleanPendingValidation(textDocument);
 	pendingValidationRequests[textDocument.uri] = setTimeout(() => {
 		delete pendingValidationRequests[textDocument.uri];
-		RefreshDocumentsSymbols(textDocument.uri);
 		if (symbolCache["builtin"] == null)
 		{
-			RefreshBuiltinSymbols();
+			FindBuiltinSymbols();
 		}
+		RefreshDocumentsSymbols(textDocument.uri);
 	}, validationDelayMs);
 }
 
@@ -904,14 +904,9 @@ function GetStructureSymbol(statement: LineStatement, uri: string) : VBSClassSym
 	return symbol;
 }
 
-function RefreshBuiltinSymbols(){
+function FindBuiltinSymbols() {
+	let symbols: VBSSymbol[] = [];
 	let startTime: number = Date.now();
-	let symbolsList: VBSSymbol[] = CollectBuiltinSymbols();
-	symbolCache["builtin"] = symbolsList;
-	//connection.console.info("Found " + symbolsList.length + " builtin symbols in " + (Date.now() - startTime) + " ms");
-}
-
-function FindBuiltinSymbols(symbols: Set<VBSSymbol>) : void {
 
 	data.intellisense.scopes.scope.forEach(element => {
 		if (element.name == "Global Procedures")
@@ -923,7 +918,7 @@ function FindBuiltinSymbols(symbols: Set<VBSSymbol>) : void {
 				symbol.name = submethod.name;
 				symbol.args = submethod.code_completion_hint;
 				symbol.parentName = "root";
-				symbols.add(symbol);
+				symbols.push(symbol);
 			});
 		}
 		else
@@ -932,7 +927,7 @@ function FindBuiltinSymbols(symbols: Set<VBSSymbol>) : void {
 			symbol.name = element.name;
 			symbol.parentName = "root";
 			symbol.type = element.name;
-			symbols.add(symbol);
+			symbols.push(symbol);
 			
 			element.methods.forEach(submethod => {
 				let symbol: VBSMethodSymbol = new VBSMethodSymbol();
@@ -942,7 +937,7 @@ function FindBuiltinSymbols(symbols: Set<VBSSymbol>) : void {
 				symbol.args = submethod.code_completion_hint;
 				//connection.console.log("Parent name for " + submethod.name + " is " + element.name);
 				symbol.parentName = element.name;
-				symbols.add(symbol);
+				symbols.push(symbol);
 			});
 			element.properties.forEach(properties => {
 				let symbol: VBSPropertySymbol = new VBSPropertySymbol();
@@ -952,21 +947,15 @@ function FindBuiltinSymbols(symbols: Set<VBSSymbol>) : void {
 				symbol.args = properties.code_completion_hint;
 				//connection.console.log("Parent name for " + properties.name + " is " + element.name);
 				symbol.parentName = element.name;
-				symbols.add(symbol);
+				symbols.push(symbol);
 			});
 
 		}
 	});
+
+	symbolCache["builtin"] = symbols;
 }
 
-function CollectBuiltinSymbols(): VBSSymbol[] {
-	let symbols: Set<VBSSymbol> = new Set<VBSSymbol>();
-	
-	FindBuiltinSymbols(symbols);
-
-
-	return Array.from(symbols);
-}
 
 function GetBuiltInSymbolsOfScope(symbols: VBSSymbol[], type: string): VBSSymbol[] {
 	let scopeSymbols: VBSSymbol[] = [];
@@ -987,7 +976,7 @@ function SelectBuiltinCompletionItems(textDocumentPosition: ls.TextDocumentPosit
   let symbols = symbolCache["builtin"];
     
   if(symbols == null) {
-		RefreshBuiltinSymbols();
+		FindBuiltinSymbols();
 		symbols = symbolCache["builtin"];
 		connection.console.log("Rebuilt: Builtin symbols length: " + symbols.length.toString());
 	}
@@ -1010,13 +999,15 @@ connection.onDidChangeTextDocument((params) => {
 	//RefreshDocumentsSymbols(params.textDocument.uri);
 	connection.console.log(`${params.textDocument.uri} changed: ${JSON.stringify(params.contentChanges)}`);
 });
+
+*/
 connection.onDidCloseTextDocument((params) => {
 	// A text document got closed in VSCode.
 	// params.uri uniquely identifies the document.
 	symbolCache[params.textDocument.uri] = null;
-	//connection.console.log(`${params.textDocument.uri} closed.`);
+	connection.console.log(`${params.textDocument.uri} closed.`);
 });
-*/
+
 
 
 // Listen on the connection
