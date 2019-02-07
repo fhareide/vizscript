@@ -2,9 +2,6 @@ import * as ls from 'vscode-languageserver';
 import { VizSymbol } from "./VizSymbol";
 
 export class VizClassSymbol extends VizSymbol {
-	public GetLsSymbolKind(): ls.SymbolKind {
-		return ls.SymbolKind.Class;
-	}
 
 	public GetLsCompletionItem(): ls.CompletionItem {
 		let item = ls.CompletionItem.create(this.name);

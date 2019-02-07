@@ -6,10 +6,6 @@
 
 import * as ls from 'vscode-languageserver';
 import { VizSymbol } from "./VizSymbols/VizSymbol";
-import { VizMethodSymbol } from './VizSymbols/VizMethodSymbol';
-import { VizClassSymbol } from './VizSymbols/VizClassSymbol';
-import { VizMemberSymbol } from './VizSymbols/VizMemberSymbol';
-import { VizVariableSymbol } from './VizSymbols/VizVariableSymbol';
 import * as data from './intellisense_data.json';
 
 // Create a connection for the server. The connection uses Node's IPC as a transport
@@ -484,8 +480,8 @@ function AddArrayToSet(s: Set<any>, a: any[]) {
 
 function FindSymbol(statement: LineStatement, uri: string, symbols: Set<VizSymbol>) : void {
 	let newSym: VizSymbol;
-	let newSyms: VizVariableSymbol[] = null;
-	let pendingChildren: VizMemberSymbol[] = null;
+	let newSyms: VizSymbol[] = null;
+	let pendingChildren: VizSymbol[] = null;
 
 	if(GetMethodStart(statement, uri)) {
 		return;
@@ -611,7 +607,8 @@ function GetMethodSymbol(statement: LineStatement, uri: string) : VizSymbol[] {
 
 	let range: ls.Range = ls.Range.create(openMethod.startPosition, statement.GetPostitionByCharacter(GetNumberOfFrontSpaces(line) + regexResult[0].trim().length))
 	
-	let symbol: VizMethodSymbol = new VizMethodSymbol();
+	let symbol: VizSymbol = new VizSymbol();
+	symbol.kind = ls.CompletionItemKind.Method;
 	symbol.type = openMethod.type;
 	symbol.name = openMethod.name;
 	symbol.args = openMethod.args;
@@ -632,8 +629,8 @@ function ReplaceAll(target: string, search: string, replacement: string): string
     return target.replace(new RegExp(search, 'g'), replacement);
 };
 
-function GetParameterSymbols(name: string, args: string, argsIndex: number, statement: LineStatement, uri: string): VizVariableSymbol[] {
-	let symbols: VizVariableSymbol[] = [];
+function GetParameterSymbols(name: string, args: string, argsIndex: number, statement: LineStatement, uri: string): VizSymbol[] {
+	let symbols: VizSymbol[] = [];
 	let MethodSignature: ls.SignatureInformation =  ls.SignatureInformation.create(name);
 	
 	let parameters: ls.ParameterInformation[] = [];
@@ -659,7 +656,8 @@ function GetParameterSymbols(name: string, args: string, argsIndex: number, stat
 		
 		
 
-		let varSymbol:VizVariableSymbol = new VizVariableSymbol();
+		let varSymbol:VizSymbol = new VizSymbol();
+		varSymbol.kind = ls.CompletionItemKind.Variable;
 		varSymbol.args = "";
 		varSymbol.type = "";
 
@@ -717,7 +715,7 @@ class OpenProperty {
 let openProperty: OpenProperty = null;
 
 
-function GetMemberSymbol(statement: LineStatement, uri: string) : VizMemberSymbol {
+function GetMemberSymbol(statement: LineStatement, uri: string) : VizSymbol {
 	
 	if(openStructureName == null)//No structure is open. There can't be any members of nothing.
 		return null;
@@ -740,7 +738,8 @@ function GetMemberSymbol(statement: LineStatement, uri: string) : VizMemberSymbo
 		statement.GetPostitionByCharacter(intendention + regexResult[0].trim().length)
 	);
 	
-	let symbol: VizMemberSymbol = new VizMemberSymbol();
+	let symbol: VizSymbol = new VizSymbol();
+	symbol.kind = ls.CompletionItemKind.Field;
 	symbol.type = type
 	symbol.name = name;
 	symbol.args = "";
@@ -760,10 +759,10 @@ function GetVariableNamesFromList(vars: string): string[] {
 	return vars.split(',').map(function(s) { return s.trim(); });
 }
 
-function GetVariableSymbol(statement: LineStatement, uri: string) : VizVariableSymbol[] {
+function GetVariableSymbol(statement: LineStatement, uri: string) : VizSymbol[] {
 	let line: string = statement.line;
 
-	let variableSymbols: VizVariableSymbol[] = [];
+	let variableSymbols: VizSymbol[] = [];
 	let memberStartRegex:RegExp = /^[ \t]*dim[ \t]+([a-zA-Z0-9\-\_\,]+)[ \t]+as[ \t]+([a-zA-Z0-9\-\_\,\[\]]+).*$/gi;
 	let regexResult = memberStartRegex.exec(line);
 
@@ -788,7 +787,7 @@ function GetVariableSymbol(statement: LineStatement, uri: string) : VizVariableS
 
 	for (let i = 0; i < variables.length; i++) {
 		let varName = variables[i];
-		let symbol: VizVariableSymbol = new VizVariableSymbol();
+		let symbol: VizSymbol = new VizSymbol();
 		symbol.type = type;
 		symbol.name = varName;
 		symbol.args = "";
@@ -839,7 +838,7 @@ function GetStructureStart(statement: LineStatement, uri: string) : boolean {
 	return true;
 }
 
-function GetStructureSymbol(statement: LineStatement, uri: string, children: VizSymbol[]) : VizClassSymbol {
+function GetStructureSymbol(statement: LineStatement, uri: string, children: VizSymbol[]) : VizSymbol {
 	let line: string = statement.line;
 
 	let classEndRegex:RegExp = /^[ \t]*end[ \t]+structure[ \t]*$/gi;
@@ -863,7 +862,8 @@ function GetStructureSymbol(statement: LineStatement, uri: string, children: Viz
 	}
 
 	let range: ls.Range = ls.Range.create(openStructureStart, statement.GetPostitionByCharacter(regexResult[0].length))
-	let symbol: VizClassSymbol = new VizClassSymbol();
+	let symbol: VizSymbol = new VizSymbol();
+	symbol.kind = ls.CompletionItemKind.Struct;
 	symbol.name = openStructureName;
 	symbol.nameLocation = ls.Location.create(uri, 
 		ls.Range.create(openStructureStart, 
@@ -888,7 +888,9 @@ function FindBuiltinSymbols() {
 		if (element.name == "Global Procedures")
 		{
 			element.methods.forEach(submethod => {
-				let symbol: VizMethodSymbol = new VizMethodSymbol();
+				let symbol: VizSymbol = new VizSymbol();
+				if(submethod.type == "Function") symbol.kind = ls.CompletionItemKind.Function;
+				else if(submethod.type == "Subroutine") symbol.kind = ls.CompletionItemKind.Method;;
 				symbol.type = submethod.return_value_scope;
 				symbol.name = submethod.name;
 				symbol.hint = submethod.description
@@ -899,7 +901,8 @@ function FindBuiltinSymbols() {
 		}
 		else
 		{
-			let symbol: VizClassSymbol = new VizClassSymbol();
+			let symbol: VizSymbol = new VizSymbol();
+			symbol.kind = ls.CompletionItemKind.Class;
 			symbol.name = element.name;
 			symbol.parentName = "root";
 			symbol.type = element.name;
@@ -908,17 +911,18 @@ function FindBuiltinSymbols() {
 			symbols.push(symbol);
 			
 			element.methods.forEach(submethod => {
-				let subSymbol: VizMethodSymbol = new VizMethodSymbol();
+				let subSymbol: VizSymbol = new VizSymbol();
 				subSymbol.type = submethod.return_value_scope;
 				subSymbol.name = submethod.name;
 				subSymbol.hint = submethod.description;
 				subSymbol.args = submethod.code_insight_hint;
-				subSymbol.kind = ls.CompletionItemKind.Method;
+				if(submethod.type == "Function") subSymbol.kind = ls.CompletionItemKind.Function;
+				else if(submethod.type == "Subroutine") subSymbol.kind = ls.CompletionItemKind.Method;
 				subSymbol.parentName = element.name;
 				symbol.children.push(subSymbol);
 			});
 			element.properties.forEach(properties => {
-				let subSymbol: VizVariableSymbol = new VizVariableSymbol();
+				let subSymbol: VizSymbol = new VizSymbol();
 				subSymbol.type = properties.return_value_scope;
 				subSymbol.name = properties.name;
 				subSymbol.hint = properties.description;

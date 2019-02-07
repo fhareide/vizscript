@@ -17,11 +17,6 @@ export class VizSymbol {
 		return this.name;
 	}
 
-	public GetLsSymbolKind(): ls.SymbolKind {
-		// I do not know any better value to return here - I liked to have something like ls.SymbolKind.UNKNOWN
-		return ls.SymbolKind.File;
-	}
-
 	public GetLsChildrenItems(): ls.CompletionItem[] {
 		let symbols: ls.CompletionItem[] = [];
 		this.children.forEach(symbol => {
@@ -43,7 +38,7 @@ export class VizSymbol {
 		let item = ls.CompletionItem.create(this.name);
 		item.filterText = this.hint;
 		item.insertText = this.name;
-		item.kind = ls.CompletionItemKind.Text;
+		item.kind = this.kind;
 		item.data = this.type;
 		item.documentation = this.args;
 		item.detail = this.hint;
@@ -56,8 +51,8 @@ export class VizSymbol {
 
 		symbols.forEach(symbol => {
 			let lsSymbol: ls.SymbolInformation = ls.SymbolInformation.create(
-				symbol.GetLsName(),
-				symbol.GetLsSymbolKind(),
+				symbol.name,
+				symbol.kind,
 				symbol.symbolRange,
 				symbol.nameLocation.uri,
 				symbol.parentName
@@ -67,7 +62,6 @@ export class VizSymbol {
 
 		return lsSymbols;
 	}
-
 
 	public static GetLanguageServerCompletionItems(symbols: VizSymbol[]): ls.CompletionItem[] {
 		let completionItems: ls.CompletionItem[] = [];
