@@ -1,7 +1,7 @@
 import * as ls from 'vscode-languageserver';
-import { VBSSymbol } from "./VBSSymbol";
+import { VizSymbol } from "./VizSymbol";
 
-export class VBSMethodSymbol extends VBSSymbol {
+export class VizMethodSymbol extends VizSymbol {
 	public GetLsName(): string {
 		return this.name + " (" + this.args + ")";
 	}
@@ -12,11 +12,13 @@ export class VBSMethodSymbol extends VBSSymbol {
 
 	public GetLsCompletionItem(): ls.CompletionItem {
 		let item = ls.CompletionItem.create(this.name);
-		item.documentation = this.visibility + " " + this.type + " " + this.name + "(" + this.args + ")"
 		item.filterText = this.name;
-		item.insertText = this.name + "(" + this.args + ")";
+		item.insertTextFormat = ls.InsertTextFormat.Snippet;
+		item.insertText = this.name + "($1";
 		item.kind = ls.CompletionItemKind.Method;
 		item.data = this.type;
+		item.documentation = this.type + " " + this.name + " (" + this.args + ")";
+		item.detail = this.type + " " + this.name + " (" + this.args + ")";
 		return item;
 	}
 }

@@ -1,12 +1,15 @@
 import * as ls from 'vscode-languageserver';
 
-export class VBSSymbol {
+export class VizSymbol {
 	public visibility: string = "";
 	public name: string = "";
 	public type: string = "";
 	public args: string = "";
+	public hint: string = "";
 	public symbolRange: ls.Range = null;
 	public nameLocation: ls.Location = null;
+	public children: VizSymbol[] = [];
+	public kind: ls.CompletionItemKind;
 	
 	public parentName: string = "";
 
@@ -19,16 +22,36 @@ export class VBSSymbol {
 		return ls.SymbolKind.File;
 	}
 
+	public GetLsChildrenItems(): ls.CompletionItem[] {
+		let symbols: ls.CompletionItem[] = [];
+		this.children.forEach(symbol => {
+			let item = ls.CompletionItem.create(symbol.name);
+			item.filterText = symbol.hint;
+			item.insertText = symbol.name;
+			item.kind = symbol.kind;
+			item.data = symbol.type;
+			item.documentation = symbol.args;
+			item.detail = symbol.hint;
+			item.commitCharacters = ['.'];
+			symbols.push(item);
+		});
+
+		return symbols;
+	}
+
 	public GetLsCompletionItem(): ls.CompletionItem {
 		let item = ls.CompletionItem.create(this.name);
-		item.filterText = this.name;
+		item.filterText = this.hint;
 		item.insertText = this.name;
 		item.kind = ls.CompletionItemKind.Text;
 		item.data = this.type;
+		item.documentation = this.args;
+		item.detail = this.hint;
+		item.commitCharacters = ['.'];
 		return item;
 	}
 	
-	public static GetLanguageServerSymbols(symbols: VBSSymbol[]): ls.SymbolInformation[] {
+	public static GetLanguageServerSymbols(symbols: VizSymbol[]): ls.SymbolInformation[] {
 		let lsSymbols: ls.SymbolInformation[] = [];
 
 		symbols.forEach(symbol => {
@@ -45,7 +68,8 @@ export class VBSSymbol {
 		return lsSymbols;
 	}
 
-	public static GetLanguageServerCompletionItems(symbols: VBSSymbol[]): ls.CompletionItem[] {
+
+	public static GetLanguageServerCompletionItems(symbols: VizSymbol[]): ls.CompletionItem[] {
 		let completionItems: ls.CompletionItem[] = [];
 
 		symbols.forEach(symbol => {

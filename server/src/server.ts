@@ -5,21 +5,13 @@
 'use strict';
 
 import * as ls from 'vscode-languageserver';
-import { VBSSymbol } from "./VBSSymbols/VBSSymbol";
-import { VBSMethodSymbol } from './VBSSymbols/VBSMethodSymbol';
-import { VBSPropertySymbol } from './VBSSymbols/VBSPropertySymbol';
-import { VBSClassSymbol } from './VBSSymbols/VBSClassSymbol';
-import { VBSMemberSymbol } from './VBSSymbols/VBSMemberSymbol';
-import { VBSVariableSymbol } from './VBSSymbols/VBSVariableSymbol';
-import { VBSConstantSymbol } from './VBSSymbols/VBSConstantSymbol';
+import { VizSymbol } from "./VizSymbols/VizSymbol";
+import { VizMethodSymbol } from './VizSymbols/VizMethodSymbol';
+import { VizClassSymbol } from './VizSymbols/VizClassSymbol';
+import { VizMemberSymbol } from './VizSymbols/VizMemberSymbol';
+import { VizVariableSymbol } from './VizSymbols/VizVariableSymbol';
 import * as data from './intellisense_data.json';
-import { method } from 'bluebird';
-import { CompletionTriggerKind } from 'vscode-languageserver';
-import { ClientRequest } from 'http';
-//import { Convert} from "./data_interface";
-//
 
-//const data = Convert.toWelcome("./intellisense_data.json");
 // Create a connection for the server. The connection uses Node's IPC as a transport
 let connection: ls.IConnection = ls.createConnection(new ls.IPCMessageReader(process), new ls.IPCMessageWriter(process));
 
@@ -31,32 +23,50 @@ let documents: ls.TextDocuments = new ls.TextDocuments();
 documents.listen(connection);
 
 /*
-var wtj = require('website-to-json')
-wtj.extractData('C:/Program%20Files/Vizrt/Viz3/ScriptDoc/index.html', {
-  fields: ['data'],
-  parse: function($) {
-    return {
-      title: $("title").text(),
-      keywords: $('tr').text()
+var wtj = require('website-to-json');
+var trim = require('trim');
+
+Promise.all([
+  'http://www.imdb.com/title/tt0111161',
+  'http://www.imdb.com/title/tt0137523',
+  'http://www.imdb.com/title/tt0068646'
+])
+.map(function(url) {
+  return wtj.extractUrl(url, {
+    fields: ['data'],
+    parse: function($) {
+      return {
+        title: trim($(".title_wrapper h1").text()),
+        image: $(".poster img").attr('src')
+      }
     }
-  }
-})
+  })
+}, {concurrency: 1})
 .then(function(res) {
-  connection.console.log("Converted " + JSON.stringify(res, null, 2));
+	connection.console.log("Converted " + JSON.stringify(res, null, 2));
 })
 */
+
 
 // After the server has started the client sends an initialize request. The server receives
 // in the passed params the rootPath of the workspace plus the client capabilities.
 let workspaceRoot: string;
 connection.onInitialize((params): ls.InitializeResult => {
 	workspaceRoot = params.rootPath;
+	//Initialize built in symbols
+	if (symbolCache["builtin"] == null) FindBuiltinSymbols();
+
 	return {
 		capabilities: {
 			// Tell the client that the server works in FULL text document sync mode
 			textDocumentSync: documents.syncKind,
 			documentSymbolProvider: true,
+			//signatureHelpProvider: {
+			//	triggerCharacters: [ '('],
+
+			//},
 			// Tell the client that the server support code complete
+			definitionProvider: true,
 			completionProvider:  {
 				resolveProvider: true,
 				triggerCharacters: [ '.' ]
@@ -67,6 +77,10 @@ connection.onInitialize((params): ls.InitializeResult => {
 
 const pendingValidationRequests: { [uri: string]: NodeJS.Timer } = {};
 const validationDelayMs = 500;
+
+let MethodSignatures: ls.SignatureInformation[] = [];
+
+let LastType: string = "";
 
 // The content of a text document has changed. This event is emitted
 // when the text document first opened or when its content has changed.
@@ -95,80 +109,90 @@ function triggerValidation(textDocument: ls.TextDocument): void {
 	cleanPendingValidation(textDocument);
 	pendingValidationRequests[textDocument.uri] = setTimeout(() => {
 		delete pendingValidationRequests[textDocument.uri];
-		if (symbolCache["builtin"] == null)
-		{
-			FindBuiltinSymbols();
-		}
 		RefreshDocumentsSymbols(textDocument.uri);
 	}, validationDelayMs);
 }
 
+connection.onDefinition((params: ls.TextDocumentPositionParams,cancelToken: ls.CancellationToken): ls.Definition => {
 
-connection.onDidChangeWatchedFiles((changeParams: ls.DidChangeWatchedFilesParams) => {
-	for (let i = 0; i < changeParams.changes.length; i++) {
-		let event = changeParams.changes[i];
-		connection.console.log("OnDidChangeWatchedFiles triggered!");
-		switch(event.type) {
-		 case ls.FileChangeType.Changed:
-		 connection.console.log("changed!");
-		 case ls.FileChangeType.Created:
-		    connection.console.log("created!");
-			RefreshDocumentsSymbols(event.uri);
-			break;
-		case ls.FileChangeType.Deleted:
-			connection.console.log("deleted!");
-			symbolCache[event.uri] = null;
-			break;
-		}
-	}
+	connection.console.log("Definition is: " + params.position.line.toString() + " " + params.position.character.toString()); 
+	return null;
 });
 
 // This handler provides the initial list of the completion items.
 connection.onCompletion((params: ls.CompletionParams,cancelToken: ls.CancellationToken): ls.CompletionItem[] => {
+	let suggestions: ls.CompletionItem[] = [];
+	let documentCompletions: ls.CompletionItem[] = [];
 
-	let builtinCompletions: ls.CompletionItem[] = []; 
+	documentCompletions = SelectCompletionItems(params);
 
+	//return documentCompletions;
+
+	// Gets current line
 	let line: string = documents.get(params.textDocument.uri).getText(ls.Range.create(
 		ls.Position.create(params.position.line,0),
 		ls.Position.create(params.position.line,params.position.character))
 	);
+
+	let start = 0;
+	let regexResult;
 	
-	let memberStartRegex:RegExp = /[\.]?([a-zA-Z0-9\-\_]+)*[\.]$/gi;
-	let regexResult = memberStartRegex.exec(line);
+	// Gets position of last '.'
+	for (var i = params.position.character; i >= 0; i--){
+		if(line[i] == "."){
+			start = i;
+			i = 0;
+		}
+	}
 
+	if (start > 0){
+		//connection.console.log(line.substr(start+1, (params.position.character - (start+1))));
+		let subString = line.substr(0,start+1);
+		let memberStartRegex:RegExp = /[\.]?([a-zA-Z0-9\-\_]+)*[\.]$/gi;
+		regexResult = memberStartRegex.exec(subString);
+		if(regexResult != null && regexResult.length > 0){
+			let item = GetSymbolByType(regexResult[1], params);
+			if (item != null){
+				connection.console.log("Result of get: " + item.name + " type is " + item.type);
+			} 
+		}
+	}else{
+		suggestions = SelectBuiltinCompletionItems();
+		regexResult = "";
+		connection.console.log("Start = 0");
+	}
+	
 	if(regexResult != null && regexResult.length > 0){
-		let symbols = symbolCache[params.textDocument.uri];
+		const symbols = symbolCache[params.textDocument.uri];
 		let scopeSymbols = GetSymbolsOfScope(symbols, params.position);
-		let items: ls.CompletionItem[] = VBSSymbol.GetLanguageServerCompletionItems(scopeSymbols);
-		let builtinSymbols = symbolCache["builtin"];
-		items.forEach(item => {
-			if (item.label == regexResult[1])
+		const builtinSymbols = symbolCache["builtin"];
+		let currentType = "";
+		scopeSymbols.forEach(item => {
+			if (item.name == regexResult[1])
 			{
-				let finalSymbols = GetBuiltInSymbolsOfScope(builtinSymbols,item.data);
-				connection.console.log("Current is: " + item.label + " should spawn help for " + item.data);
-				builtinCompletions = VBSSymbol.GetLanguageServerCompletionItems(finalSymbols);
+				connection.console.log("Document - "+ item.name + " should spawn help for " + item.type);
+				let finalSymbols = GetSymbolByName(item.type,params).GetLsChildrenItems();
+				currentType = item.type;
+				suggestions = finalSymbols;
+				documentCompletions = [];
 			}
 		});
-		scopeSymbols = GetBuiltInSymbolsOfScope(builtinSymbols, "root");
-		items = VBSSymbol.GetLanguageServerCompletionItems(scopeSymbols);
-		items.forEach(item => {
-			if (item.label == regexResult[1])
-			{
-				let finalSymbols = GetBuiltInSymbolsOfScope(builtinSymbols,item.data);
-				connection.console.log("Current is: " + item.label + " should spawn help for " + item.label);
-				builtinCompletions = VBSSymbol.GetLanguageServerCompletionItems(finalSymbols);
-			}
-		});
-		return builtinCompletions;
+		if(!suggestions || suggestions.length === 0){
+		if (currentType == "") currentType = regexResult[1];
+			builtinSymbols.forEach(item => {
+				if (item.name == currentType)
+				{
+					let finalSymbols = item.GetLsChildrenItems();
+					connection.console.log("Builtin - " + item.name + " should spawn help for " + item.type);
+					suggestions = finalSymbols;
+					documentCompletions = [];
+				}
+			});
+		}
 	}
-	else
-	{
-	const documentCompletions = SelectCompletionItems(params);
 
-	builtinCompletions = SelectBuiltinCompletionItems(params);
 
-	return documentCompletions.concat(builtinCompletions);
-	}
+	return suggestions.concat(documentCompletions);
 	 
 });
 
@@ -176,9 +200,96 @@ connection.onCompletionResolve((complItem: ls.CompletionItem): ls.CompletionItem
 	return complItem;
 });
 
+connection.onSignatureHelp((params: ls.TextDocumentPositionParams,cancelToken: ls.CancellationToken) => {
+	connection.console.log("Should return signature help!");
+
+	let test: ls.SignatureHelp = null;
+	if (MethodSignatures == []) return null;
+	test.signatures = MethodSignatures;
+	test.activeSignature = 0;
+	test.activeParameter = 0;
+
+	return  test;
+});
+
 function GetSymbolsOfDocument(uri: string) : ls.SymbolInformation[] {
 	RefreshDocumentsSymbols(uri);
-	return VBSSymbol.GetLanguageServerSymbols(symbolCache[uri]);
+	return VizSymbol.GetLanguageServerSymbols(symbolCache[uri]);
+}
+
+function GetSymbolByName(name: string, params: ls.CompletionParams): VizSymbol {
+	let symbols = symbolCache["builtin"];
+	let result: VizSymbol = null; 
+	symbols.forEach(item => {
+		let childsymbols = item.children;
+		if (item.name == name)
+		{
+			result = item;
+		}
+	});
+	symbols = symbolCache[params.textDocument.uri];
+	symbols = GetSymbolsOfScope(symbols, params.position);
+	symbols.forEach(item => {
+		let childsymbols = item.children;
+		if (item.name == name)
+		{
+			result = item;
+		}
+	});
+
+	return result;
+}
+
+function GetSymbolByType(name: string, params: ls.CompletionParams): VizSymbol {
+	let symbols = symbolCache["builtin"];
+	let result: VizSymbol = null; 
+	symbols.forEach(item => {
+		let childsymbols = item.children;
+		if (item.type == name)
+		{
+			result = item;
+			childsymbols.forEach(subitem => {
+				if (subitem.type == name){
+					result = subitem;
+				}	
+			});
+		}
+	});
+	symbols = symbolCache[params.textDocument.uri];
+	symbols = GetSymbolsOfScope(symbols, params.position);
+	symbols.forEach(item => {
+		let childsymbols = item.children;
+		if (item.type == name)
+		{
+			result = item;
+			childsymbols.forEach(subitem => {
+				if (subitem.type == name){
+					result = subitem;
+				}	
+			});
+		}
+	});
+
+	return result;
+}
+
+function DisplayDiagnostics(uri: string, openMethod: OpenMethod) : void {
+	let diagnostics: ls.Diagnostic[] = [];
+
+	let diagnostic: ls.Diagnostic = {
+		severity: ls.DiagnosticSeverity.Error,
+		range: openMethod.nameLocation.range,
+		message: `${openMethod.name} is missing 'end sub'.`,
+		source: 'vizsub Ts'
+	};
+	diagnostics.push(diagnostic);
+
+	connection.sendDiagnostics({ uri, diagnostics });
+}
+
+function ClearDiagnostics(uri: string){
+	let diagnostics: ls.Diagnostic[] = [];
+	connection.sendDiagnostics({ uri, diagnostics});
 }
 
 function SelectCompletionItems(textDocumentPosition: ls.TextDocumentPositionParams): ls.CompletionItem[] {
@@ -191,12 +302,12 @@ function SelectCompletionItems(textDocumentPosition: ls.TextDocumentPositionPara
 	}
 	
 	let scopeSymbols = GetSymbolsOfScope(symbols, textDocumentPosition.position);
-	return VBSSymbol.GetLanguageServerCompletionItems(scopeSymbols);
+	return VizSymbol.GetLanguageServerCompletionItems(scopeSymbols);
 }
 
-function GetVBSSymbolTree(symbols: VBSSymbol[]) {
+function GetVizSymbolTree(symbols: VizSymbol[]) {
 	// sort by start positition
-	let sortedSymbols: VBSSymbol[] = symbols.sort(function(a: VBSSymbol, b: VBSSymbol){
+	let sortedSymbols: VizSymbol[] = symbols.sort(function(a: VizSymbol, b: VizSymbol){
 		let diff = a.symbolRange.start.line - b.symbolRange.start.line;
 		
 		if(diff != 0)
@@ -205,7 +316,7 @@ function GetVBSSymbolTree(symbols: VBSSymbol[]) {
 		return a.symbolRange.start.character - b.symbolRange.start.character;
 	});
 
-	let root = new VBSSymbolTree();
+	let root = new VizSymbolTree();
 	
 	for (var i = 0; i < sortedSymbols.length; i++) {
 		var symbol = sortedSymbols[i];
@@ -215,24 +326,23 @@ function GetVBSSymbolTree(symbols: VBSSymbol[]) {
 	return root;
 }
 
-function GetSymbolsOfScope(symbols: VBSSymbol[], position: ls.Position): VBSSymbol[] {
-	let symbolTree = GetVBSSymbolTree(symbols);
+function GetSymbolsOfScope(symbols: VizSymbol[], position: ls.Position): VizSymbol[] {
+	let symbolTree = GetVizSymbolTree(symbols);
 	// bacause of hoisting we will have just a few possible scopes:
 	// - file wide
 	// - method of file wide
 	// - class scope
 	// - method or property of class scope
-	// get all symbols which are accessable from here (ignore visibility in the first step)
 
 	return symbolTree.FindDirectParent(position).GetAllParentsAndTheirDirectChildren();
 }
 
-class VBSSymbolTree {
-	parent: VBSSymbolTree = null;
-	children: VBSSymbolTree[] = [];
-	data: VBSSymbol = null;
+class VizSymbolTree {
+	parent: VizSymbolTree = null;
+	children: VizSymbolTree[] = [];
+	data: VizSymbol = null;
 
-	public InsertIntoTree(symbol: VBSSymbol): boolean {
+	public InsertIntoTree(symbol: VizSymbol): boolean {
 		if(this.data != null && !PositionInRange(this.data.symbolRange, symbol.symbolRange.start))
 			return false;
 
@@ -242,7 +352,7 @@ class VBSSymbolTree {
 				return true;
 		}
 
-		let newTreeNode = new VBSSymbolTree();
+		let newTreeNode = new VizSymbolTree();
 		newTreeNode.data = symbol;
 		newTreeNode.parent = this;
 
@@ -251,7 +361,7 @@ class VBSSymbolTree {
 		return true;
 	}
 
-	public FindDirectParent(position: ls.Position): VBSSymbolTree {
+	public FindDirectParent(position: ls.Position): VizSymbolTree {
 		if(this.data != null && !PositionInRange(this.data.symbolRange, position))
 			return null;
 		
@@ -265,8 +375,8 @@ class VBSSymbolTree {
 		return this;
 	}
 
-	public GetAllParentsAndTheirDirectChildren(): VBSSymbol[] {
-		let symbols: VBSSymbol[];
+	public GetAllParentsAndTheirDirectChildren(): VizSymbol[] {
+		let symbols: VizSymbol[];
 
 		if(this.parent != null)
 			symbols = this.parent.GetAllParentsAndTheirDirectChildren();
@@ -297,10 +407,10 @@ function PositionInRange(range: ls.Range, position: ls.Position): boolean {
 	return true;
 }
 
-let symbolCache: { [id: string] : VBSSymbol[]; } = {};
+let symbolCache: { [id: string] : VizSymbol[]; } = {};
 function RefreshDocumentsSymbols(uri: string){
 	let startTime: number = Date.now();
-	let symbolsList: VBSSymbol[] = CollectSymbols(documents.get(uri));
+	let symbolsList: VizSymbol[] = CollectSymbols(documents.get(uri));
 	symbolCache[uri] = symbolsList;
 	//connection.console.info("Found " + symbolsList.length + " symbols in '" + uri + "': " + (Date.now() - startTime) + " ms");
 }
@@ -309,8 +419,8 @@ connection.onDocumentSymbol((docParams: ls.DocumentSymbolParams): ls.SymbolInfor
 	return GetSymbolsOfDocument(docParams.textDocument.uri);
 });
 
-function CollectSymbols(document: ls.TextDocument): VBSSymbol[] {
-	let symbols: Set<VBSSymbol> = new Set<VBSSymbol>();
+function CollectSymbols(document: ls.TextDocument): VizSymbol[] {
+	let symbols: Set<VizSymbol> = new Set<VizSymbol>();
 	let lines = document.getText().split(/\r?\n/g);
 
 	for (var i = 0; i < lines.length; i++) {
@@ -362,7 +472,6 @@ class LineStatement {
 	}
 }
 
-
 function ReplaceBySpaces(match: string) : string {
 	return " ".repeat(match.length);
 }
@@ -373,9 +482,10 @@ function AddArrayToSet(s: Set<any>, a: any[]) {
 	});
 }
 
-function FindSymbol(statement: LineStatement, uri: string, symbols: Set<VBSSymbol>) : void {
-	let newSym: VBSSymbol;
-	let newSyms: VBSVariableSymbol[] = null;
+function FindSymbol(statement: LineStatement, uri: string, symbols: Set<VizSymbol>) : void {
+	let newSym: VizSymbol;
+	let newSyms: VizVariableSymbol[] = null;
+	let pendingChildren: VizMemberSymbol[] = null;
 
 	if(GetMethodStart(statement, uri)) {
 		return;
@@ -387,19 +497,11 @@ function FindSymbol(statement: LineStatement, uri: string, symbols: Set<VBSSymbo
 		return;
 	}
 
-	if(GetPropertyStart(statement, uri))
-		return;
-
-	newSyms = GetPropertySymbol(statement, uri);;
-	if(newSyms != null && newSyms.length != 0) {
-		AddArrayToSet(symbols, newSyms);
-		return;
-	}
-
 	if(GetStructureStart(statement, uri))
 		return;
 
-	newSym = GetStructureSymbol(statement, uri);
+	newSym = GetStructureSymbol(statement, uri, pendingChildren);
+	pendingChildren = [];
 	if(newSym != null) {
 		symbols.add(newSym);
 		return;
@@ -407,7 +509,7 @@ function FindSymbol(statement: LineStatement, uri: string, symbols: Set<VBSSymbo
 
 	newSym = GetMemberSymbol(statement, uri);
 	if(newSym != null) {
-		symbols.add(newSym);
+		pendingChildren.push(newSym);
 		return;
 	}
 
@@ -417,18 +519,12 @@ function FindSymbol(statement: LineStatement, uri: string, symbols: Set<VBSSymbo
 		return;
 	}
 
-	newSym = GetConstantSymbol(statement, uri);
-	if(newSym != null) {
-		symbols.add(newSym);
-		return;
-	}
 }
 
 let openStructureName : string = null;
 let openStructureStart : ls.Position = ls.Position.create(-1, -1);
 
 class OpenMethod {
-	visibility: string;
 	type: string;
 	name: string;
 	argsIndex: number;
@@ -443,11 +539,11 @@ let openMethod: OpenMethod = null;
 function GetMethodStart(statement: LineStatement, uri: string): boolean {
 	let line = statement.line;
 
-	let rex:RegExp = /^[ \t]*?(function|sub)[ \t]+([a-zA-Z0-9\-\_]+)[ \t]*(\(([a-zA-Z0-9\[\]\_\-, \t(\(\))]*)\))*[ \t]*(as)*[ \t]*([a-zA-Z0-9\-\_]*)?[ \t]*$/gi;
+	let rex:RegExp = /^[ \t]*(function|sub)+[ \t]+([a-zA-Z0-9\-\_]+)+[ \t]*(\(([a-zA-Z0-9\[\]\_\-, \t(\(\))]*)\))+[ \t]*(as)?[ \t]*([a-zA-Z0-9\-\_]*)?[ \t]*$/gi;
 
 	let regexResult = rex.exec(line);
 
-	if(regexResult == null || regexResult.length < 4)
+	if(regexResult == null || regexResult.length < 5)
 		return;
 
 	if(openMethod == null) {
@@ -460,8 +556,9 @@ function GetMethodStart(statement: LineStatement, uri: string): boolean {
 				preLength += resElement.length;
 		}
 
+		//connection.console.log("Opening bracket at: " + (preLength+1).toString());
+
 		openMethod = {
-			visibility: "",
 			type: regexResult[1],
 			name: regexResult[2],
 			argsIndex: preLength + 1, // opening bracket
@@ -480,13 +577,15 @@ function GetMethodStart(statement: LineStatement, uri: string): boolean {
 		return true;
 	} else {
 		// ERROR!!! I expected "end function|sub"!
-		console.error("ERROR - line " + statement.startLine + " at " + statement.startCharacter + ": 'end " + openMethod.type + "' expected!");
+		
+		DisplayDiagnostics(uri, openMethod);
+		//console.error("ERROR - line " + statement.startLine + " at " + statement.startCharacter + ": 'end " + openMethod.type + "' expected!");
 	}
 
 	return false;
 }
 
-function GetMethodSymbol(statement: LineStatement, uri: string) : VBSSymbol[] {
+function GetMethodSymbol(statement: LineStatement, uri: string) : VizSymbol[] {
 	let line: string = statement.line;
 
 	let classEndRegex:RegExp = /^[ \t]*end[ \t]+(function|sub)?[ \t]*$/gi;
@@ -512,8 +611,7 @@ function GetMethodSymbol(statement: LineStatement, uri: string) : VBSSymbol[] {
 
 	let range: ls.Range = ls.Range.create(openMethod.startPosition, statement.GetPostitionByCharacter(GetNumberOfFrontSpaces(line) + regexResult[0].trim().length))
 	
-	let symbol: VBSMethodSymbol = new VBSMethodSymbol();
-	symbol.visibility = openMethod.visibility;
+	let symbol: VizMethodSymbol = new VizMethodSymbol();
 	symbol.type = openMethod.type;
 	symbol.name = openMethod.name;
 	symbol.args = openMethod.args;
@@ -521,10 +619,11 @@ function GetMethodSymbol(statement: LineStatement, uri: string) : VBSSymbol[] {
 	symbol.parentName = openStructureName;
 	symbol.symbolRange = range;
 
-	let parametersSymbol = GetParameterSymbols(openMethod.args, openMethod.argsIndex, openMethod.statement, uri);
+	let parametersSymbol = [];
+	parametersSymbol = GetParameterSymbols(openMethod.name, openMethod.args, openMethod.argsIndex, openMethod.statement, uri);
 
 	openMethod = null;
-
+	ClearDiagnostics(uri);
 	//return [symbol];
 	return parametersSymbol.concat(symbol);
 }
@@ -533,8 +632,13 @@ function ReplaceAll(target: string, search: string, replacement: string): string
     return target.replace(new RegExp(search, 'g'), replacement);
 };
 
-function GetParameterSymbols(args: string, argsIndex: number, statement: LineStatement, uri: string): VBSVariableSymbol[] {
-	let symbols: VBSVariableSymbol[] = [];
+function GetParameterSymbols(name: string, args: string, argsIndex: number, statement: LineStatement, uri: string): VizVariableSymbol[] {
+	let symbols: VizVariableSymbol[] = [];
+	let MethodSignature: ls.SignatureInformation =  ls.SignatureInformation.create(name);
+	
+	let parameters: ls.ParameterInformation[] = [];
+	
+
 
 	if(args == null || args == "")
 		return symbols;
@@ -543,24 +647,31 @@ function GetParameterSymbols(args: string, argsIndex: number, statement: LineSta
 
 	for (let i = 0; i < argsSplitted.length; i++) {
 		let arg = argsSplitted[i];
-		
-		let splittedByValByRefName = ReplaceAll(ReplaceAll(arg, "\t", " "), "  ", " ").trim().split(" ");
 
-		let varSymbol:VBSVariableSymbol = new VBSVariableSymbol();
+		let paramRegEx:RegExp = /^[ \t]*(byval|byref)?[ \t]*([a-zA-Z0-9\-\_]+)+[ \t]*(as)?[ \t]*([a-zA-Z0-9\-\_]*)?[ \t]*$/gi;
+
+		let regexResult = paramRegEx.exec(arg);
+
+		if(regexResult == null || regexResult.length < 3)
+		return symbols;
+
+		
+		
+		
+
+		let varSymbol:VizVariableSymbol = new VizVariableSymbol();
 		varSymbol.args = "";
 		varSymbol.type = "";
-		varSymbol.visibility = "";
 
-		if(splittedByValByRefName.length == 3){
-			varSymbol.name = splittedByValByRefName[0].trim();
-			varSymbol.type = splittedByValByRefName[2].trim();
-		}
-		else if(splittedByValByRefName.length > 3)
-		{
-			// ByVal or ByRef
-			varSymbol.type = splittedByValByRefName[1].trim();
-			varSymbol.name = splittedByValByRefName[3].trim();
-		}
+		varSymbol.name = regexResult[2].trim();
+		varSymbol.type = regexResult[4].trim();
+
+		let paramInfo: ls.ParameterInformation = ls.ParameterInformation.create(
+			varSymbol.name,
+			varSymbol.type
+		);
+
+		
 
 		let range = ls.Range.create(
 			statement.GetPostitionByCharacter(argsIndex + arg.indexOf(varSymbol.name)),
@@ -572,7 +683,10 @@ function GetParameterSymbols(args: string, argsIndex: number, statement: LineSta
 		symbols.push(varSymbol);
 		argsIndex += arg.length + 1; // comma
 	}
+	
+	MethodSignature.parameters = parameters;
 
+	MethodSignatures.push(MethodSignature);
 	return symbols;
 }
 
@@ -591,7 +705,6 @@ function GetNumberOfFrontSpaces(line: string): number {
 }
 
 class OpenProperty {
-	visibility: string;
 	type: string;
 	name: string;
 	argsIndex: number;
@@ -603,91 +716,12 @@ class OpenProperty {
 
 let openProperty: OpenProperty = null;
 
-function GetPropertyStart(statement: LineStatement, uri: string) : boolean {
-	let line: string = statement.line;
 
-	let propertyStartRegex:RegExp = /^[ \t]*(public[ \t]+|private[ \t]+)?(default[ \t]+)?(property[ \t]+)(let[ \t]+|set[ \t]+|get[ \t]+)([a-zA-Z0-9\-\_]+)([ \t]*)(\(([a-zA-Z0-9\_\-, \t(\(\))]*)\))?[ \t]*$/gi;
-	let regexResult = propertyStartRegex.exec(line);
-
-	if(regexResult == null || regexResult.length < 6)
-		return null;
-
-	let leadingSpaces = GetNumberOfFrontSpaces(line);
-	let preLength = leadingSpaces + regexResult.index;
+function GetMemberSymbol(statement: LineStatement, uri: string) : VizMemberSymbol {
 	
-	for (var i = 1; i < 7; i++) {
-		var resElement = regexResult[i];
-		if(resElement != null)
-			preLength += resElement.length;
-	}
-
-	if(openProperty == null) {
-		openProperty = {
-			visibility: regexResult[1],
-			type: regexResult[4],
-			name: regexResult[5],
-			argsIndex: preLength + 1,
-			args: regexResult[8],
-			startPosition: statement.GetPostitionByCharacter(leadingSpaces),
-			nameLocation: ls.Location.create(uri, ls.Range.create(
-				statement.GetPostitionByCharacter(line.indexOf(regexResult[5])),
-				statement.GetPostitionByCharacter(line.indexOf(regexResult[5]) + regexResult[5].length))
-			),
-			statement: statement
-		};
-
-		if(openProperty.args == null)
-			openProperty.args = "";
-
-		return true;
-	} else {
-		// ERROR!!! I expected "end function|sub"!
-		console.error("ERROR - line " + statement.startLine + " at " + statement.startCharacter + ": 'end property' expected!");
-	}
-
-	return false;
-}
-
-function GetPropertySymbol(statement: LineStatement, uri: string) : VBSSymbol[] {
-	let line: string = statement.line;
-
-	let classEndRegex:RegExp = /^[ \t]*end[ \t]+property[ \t]*$/gi;
-
-	let regexResult = classEndRegex.exec(line);
-
-	if(regexResult == null || regexResult.length < 1)
+	if(openStructureName == null)//No structure is open. There can't be any members of nothing.
 		return null;
 
-	if(openProperty == null) {
-		// ERROR!!! I cannot close any property!
-		console.error("ERROR - line " + statement.startLine + " at " + statement.startCharacter + ": There is no property to end!");
-		return null;
-	}
-
-	// range of the whole definition
-	let range: ls.Range = ls.Range.create(
-		openProperty.startPosition, 
-		statement.GetPostitionByCharacter(GetNumberOfFrontSpaces(line) + regexResult[0].trim().length)
-	);
-	
-	let symbol = new VBSPropertySymbol();
-	symbol.visibility = "";
-	symbol.type = openProperty.type;
-	symbol.name = openProperty.name;
-	symbol.args = openProperty.args;
-	symbol.symbolRange = range;
-	symbol.nameLocation = openProperty.nameLocation;
-	symbol.parentName = openStructureName;
-	symbol.symbolRange = range;
-
-	let parametersSymbol = GetParameterSymbols(openProperty.args, openProperty.argsIndex, openProperty.statement, uri);
-
-	openProperty = null;
-
-	return parametersSymbol.concat(symbol);
-}
-
-function GetMemberSymbol(statement: LineStatement, uri: string) : VBSMemberSymbol {
 	let line: string = statement.line;
 
 	let memberStartRegex:RegExp = /^[ \t]*([a-zA-Z0-9\-\_\,]+)[ \t]+as[ \t]+([a-zA-Z0-9\-\_\,\[\]]+).*$/gi;
@@ -696,7 +730,6 @@ function GetMemberSymbol(statement: LineStatement, uri: string) : VBSMemberSymbo
 	if(regexResult == null || regexResult.length < 3)
 		return null;
 
-	let visibility = "";
 	let name = regexResult[1];
 	let type = regexResult[2];
 	let intendention = GetNumberOfFrontSpaces(line);
@@ -707,8 +740,7 @@ function GetMemberSymbol(statement: LineStatement, uri: string) : VBSMemberSymbo
 		statement.GetPostitionByCharacter(intendention + regexResult[0].trim().length)
 	);
 	
-	let symbol: VBSMemberSymbol = new VBSMemberSymbol();
-	symbol.visibility = visibility;
+	let symbol: VizMemberSymbol = new VizMemberSymbol();
 	symbol.type = type
 	symbol.name = name;
 	symbol.args = "";
@@ -728,10 +760,10 @@ function GetVariableNamesFromList(vars: string): string[] {
 	return vars.split(',').map(function(s) { return s.trim(); });
 }
 
-function GetVariableSymbol(statement: LineStatement, uri: string) : VBSVariableSymbol[] {
+function GetVariableSymbol(statement: LineStatement, uri: string) : VizVariableSymbol[] {
 	let line: string = statement.line;
 
-	let variableSymbols: VBSVariableSymbol[] = [];
+	let variableSymbols: VizVariableSymbol[] = [];
 	let memberStartRegex:RegExp = /^[ \t]*dim[ \t]+([a-zA-Z0-9\-\_\,]+)[ \t]+as[ \t]+([a-zA-Z0-9\-\_\,\[\]]+).*$/gi;
 	let regexResult = memberStartRegex.exec(line);
 
@@ -739,11 +771,9 @@ function GetVariableSymbol(statement: LineStatement, uri: string) : VBSVariableS
 		return null;
 
 	// (dim[ \t]+)
-	let visibility = "";
 	let variables = GetVariableNamesFromList(regexResult[1]);
 	let intendention = GetNumberOfFrontSpaces(line);
 	let nameStartIndex = line.indexOf(line);
-	let firstElementOffset = visibility.length;
 	let parentName: string = "";
 	let type: string = regexResult[2]
 
@@ -758,8 +788,7 @@ function GetVariableSymbol(statement: LineStatement, uri: string) : VBSVariableS
 
 	for (let i = 0; i < variables.length; i++) {
 		let varName = variables[i];
-		let symbol: VBSVariableSymbol = new VBSVariableSymbol();
-		symbol.visibility = "";
+		let symbol: VizVariableSymbol = new VizVariableSymbol();
 		symbol.type = type;
 		symbol.name = varName;
 		symbol.args = "";
@@ -768,11 +797,10 @@ function GetVariableSymbol(statement: LineStatement, uri: string) : VBSVariableS
 		);
 		
 		symbol.symbolRange = ls.Range.create(
-			ls.Position.create(symbol.nameLocation.range.start.line, symbol.nameLocation.range.start.character - firstElementOffset), 
+			ls.Position.create(symbol.nameLocation.range.start.line, symbol.nameLocation.range.start.character), 
 			ls.Position.create(symbol.nameLocation.range.end.line, symbol.nameLocation.range.end.character)
 		);
 		
-		firstElementOffset = 0;
 		symbol.parentName = parentName;
 		
 		variableSymbols.push(symbol);
@@ -795,59 +823,6 @@ function GetNameRange(statement: LineStatement, name: string): ls.Range {
 	return rng;
 }
 
-function GetConstantSymbol(statement: LineStatement, uri: string) : VBSConstantSymbol {
-	if(openMethod != null || openProperty != null)
-		return null;
-
-	let line: string = statement.line;
-
-	let memberStartRegex:RegExp = /^[ \t]*(public[ \t]+|private[ \t]+)?const[ \t]+([a-zA-Z0-9\-\_]+)[ \t]*\=.*$/gi;
-	let regexResult = memberStartRegex.exec(line);
-
-	if(regexResult == null || regexResult.length < 3)
-		return null;
-
-	let visibility = regexResult[1];
-	if(visibility != null)
-		visibility = visibility.trim();
-
-	let name = regexResult[2].trim();
-	let intendention = GetNumberOfFrontSpaces(line);
-	let nameStartIndex = line.indexOf(line);
-
-	let range: ls.Range = ls.Range.create(
-		statement.GetPostitionByCharacter(intendention), 
-		statement.GetPostitionByCharacter(intendention + regexResult[0].trim().length)
-	);
-	
-	let parentName: string = "";
-	
-	if(openStructureName != null)
-		parentName = openStructureName;
-
-	if(openMethod != null)
-		parentName = openMethod.name;
-
-	if(openProperty != null)
-		parentName = openProperty.name;
-
-	let symbol: VBSConstantSymbol = new VBSConstantSymbol();
-	symbol.visibility = visibility;
-	symbol.type = "";
-	symbol.name = name;
-	symbol.args = "";
-	symbol.symbolRange = range;
-	symbol.nameLocation = ls.Location.create(uri, 
-		ls.Range.create(
-			statement.GetPostitionByCharacter(nameStartIndex),
-			statement.GetPostitionByCharacter(nameStartIndex + name.length)
-		)
-	);
-	symbol.parentName = parentName;
-
-	return symbol;
-}
-
 function GetStructureStart(statement: LineStatement, uri: string) : boolean {
 	let line: string = statement.line;
 
@@ -864,7 +839,7 @@ function GetStructureStart(statement: LineStatement, uri: string) : boolean {
 	return true;
 }
 
-function GetStructureSymbol(statement: LineStatement, uri: string) : VBSClassSymbol {
+function GetStructureSymbol(statement: LineStatement, uri: string, children: VizSymbol[]) : VizClassSymbol {
 	let line: string = statement.line;
 
 	let classEndRegex:RegExp = /^[ \t]*end[ \t]+structure[ \t]*$/gi;
@@ -888,7 +863,7 @@ function GetStructureSymbol(statement: LineStatement, uri: string) : VBSClassSym
 	}
 
 	let range: ls.Range = ls.Range.create(openStructureStart, statement.GetPostitionByCharacter(regexResult[0].length))
-	let symbol: VBSClassSymbol = new VBSClassSymbol();
+	let symbol: VizClassSymbol = new VizClassSymbol();
 	symbol.name = openStructureName;
 	symbol.nameLocation = ls.Location.create(uri, 
 		ls.Range.create(openStructureStart, 
@@ -896,6 +871,7 @@ function GetStructureSymbol(statement: LineStatement, uri: string) : VBSClassSym
 		)
 	);
 	symbol.symbolRange = range;
+	symbol.children = children;
 	//let symbol: ls.SymbolInformation = ls.SymbolInformation.create(openClassName, ls.SymbolKind.Class, range, uri);
 
 	openStructureName = null;
@@ -905,49 +881,51 @@ function GetStructureSymbol(statement: LineStatement, uri: string) : VBSClassSym
 }
 
 function FindBuiltinSymbols() {
-	let symbols: VBSSymbol[] = [];
+	let symbols: VizSymbol[] = [];
 	let startTime: number = Date.now();
 
 	data.intellisense.scopes.scope.forEach(element => {
 		if (element.name == "Global Procedures")
 		{
 			element.methods.forEach(submethod => {
-				let symbol: VBSMethodSymbol = new VBSMethodSymbol();
-				symbol.visibility = "";
-				symbol.type = submethod.type;
+				let symbol: VizMethodSymbol = new VizMethodSymbol();
+				symbol.type = submethod.return_value_scope;
 				symbol.name = submethod.name;
-				symbol.args = submethod.code_completion_hint;
+				symbol.hint = submethod.description
+				symbol.args = submethod.code_insight_hint;
 				symbol.parentName = "root";
 				symbols.push(symbol);
 			});
 		}
 		else
 		{
-			let symbol: VBSClassSymbol = new VBSClassSymbol();
+			let symbol: VizClassSymbol = new VizClassSymbol();
 			symbol.name = element.name;
 			symbol.parentName = "root";
 			symbol.type = element.name;
+			symbol.args = "";
+			symbol.hint = element.description;
 			symbols.push(symbol);
 			
 			element.methods.forEach(submethod => {
-				let symbol: VBSMethodSymbol = new VBSMethodSymbol();
-				symbol.visibility = "";
-				symbol.type = submethod.type;
-				symbol.name = submethod.name;
-				symbol.args = submethod.code_completion_hint;
-				//connection.console.log("Parent name for " + submethod.name + " is " + element.name);
-				symbol.parentName = element.name;
-				symbols.push(symbol);
+				let subSymbol: VizMethodSymbol = new VizMethodSymbol();
+				subSymbol.type = submethod.return_value_scope;
+				subSymbol.name = submethod.name;
+				subSymbol.hint = submethod.description;
+				subSymbol.args = submethod.code_insight_hint;
+				subSymbol.kind = ls.CompletionItemKind.Method;
+				subSymbol.parentName = element.name;
+				symbol.children.push(subSymbol);
 			});
 			element.properties.forEach(properties => {
-				let symbol: VBSPropertySymbol = new VBSPropertySymbol();
-				symbol.visibility = "";
-				symbol.type = properties.type;
-				symbol.name = properties.name;
-				symbol.args = properties.code_completion_hint;
-				//connection.console.log("Parent name for " + properties.name + " is " + element.name);
-				symbol.parentName = element.name;
-				symbols.push(symbol);
+				let subSymbol: VizVariableSymbol = new VizVariableSymbol();
+				subSymbol.type = properties.return_value_scope;
+				subSymbol.name = properties.name;
+				subSymbol.hint = properties.description;
+				subSymbol.args = properties.code_insight_hint;
+				subSymbol.kind = ls.CompletionItemKind.Variable;
+				subSymbol.parentName = element.name;
+				symbol.children.push(subSymbol);
 			});
 
 		}
@@ -956,33 +934,10 @@ function FindBuiltinSymbols() {
 	symbolCache["builtin"] = symbols;
 }
 
-
-function GetBuiltInSymbolsOfScope(symbols: VBSSymbol[], type: string): VBSSymbol[] {
-	let scopeSymbols: VBSSymbol[] = [];
-	symbols.forEach(symbol => {
-		//connection.console.log("Parent name: " + symbol.parentName + " type: " + type);
-		if(symbol.parentName == type)
-		{
-			connection.console.log("Name: " + symbol.name + " Parent: " + symbol.parentName);
-			scopeSymbols.push(symbol);
-		}
-	});
-
-	return scopeSymbols;
+function SelectBuiltinCompletionItems(): ls.CompletionItem[]{
+	return VizSymbol.GetLanguageServerCompletionItems(symbolCache["builtin"]);
 }
 
-
-function SelectBuiltinCompletionItems(textDocumentPosition: ls.TextDocumentPositionParams): ls.CompletionItem[]{
-  let symbols = symbolCache["builtin"];
-    
-  if(symbols == null) {
-		FindBuiltinSymbols();
-		symbols = symbolCache["builtin"];
-		connection.console.log("Rebuilt: Builtin symbols length: " + symbols.length.toString());
-	}
-	let scopeSymbols = GetBuiltInSymbolsOfScope(symbols, "root");
-	return VBSSymbol.GetLanguageServerCompletionItems(scopeSymbols);
-}
 /*
 connection.onDidOpenTextDocument((params) => {
 	// A text document got opened in VSCode.
@@ -1007,8 +962,6 @@ connection.onDidCloseTextDocument((params) => {
 	symbolCache[params.textDocument.uri] = null;
 	connection.console.log(`${params.textDocument.uri} closed.`);
 });
-
-
 
 // Listen on the connection
 connection.listen();
