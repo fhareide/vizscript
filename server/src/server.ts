@@ -5,8 +5,9 @@
 'use strict';
 
 import * as ls from 'vscode-languageserver';
-import { VizSymbol } from "./VizSymbols/VizSymbol";
+import { VizSymbol } from "./vizsymbol";
 import * as data from './intellisense_data.json';
+import * as vizevent from './vizevents.json';
 
 // Create a connection for the server. The connection uses Node's IPC as a transport
 let connection: ls.IConnection = ls.createConnection(new ls.IPCMessageReader(process), new ls.IPCMessageWriter(process));
@@ -18,49 +19,23 @@ let documents: ls.TextDocuments = new ls.TextDocuments();
 // for open, change and close text document events
 documents.listen(connection);
 
-/*
-var wtj = require('website-to-json');
-var trim = require('trim');
-
-Promise.all([
-  'http://www.imdb.com/title/tt0111161',
-  'http://www.imdb.com/title/tt0137523',
-  'http://www.imdb.com/title/tt0068646'
-])
-.map(function(url) {
-  return wtj.extractUrl(url, {
-    fields: ['data'],
-    parse: function($) {
-      return {
-        title: trim($(".title_wrapper h1").text()),
-        image: $(".poster img").attr('src')
-      }
-    }
-  })
-}, {concurrency: 1})
-.then(function(res) {
-	connection.console.log("Converted " + JSON.stringify(res, null, 2));
-})
-*/
-
-
 // After the server has started the client sends an initialize request. The server receives
 // in the passed params the rootPath of the workspace plus the client capabilities.
 let workspaceRoot: string;
 connection.onInitialize((params): ls.InitializeResult => {
 	workspaceRoot = params.rootPath;
 	//Initialize built in symbols
-	if (symbolCache["builtin"] == null) FindBuiltinSymbols();
-
+	if (symbolCache["builtin"] == null) GetBuiltinSymbols();
+	if (symbolCache["builtin_events"] == null) GetVizEvents();
+ 
 	return {
 		capabilities: {
 			// Tell the client that the server works in FULL text document sync mode
 			textDocumentSync: documents.syncKind,
 			documentSymbolProvider: true,
-			//signatureHelpProvider: {
-			//	triggerCharacters: [ '('],
-
-			//},
+			signatureHelpProvider: {
+				triggerCharacters: [ '(']
+			},
 			// Tell the client that the server support code complete
 			definitionProvider: true,
 			completionProvider:  {
@@ -115,14 +90,14 @@ connection.onDefinition((params: ls.TextDocumentPositionParams,cancelToken: ls.C
 	return null;
 });
 
+let lastSuggestions: ls.CompletionItem[] = [];
+
 // This handler provides the initial list of the completion items.
 connection.onCompletion((params: ls.CompletionParams,cancelToken: ls.CancellationToken): ls.CompletionItem[] => {
 	let suggestions: ls.CompletionItem[] = [];
 	let documentCompletions: ls.CompletionItem[] = [];
 
 	documentCompletions = SelectCompletionItems(params);
-
-	//return documentCompletions;
 
 	// Gets current line
 	let line: string = documents.get(params.textDocument.uri).getText(ls.Range.create(
@@ -155,11 +130,12 @@ connection.onCompletion((params: ls.CompletionParams,cancelToken: ls.Cancellatio
 	}else{
 		suggestions = SelectBuiltinCompletionItems();
 		regexResult = "";
-		connection.console.log("Start = 0");
 	}
 	
 	if(regexResult != null && regexResult.length > 0){
+		connection.console.log("Result is - " + regexResult[1]);
 		const symbols = symbolCache[params.textDocument.uri];
+		if (symbols == []) return documentCompletions;
 		let scopeSymbols = GetSymbolsOfScope(symbols, params.position);
 		const builtinSymbols = symbolCache["builtin"];
 		let currentType = "";
@@ -187,6 +163,9 @@ connection.onCompletion((params: ls.CompletionParams,cancelToken: ls.Cancellatio
 		}
 	}
 
+	lastSuggestions = suggestions;
+
+	suggestions = suggestions.concat(VizSymbol.GetLanguageServerCompletionItems(symbolCache["builtin_events"]));
 
 	return suggestions.concat(documentCompletions);
 	 
@@ -197,7 +176,7 @@ connection.onCompletionResolve((complItem: ls.CompletionItem): ls.CompletionItem
 });
 
 connection.onSignatureHelp((params: ls.TextDocumentPositionParams,cancelToken: ls.CancellationToken) => {
-	connection.console.log("Should return signature help!");
+	//connection.console.log("Should return signature help!");
 
 	let test: ls.SignatureHelp = null;
 	if (MethodSignatures == []) return null;
@@ -218,16 +197,17 @@ function GetSymbolByName(name: string, params: ls.CompletionParams): VizSymbol {
 	let result: VizSymbol = null; 
 	symbols.forEach(item => {
 		let childsymbols = item.children;
-		if (item.name == name)
+		if (item.name.toLowerCase() == name.toLowerCase())
 		{
 			result = item;
 		}
 	});
 	symbols = symbolCache[params.textDocument.uri];
 	symbols = GetSymbolsOfScope(symbols, params.position);
+	if(symbols == []) connection.console.log("No symbols found")
 	symbols.forEach(item => {
 		let childsymbols = item.children;
-		if (item.name == name)
+		if (item.name.toLowerCase() == name.toLowerCase())
 		{
 			result = item;
 		}
@@ -294,7 +274,7 @@ function SelectCompletionItems(textDocumentPosition: ls.TextDocumentPositionPara
 	if(symbols == null) {
 		RefreshDocumentsSymbols(textDocumentPosition.textDocument.uri);
 		symbols = symbolCache[textDocumentPosition.textDocument.uri];
-		connection.console.log("Rebuilt: Symbols length: " + symbols.length.toString() + textDocumentPosition.textDocument.uri);
+		//connection.console.log("Rebuilt: Symbols length: " + symbols.length.toString() + textDocumentPosition.textDocument.uri);
 	}
 	
 	let scopeSymbols = GetSymbolsOfScope(symbols, textDocumentPosition.position);
@@ -408,7 +388,7 @@ function RefreshDocumentsSymbols(uri: string){
 	let startTime: number = Date.now();
 	let symbolsList: VizSymbol[] = CollectSymbols(documents.get(uri));
 	symbolCache[uri] = symbolsList;
-	//connection.console.info("Found " + symbolsList.length + " symbols in '" + uri + "': " + (Date.now() - startTime) + " ms");
+	//connection.console.info("Found " + symbolsList.length + " document symbols in '" + uri + "': " + (Date.now() - startTime) + " ms");
 }
 
 connection.onDocumentSymbol((docParams: ls.DocumentSymbolParams): ls.SymbolInformation[] => {
@@ -476,6 +456,106 @@ function AddArrayToSet(s: Set<any>, a: any[]) {
 	a.forEach(element => {
 		s.add(element);
 	});
+}
+
+function GetBuiltinSymbols() {
+	let symbols: VizSymbol[] = [];
+	let startTime: number = Date.now();
+
+	data.intellisense.scopes.scope.forEach(element => {
+		if (element.name == "Global Procedures")
+		{
+			element.methods.forEach(submethod => {
+				let symbol: VizSymbol = new VizSymbol();
+				if(submethod.type == "Function") symbol.kind = ls.CompletionItemKind.Function;
+				else if(submethod.type == "Subroutine") symbol.kind = ls.CompletionItemKind.Method;
+				symbol.type = submethod.return_value_scope;
+				symbol.name = submethod.name;
+				symbol.insertText = submethod.name;
+				symbol.hint = submethod.code_insight_hint;
+				symbol.args = submethod.description;
+				symbol.parentName = "root";
+				symbols.push(symbol);
+			});
+		}
+		else
+		{
+			let symbol: VizSymbol = new VizSymbol();
+			symbol.kind = ls.CompletionItemKind.Class;
+			symbol.name = element.name;
+			symbol.insertText = element.name;
+			symbol.parentName = "root";
+			symbol.type = element.name;
+			symbol.args = element.description;
+			symbol.hint = "";
+			symbols.push(symbol);
+			
+			element.methods.forEach(submethod => {
+				let subSymbol: VizSymbol = new VizSymbol();
+				subSymbol.type = submethod.return_value_scope;
+				subSymbol.name = submethod.name;
+				subSymbol.insertText = submethod.name;
+				subSymbol.hint = submethod.code_insight_hint;
+				subSymbol.args = submethod.description;
+				if(submethod.type == "Function") subSymbol.kind = ls.CompletionItemKind.Function;
+				else if(submethod.type == "Subroutine") subSymbol.kind = ls.CompletionItemKind.Method;
+				subSymbol.parentName = element.name;
+				symbol.children.push(subSymbol);
+			});
+			element.properties.forEach(properties => {
+				let subSymbol: VizSymbol = new VizSymbol();
+				subSymbol.type = properties.return_value_scope;
+				subSymbol.name = properties.name;
+				subSymbol.insertText = properties.name;
+				subSymbol.hint = properties.code_insight_hint;
+				subSymbol.args = properties.description;
+				subSymbol.kind = ls.CompletionItemKind.Variable;
+				subSymbol.parentName = element.name;
+				symbol.children.push(subSymbol);
+			});
+
+		}
+	});
+
+	symbolCache["builtin"] = symbols;
+	//connection.console.info("Found " + symbols.length + " builtin symbols in " + (Date.now() - startTime) + " ms");
+}
+
+function GetVizEvents(){
+	
+	let symbols: VizSymbol[] = [];
+	let startTime: number = Date.now();
+
+	vizevent.event_definitions.scene_script_events.event.forEach(event => {
+			let symbol: VizSymbol = new VizSymbol();
+			symbol.kind = ls.CompletionItemKind.Event;
+			symbol.type = "Scene event";
+			symbol.name = event.name;
+			symbol.insertText = event.code;
+			symbol.hint = event.code;
+			symbol.args = event.description;
+			symbol.parentName = "root";
+			symbols.push(symbol);
+	});
+
+	vizevent.event_definitions.container_script_events.event.forEach(event => {
+		let symbol: VizSymbol = new VizSymbol();
+		symbol.kind = ls.CompletionItemKind.Event;
+		symbol.type = "Container event";
+		symbol.name = event.name;
+		symbol.insertText = event.code;
+		symbol.hint = event.code;
+		symbol.args = event.description;
+		symbol.parentName = "root";
+		symbols.push(symbol);
+});
+
+	symbolCache["builtin_events"] = symbols;
+	//connection.console.info("Found " + symbols.length + " builtin events in " + (Date.now() - startTime) + " ms");
+}
+
+function SelectBuiltinCompletionItems(): ls.CompletionItem[]{
+	return VizSymbol.GetLanguageServerCompletionItems(symbolCache["builtin"]);
 }
 
 function FindSymbol(statement: LineStatement, uri: string, symbols: Set<VizSymbol>) : void {
@@ -611,6 +691,7 @@ function GetMethodSymbol(statement: LineStatement, uri: string) : VizSymbol[] {
 	symbol.kind = ls.CompletionItemKind.Method;
 	symbol.type = openMethod.type;
 	symbol.name = openMethod.name;
+	symbol.insertText = openMethod.name;
 	symbol.args = openMethod.args;
 	symbol.nameLocation = openMethod.nameLocation;
 	symbol.parentName = openStructureName;
@@ -645,7 +726,7 @@ function GetParameterSymbols(name: string, args: string, argsIndex: number, stat
 	for (let i = 0; i < argsSplitted.length; i++) {
 		let arg = argsSplitted[i];
 
-		let paramRegEx:RegExp = /^[ \t]*(byval|byref)?[ \t]*([a-zA-Z0-9\-\_]+)+[ \t]*(as)?[ \t]*([a-zA-Z0-9\-\_]*)?[ \t]*$/gi;
+		let paramRegEx:RegExp = /^[ \t]*(byval|byref)?[ \t]*([a-zA-Z0-9\-\_]+)+[ \t]*(as)+[ \t]*([a-zA-Z0-9\-\_]*)+[ \t]*$/gi;
 
 		let regexResult = paramRegEx.exec(arg);
 
@@ -662,6 +743,7 @@ function GetParameterSymbols(name: string, args: string, argsIndex: number, stat
 		varSymbol.type = "";
 
 		varSymbol.name = regexResult[2].trim();
+		varSymbol.insertText = varSymbol.name;
 		varSymbol.type = regexResult[4].trim();
 
 		let paramInfo: ls.ParameterInformation = ls.ParameterInformation.create(
@@ -742,6 +824,7 @@ function GetMemberSymbol(statement: LineStatement, uri: string) : VizSymbol {
 	symbol.kind = ls.CompletionItemKind.Field;
 	symbol.type = type
 	symbol.name = name;
+	symbol.insertText = name;
 	symbol.args = "";
 	symbol.symbolRange = range;
 	symbol.nameLocation = ls.Location.create(uri, 
@@ -790,6 +873,7 @@ function GetVariableSymbol(statement: LineStatement, uri: string) : VizSymbol[] 
 		let symbol: VizSymbol = new VizSymbol();
 		symbol.type = type;
 		symbol.name = varName;
+		symbol.insertText = varName;
 		symbol.args = "";
 		symbol.nameLocation = ls.Location.create(uri, 
 			GetNameRange(statement, varName )
@@ -865,6 +949,7 @@ function GetStructureSymbol(statement: LineStatement, uri: string, children: Viz
 	let symbol: VizSymbol = new VizSymbol();
 	symbol.kind = ls.CompletionItemKind.Struct;
 	symbol.name = openStructureName;
+	symbol.insertText = symbol.name;
 	symbol.nameLocation = ls.Location.create(uri, 
 		ls.Range.create(openStructureStart, 
 			ls.Position.create(openStructureStart.line, openStructureStart.character + openStructureName.length)
@@ -880,67 +965,7 @@ function GetStructureSymbol(statement: LineStatement, uri: string, children: Viz
 	return symbol;
 }
 
-function FindBuiltinSymbols() {
-	let symbols: VizSymbol[] = [];
-	let startTime: number = Date.now();
 
-	data.intellisense.scopes.scope.forEach(element => {
-		if (element.name == "Global Procedures")
-		{
-			element.methods.forEach(submethod => {
-				let symbol: VizSymbol = new VizSymbol();
-				if(submethod.type == "Function") symbol.kind = ls.CompletionItemKind.Function;
-				else if(submethod.type == "Subroutine") symbol.kind = ls.CompletionItemKind.Method;;
-				symbol.type = submethod.return_value_scope;
-				symbol.name = submethod.name;
-				symbol.hint = submethod.description
-				symbol.args = submethod.code_insight_hint;
-				symbol.parentName = "root";
-				symbols.push(symbol);
-			});
-		}
-		else
-		{
-			let symbol: VizSymbol = new VizSymbol();
-			symbol.kind = ls.CompletionItemKind.Class;
-			symbol.name = element.name;
-			symbol.parentName = "root";
-			symbol.type = element.name;
-			symbol.args = "";
-			symbol.hint = element.description;
-			symbols.push(symbol);
-			
-			element.methods.forEach(submethod => {
-				let subSymbol: VizSymbol = new VizSymbol();
-				subSymbol.type = submethod.return_value_scope;
-				subSymbol.name = submethod.name;
-				subSymbol.hint = submethod.description;
-				subSymbol.args = submethod.code_insight_hint;
-				if(submethod.type == "Function") subSymbol.kind = ls.CompletionItemKind.Function;
-				else if(submethod.type == "Subroutine") subSymbol.kind = ls.CompletionItemKind.Method;
-				subSymbol.parentName = element.name;
-				symbol.children.push(subSymbol);
-			});
-			element.properties.forEach(properties => {
-				let subSymbol: VizSymbol = new VizSymbol();
-				subSymbol.type = properties.return_value_scope;
-				subSymbol.name = properties.name;
-				subSymbol.hint = properties.description;
-				subSymbol.args = properties.code_insight_hint;
-				subSymbol.kind = ls.CompletionItemKind.Variable;
-				subSymbol.parentName = element.name;
-				symbol.children.push(subSymbol);
-			});
-
-		}
-	});
-
-	symbolCache["builtin"] = symbols;
-}
-
-function SelectBuiltinCompletionItems(): ls.CompletionItem[]{
-	return VizSymbol.GetLanguageServerCompletionItems(symbolCache["builtin"]);
-}
 
 /*
 connection.onDidOpenTextDocument((params) => {

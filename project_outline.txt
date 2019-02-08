@@ -1,5 +1,0 @@
-Finn alle innebygde symbol
-Legg childs under rett symbol
-Finn alle custom symbol
-Verifiser at ingen har samme navn som et innebygd
-Legg alle parameter fra structs som childs

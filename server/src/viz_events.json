@@ -1,0 +1,156 @@
+{
+ "events": [
+  {
+   "name": "Sub **OnInitParameters**()",
+   "description": "The callback is used to inform Scripts and Plugins that the engine switches to preview mode (active == 1) or back (active == 0). To enter or leave Preview mode the command *\"SCENE PREVIEW active\"* is used. For example: *\"RENDERER*MAIN_LAYER PREVIEW 1\"* and *\"RENDERER*MAIN_LAYER PREVIEW 0\"*"
+  },
+  {
+   "name": "Sub **OnInit**()",
+   "description": "The callback is used to inform Scripts and Plugins that the engine switches to preview mode (active == 1) or back (active == 0). To enter or leave Preview mode the command *\"SCENE PREVIEW active\"* is used. For example: *\"RENDERER*MAIN_LAYER PREVIEW 1\"* and *\"RENDERER*MAIN_LAYER PREVIEW 0\"*"
+  },
+  {
+   "name": "Sub **OnPostLoad**()",
+   "description": "The callback is used to inform Scripts and Plugins that the engine switches to preview mode (active == 1) or back (active == 0). To enter or leave Preview mode the command *\"SCENE PREVIEW active\"* is used. For example: *\"RENDERER*MAIN_LAYER PREVIEW 1\"* and *\"RENDERER*MAIN_LAYER PREVIEW 0\"*"
+  },
+  {
+   "name": "Sub **OnEnter**()",
+   "description": "The callback is used to inform Scripts and Plugins that the engine switches to preview mode (active == 1) or back (active == 0). To enter or leave Preview mode the command *\"SCENE PREVIEW active\"* is used. For example: *\"RENDERER*MAIN_LAYER PREVIEW 1\"* and *\"RENDERER*MAIN_LAYER PREVIEW 0\"*"
+  },
+  {
+   "name": "Sub **OnLeave**()",
+   "description": "The callback is used to inform Scripts and Plugins that the engine switches to preview mode (active == 1) or back (active == 0). To enter or leave Preview mode the command *\"SCENE PREVIEW active\"* is used. For example: *\"RENDERER*MAIN_LAYER PREVIEW 1\"* and *\"RENDERER*MAIN_LAYER PREVIEW 0\"*"
+  },
+  {
+   "name": "Sub **OnEnterSubContainer**(*subContainer* As Container)",
+   "description": "The callback is used to inform Scripts and Plugins that the engine switches to preview mode (active == 1) or back (active == 0). To enter or leave Preview mode the command *\"SCENE PREVIEW active\"* is used. For example: *\"RENDERER*MAIN_LAYER PREVIEW 1\"* and *\"RENDERER*MAIN_LAYER PREVIEW 0\"*"
+  },
+  {
+   "name": "Sub **OnLeaveSubContainer**(*subContainer* As Container)",
+   "description": "The callback is used to inform Scripts and Plugins that the engine switches to preview mode (active == 1) or back (active == 0). To enter or leave Preview mode the command *\"SCENE PREVIEW active\"* is used. For example: *\"RENDERER*MAIN_LAYER PREVIEW 1\"* and *\"RENDERER*MAIN_LAYER PREVIEW 0\"*"
+  },
+  {
+   "name": "Sub **OnExecPerField**()",
+   "description": "The callback is used to inform Scripts and Plugins that the engine switches to preview mode (active == 1) or back (active == 0). To enter or leave Preview mode the command *\"SCENE PREVIEW active\"* is used. For example: *\"RENDERER*MAIN_LAYER PREVIEW 1\"* and *\"RENDERER*MAIN_LAYER PREVIEW 0\"*"
+  },
+  {
+   "name": "Sub **OnExecAction**(*buttonId* As Integer)",
+   "description": "The callback is used to inform Scripts and Plugins that the engine switches to preview mode (active == 1) or back (active == 0). To enter or leave Preview mode the command *\"SCENE PREVIEW active\"* is used. For example: *\"RENDERER*MAIN_LAYER PREVIEW 1\"* and *\"RENDERER*MAIN_LAYER PREVIEW 0\"*"
+  },
+  {
+   "name": "Sub **OnGuiStatus**()",
+   "description": "The callback is used to inform Scripts and Plugins that the engine switches to preview mode (active == 1) or back (active == 0). To enter or leave Preview mode the command *\"SCENE PREVIEW active\"* is used. For example: *\"RENDERER*MAIN_LAYER PREVIEW 1\"* and *\"RENDERER*MAIN_LAYER PREVIEW 0\"*"
+  },
+  {
+   "name": "Sub **OnParameterChanged**(*parameterName* As String)",
+   "description": "The callback is used to inform Scripts and Plugins that the engine switches to preview mode (active == 1) or back (active == 0). To enter or leave Preview mode the command *\"SCENE PREVIEW active\"* is used. For example: *\"RENDERER*MAIN_LAYER PREVIEW 1\"* and *\"RENDERER*MAIN_LAYER PREVIEW 0\"*"
+  },
+  {
+   "name": "Sub **OnKeyDown**(*keyCode* As Integer)",
+   "description": "The callback is used to inform Scripts and Plugins that the engine switches to preview mode (active == 1) or back (active == 0). To enter or leave Preview mode the command *\"SCENE PREVIEW active\"* is used. For example: *\"RENDERER*MAIN_LAYER PREVIEW 1\"* and *\"RENDERER*MAIN_LAYER PREVIEW 0\"*"
+  },
+  {
+   "name": "Sub **OnKeyUp**(*keyCode* As Integer)",
+   "description": "The callback is used to inform Scripts and Plugins that the engine switches to preview mode (active == 1) or back (active == 0). To enter or leave Preview mode the command *\"SCENE PREVIEW active\"* is used. For example: *\"RENDERER*MAIN_LAYER PREVIEW 1\"* and *\"RENDERER*MAIN_LAYER PREVIEW 0\"*"
+  },
+  {
+   "name": "Sub **OnButtonDown6DOF**(*button* As Integer, *pos* As Vertex, *rot* As Vertex)",
+   "description": "The callback is used to inform Scripts and Plugins that the engine switches to preview mode (active == 1) or back (active == 0). To enter or leave Preview mode the command *\"SCENE PREVIEW active\"* is used. For example: *\"RENDERER*MAIN_LAYER PREVIEW 1\"* and *\"RENDERER*MAIN_LAYER PREVIEW 0\"*"
+  },
+  {
+   "name": "Sub **OnButtonUp6DOF**(*button* As Integer, *pos* As Vertex, *rot* As Vertex)",
+   "description": "The callback is used to inform Scripts and Plugins that the engine switches to preview mode (active == 1) or back (active == 0). To enter or leave Preview mode the command *\"SCENE PREVIEW active\"* is used. For example: *\"RENDERER*MAIN_LAYER PREVIEW 1\"* and *\"RENDERER*MAIN_LAYER PREVIEW 0\"*"
+  },
+  {
+   "name": "Sub **OnMove6DOF**(*button* As Integer, *pos* As Vertex, *rot* As Vertex)",
+   "description": "The callback is used to inform Scripts and Plugins that the engine switches to preview mode (active == 1) or back (active == 0). To enter or leave Preview mode the command *\"SCENE PREVIEW active\"* is used. For example: *\"RENDERER*MAIN_LAYER PREVIEW 1\"* and *\"RENDERER*MAIN_LAYER PREVIEW 0\"*"
+  },
+  {
+   "name": "Sub **OnMoveRelative6DOF**(*button* As Integer, *pos* As Vertex, *rot* As Vertex)",
+   "description": "The callback is used to inform Scripts and Plugins that the engine switches to preview mode (active == 1) or back (active == 0). To enter or leave Preview mode the command *\"SCENE PREVIEW active\"* is used. For example: *\"RENDERER*MAIN_LAYER PREVIEW 1\"* and *\"RENDERER*MAIN_LAYER PREVIEW 0\"*"
+  },
+  {
+   "name": "Sub **OnScale6DOF**(*button* As Integer, *scale* As Vertex)",
+   "description": "The callback is used to inform Scripts and Plugins that the engine switches to preview mode (active == 1) or back (active == 0). To enter or leave Preview mode the command *\"SCENE PREVIEW active\"* is used. For example: *\"RENDERER*MAIN_LAYER PREVIEW 1\"* and *\"RENDERER*MAIN_LAYER PREVIEW 0\"*"
+  },
+  {
+   "name": "Sub **OnMTHit**(*stroke* As Integer, *x* As Integer, *y* As Integer)",
+   "description": "The callback is used to inform Scripts and Plugins that the engine switches to preview mode (active == 1) or back (active == 0). To enter or leave Preview mode the command *\"SCENE PREVIEW active\"* is used. For example: *\"RENDERER*MAIN_LAYER PREVIEW 1\"* and *\"RENDERER*MAIN_LAYER PREVIEW 0\"*"
+  },
+  {
+   "name": "Sub **OnMTMenu**(*x* As Integer, *y* As Integer)",
+   "description": "The callback is used to inform Scripts and Plugins that the engine switches to preview mode (active == 1) or back (active == 0). To enter or leave Preview mode the command *\"SCENE PREVIEW active\"* is used. For example: *\"RENDERER*MAIN_LAYER PREVIEW 1\"* and *\"RENDERER*MAIN_LAYER PREVIEW 0\"*"
+  },
+  {
+   "name": "Sub **OnMTControlPZR2D**(*x* As Integer, *y* As Integer *rot* As Vertex, *scale* As Vertex, *pressure* As Double)",
+   "description": "The callback is used to inform Scripts and Plugins that the engine switches to preview mode (active == 1) or back (active == 0). To enter or leave Preview mode the command *\"SCENE PREVIEW active\"* is used. For example: *\"RENDERER*MAIN_LAYER PREVIEW 1\"* and *\"RENDERER*MAIN_LAYER PREVIEW 0\"*"
+  },
+  {
+   "name": "Sub **OnMTControlButton**(*strokes* As Integer, *pressure* As Double)",
+   "description": "The callback is used to inform Scripts and Plugins that the engine switches to preview mode (active == 1) or back (active == 0). To enter or leave Preview mode the command *\"SCENE PREVIEW active\"* is used. For example: *\"RENDERER*MAIN_LAYER PREVIEW 1\"* and *\"RENDERER*MAIN_LAYER PREVIEW 0\"*"
+  },
+  {
+   "name": "Sub **OnMTControlInactive**()",
+   "description": "The callback is used to inform Scripts and Plugins that the engine switches to preview mode (active == 1) or back (active == 0). To enter or leave Preview mode the command *\"SCENE PREVIEW active\"* is used. For example: *\"RENDERER*MAIN_LAYER PREVIEW 1\"* and *\"RENDERER*MAIN_LAYER PREVIEW 0\"*"
+  },
+  {
+   "name": "Sub **OnTouchTrace**(*trace* As Trace, *touch* As Touch)",
+   "description": "The callback is used to inform Scripts and Plugins that the engine switches to preview mode (active == 1) or back (active == 0). To enter or leave Preview mode the command *\"SCENE PREVIEW active\"* is used. For example: *\"RENDERER*MAIN_LAYER PREVIEW 1\"* and *\"RENDERER*MAIN_LAYER PREVIEW 0\"*"
+  },
+  {
+   "name": "Sub **OnGesture**(*gesture* As Gesture)",
+   "description": "The callback is used to inform Scripts and Plugins that the engine switches to preview mode (active == 1) or back (active == 0). To enter or leave Preview mode the command *\"SCENE PREVIEW active\"* is used. For example: *\"RENDERER*MAIN_LAYER PREVIEW 1\"* and *\"RENDERER*MAIN_LAYER PREVIEW 0\"*"
+  },
+  {
+   "name": "Sub **OnMouseMove**(*x* As Integer, *y* As Integer)",
+   "description": "The callback is used to inform Scripts and Plugins that the engine switches to preview mode (active == 1) or back (active == 0). To enter or leave Preview mode the command *\"SCENE PREVIEW active\"* is used. For example: *\"RENDERER*MAIN_LAYER PREVIEW 1\"* and *\"RENDERER*MAIN_LAYER PREVIEW 0\"*"
+  },
+  {
+   "name": "Sub **OnLButtonDown**()",
+   "description": "The callback is used to inform Scripts and Plugins that the engine switches to preview mode (active == 1) or back (active == 0). To enter or leave Preview mode the command *\"SCENE PREVIEW active\"* is used. For example: *\"RENDERER*MAIN_LAYER PREVIEW 1\"* and *\"RENDERER*MAIN_LAYER PREVIEW 0\"*"
+  },
+  {
+   "name": "Sub **OnMButtonDown**()",
+   "description": "The callback is used to inform Scripts and Plugins that the engine switches to preview mode (active == 1) or back (active == 0). To enter or leave Preview mode the command *\"SCENE PREVIEW active\"* is used. For example: *\"RENDERER*MAIN_LAYER PREVIEW 1\"* and *\"RENDERER*MAIN_LAYER PREVIEW 0\"*"
+  },
+  {
+   "name": "Sub **OnRButtonDown**()",
+   "description": "The callback is used to inform Scripts and Plugins that the engine switches to preview mode (active == 1) or back (active == 0). To enter or leave Preview mode the command *\"SCENE PREVIEW active\"* is used. For example: *\"RENDERER*MAIN_LAYER PREVIEW 1\"* and *\"RENDERER*MAIN_LAYER PREVIEW 0\"*"
+  },
+  {
+   "name": "Sub **OnLButtonUp**()",
+   "description": "The callback is used to inform Scripts and Plugins that the engine switches to preview mode (active == 1) or back (active == 0). To enter or leave Preview mode the command *\"SCENE PREVIEW active\"* is used. For example: *\"RENDERER*MAIN_LAYER PREVIEW 1\"* and *\"RENDERER*MAIN_LAYER PREVIEW 0\"*"
+  },
+  {
+   "name": "Sub **OnMButtonUp**()",
+   "description": "The callback is used to inform Scripts and Plugins that the engine switches to preview mode (active == 1) or back (active == 0). To enter or leave Preview mode the command *\"SCENE PREVIEW active\"* is used. For example: *\"RENDERER*MAIN_LAYER PREVIEW 1\"* and *\"RENDERER*MAIN_LAYER PREVIEW 0\"*"
+  },
+  {
+   "name": "Sub **OnRButtonUp**()",
+   "description": "The callback is used to inform Scripts and Plugins that the engine switches to preview mode (active == 1) or back (active == 0). To enter or leave Preview mode the command *\"SCENE PREVIEW active\"* is used. For example: *\"RENDERER*MAIN_LAYER PREVIEW 1\"* and *\"RENDERER*MAIN_LAYER PREVIEW 0\"*"
+  },
+  {
+   "name": "Sub **OnMouseWheel**(*distance* As Integer)",
+   "description": "The callback is used to inform Scripts and Plugins that the engine switches to preview mode (active == 1) or back (active == 0). To enter or leave Preview mode the command *\"SCENE PREVIEW active\"* is used. For example: *\"RENDERER*MAIN_LAYER PREVIEW 1\"* and *\"RENDERER*MAIN_LAYER PREVIEW 0\"*"
+  },
+  {
+   "name": "sub **OnSharedMemoryVariableChanged**(*map* As SharedMemory, *mapKey* As String)",
+   "description": "The callback is used to inform Scripts and Plugins that the engine switches to preview mode (active == 1) or back (active == 0). To enter or leave Preview mode the command *\"SCENE PREVIEW active\"* is used. For example: *\"RENDERER*MAIN_LAYER PREVIEW 1\"* and *\"RENDERER*MAIN_LAYER PREVIEW 0\"*"
+  },
+  {
+   "name": "sub **OnSharedMemoryVariableDeleted**(*map* As SharedMemory, *mapKey* As String)",
+   "description": "The callback is used to inform Scripts and Plugins that the engine switches to preview mode (active == 1) or back (active == 0). To enter or leave Preview mode the command *\"SCENE PREVIEW active\"* is used. For example: *\"RENDERER*MAIN_LAYER PREVIEW 1\"* and *\"RENDERER*MAIN_LAYER PREVIEW 0\"*"
+  },
+  {
+   "name": "sub **OnGeometryChanged**(*geom* As Geometry)",
+   "description": "The callback is used to inform Scripts and Plugins that the engine switches to preview mode (active == 1) or back (active == 0). To enter or leave Preview mode the command *\"SCENE PREVIEW active\"* is used. For example: *\"RENDERER*MAIN_LAYER PREVIEW 1\"* and *\"RENDERER*MAIN_LAYER PREVIEW 0\"*"
+  },
+  {
+   "name": "Sub **OnRequestStatusUpdate**(*requestId* as Integer, *status* as Integer, *objectId* as Integer)",
+   "description": "The callback is used to inform Scripts and Plugins that the engine switches to preview mode (active == 1) or back (active == 0). To enter or leave Preview mode the command *\"SCENE PREVIEW active\"* is used. For example: *\"RENDERER*MAIN_LAYER PREVIEW 1\"* and *\"RENDERER*MAIN_LAYER PREVIEW 0\"*"
+  },
+  {
+   "name": "sub **OnPreview**(*active* As Integer)",
+   "description": "The callback is used to inform Scripts and Plugins that the engine switches to preview mode (active == 1) or back (active == 0). To enter or leave Preview mode the command *\"SCENE PREVIEW active\"* is used. For example: *\"RENDERER*MAIN_LAYER PREVIEW 1\"* and *\"RENDERER*MAIN_LAYER PREVIEW 0\"*"
+  }
+ ]
+}

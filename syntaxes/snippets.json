@@ -1,0 +1,29 @@
+{
+	"Subroutine": {
+		"prefix": "sub",
+		"body": [
+			"sub $1($2)",
+			"  $0",
+			"end sub"
+		],
+		"description": "Subroutine snippet"
+	},
+	"Function": {
+		"prefix": "function",
+		"body": [
+			"function $1($2) as $3",
+			"  $0",
+			"end function"
+		],
+		"description": "Function snippet"
+	},
+	"Structure": {
+		"prefix": "structure",
+		"body": [
+			"structure $1",
+			"  $0",
+			"end structure"
+		],
+		"description": "Structure snippet"
+	}
+}

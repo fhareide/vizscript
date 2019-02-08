@@ -482,11 +482,11 @@
       },
       {
          "name":"Boolean",
-         "descripton":"."
+         "descripton":"A flag that is either true or false."
       },
       {
          "name":"Camera",
-         "descripton":"members.",
+         "descripton":"A camera object. Camera objects are returned by the Scene's CurrentCamera and GetCamera members.",
          "properties":[
             {
                "name":"ActiveExt As Boolean",
