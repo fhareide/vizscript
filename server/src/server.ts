@@ -7,7 +7,11 @@
 import * as ls from 'vscode-languageserver';
 import { VizSymbol } from "./vizsymbol";
 import * as data from './intellisense_data.json';
-import * as vizevent from './vizevents.json';
+import * as completions from './viz_completions.json';
+import * as event_completions from './vizevent_completions.json';
+import { TextDocument } from 'vscode-languageserver';
+
+
 
 // Create a connection for the server. The connection uses Node's IPC as a transport
 let connection: ls.IConnection = ls.createConnection(new ls.IPCMessageReader(process), new ls.IPCMessageWriter(process));
@@ -45,6 +49,10 @@ connection.onInitialize((params): ls.InitializeResult => {
 		}
 	}
 });
+
+
+
+
 
 const pendingValidationRequests: { [uri: string]: NodeJS.Timer } = {};
 const validationDelayMs = 500;

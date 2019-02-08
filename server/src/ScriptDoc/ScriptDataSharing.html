@@ -19,8 +19,8 @@
 
 <p>This
 document describes the data sharing mechanism provided by shared memory maps (SSM). An SSM
-is a map holding user-defined variables indexed by a string. It is exposed to the script interface via&nbsp; the <a href="DataTypeSharedMemory.html"><i>SharedMemory</i></a> data type. The variables are
-stored as <a href="DataTypeVariant.html"><i>Variant</i></a> objects and thus can hold objects of any other
+is a map holding user-defined variables indexed by a string. It is exposed to the script interface via&nbsp; the <a href="DataTypeSharedMemory.html">SharedMemory</a> data type. The variables are
+stored as <a href="DataTypeVariant.html">Variant</a> objects and thus can hold objects of any other
 type. Any script has access to three SSMs:</p>
 
 
@@ -68,9 +68,9 @@ is stored in the scene map under the key&nbsp;subcontainer_name.</p>
 
 <pre class="code">
 ' Script 1:
-<strong>Sub</strong> OnEnterSubContainer(subContainer <strong>As</strong> Container)
+Sub OnEnterSubContainer(subContainer As Container)
     Scene.Map["subcontainer_name"] = subContainer.Name
-<strong>End Sub</strong>
+End Sub
 </pre>
 
 
@@ -86,9 +86,9 @@ holding the script has a text geometry). </p>
 
 <pre class="code">
 ' Script 2:
-<strong>Sub</strong> OnExecPerField()
+Sub OnExecPerField()
     Geometry.Text = (String)System.Map["subcontainer_name"]
-<strong>End Sub</strong>
+End Sub
 </pre>
 
 
@@ -117,15 +117,15 @@ is invoked, when the variable is deleted.
 
 
 <pre class="code">
-<strong>Sub</strong> OnInit()
+Sub OnInit()
     Scene.Map.RegisterChangedCallback("subcontainer_name")
-<strong>End Sub</strong>
+End Sub
 
-<strong>Sub</strong> OnSharedMemoryVariableChanged(map <strong>As</strong> SharedMemory, mapKey <strong>As</strong> String)
-    <strong>If</strong> mapKey = "subcontainer_name" <strong>Then</strong>
+Sub OnSharedMemoryVariableChanged(map As SharedMemory, mapKey As String)
+    If mapKey = "subcontainer_name" Then
         Geometry.Text = (String)map["subcontainer_name"]
-    <strong>End If</strong>
-<strong>End Sub</strong>
+    End If
+End Sub
 </pre>
 
 
@@ -137,7 +137,7 @@ key whose variable&nbsp;has been changed.</p>
 
 
 
-<p>If you pass an empty string ("") to <tt>RegisterChangedCallback</tt>, <tt>OnSharedMemoryVariableChanged</tt> and <tt>OnSharedMemoryVariableDeleted</tt> will be invoked whenever <i>any</i> variable in the map is modified or
+<p>If you pass an empty string ("") to <tt>RegisterChangedCallback</tt>, <tt>OnSharedMemoryVariableChanged</tt> and <tt>OnSharedMemoryVariableDeleted</tt> will be invoked whenever any variable in the map is modified or
 deleted:</p>
 
 
@@ -148,26 +148,26 @@ deleted:</p>
 
 
 <pre class="code">
-<strong>Sub</strong> OnInit()
+Sub OnInit()
     Scene.Map.RegisterChangedCallback("")
-<strong>End Sub</strong>
+End Sub
 
-<strong>Sub</strong> OnSharedMemoryVariableChanged(map <strong>As</strong> SharedMemory, mapKey <strong>As</strong> String)
+Sub OnSharedMemoryVariableChanged(map As SharedMemory, mapKey As String)
     ...
-<strong>End Sub</strong>
+End Sub
 </pre>
 
 
 <h3>VizCommunication.Map</h3>
 
 
-<p>The map exposed by the <a href="DataTypeVizCommunication.html"><i>VizCommunication</i></a> type is used to
+<p>The map exposed by the <a href="DataTypeVizCommunication.html">VizCommunication</a> type is used to
 share data among the client computers connected to a viz
 database. Whenever a script on one client adds a new value or changes an
 existing value in the map, the change is propagated&nbsp;to the other clients
 via database messaging to update the local copy of each client's map. Note,
 however, that this does not necessarily mean that all local client maps are
-identical. When a client starts up <i>after</i> other clients have made changes
+identical. When a client starts up after other clients have made changes
 to the <tt>VizCommunication.Map</tt>, it is not
 informed of those changes. To work around this limitation, one client can save
 the entire contents of the map by calling the map's <tt>SaveToDb</tt> procedure, and

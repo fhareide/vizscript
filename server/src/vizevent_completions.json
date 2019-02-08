@@ -1,0 +1,194 @@
+{
+    "events": [
+      {
+        "name": "OnInitParameters",
+        "code_hint": "Sub OnInitParameters()",
+        "description": "This procedure must contain all Register... calls (such as RegisterParameterInt), which are used to define the script's parameters. For locally defined scripts, this callback is invoked once for every script instance, immediately before OnInit, while for plugin scripts, it is called at system startup."
+      },
+      {
+        "name": "OnInit",
+        "code_hint": "Sub OnInit()",
+        "description": "Called after a script instance has been created (e.g. by pressing Compile and Run or by loading a scene with a script). Initialization code should be placed here. Container scripts can access saved scene-tree values already."
+      },
+      {
+        "name": "OnPostLoad",
+        "code_hint": "Sub OnPostLoad()",
+        "description": "Called on scene scripts after the whole scene tree was loaded and initialized."
+      },
+      {
+        "name": "OnEnter",
+        "code_hint": "Sub OnEnter()",
+        "description": "Called when the mouse cursor enters the area occupied by the script's container in the output window. If the container's ExactPicking property, which is true by default, is set to false, it is sufficient that the mouse cursor hits the container's bounding box for OnEnter to be called.\nAttention: Due to the necessary object hit-testing (picking) using this callback can have impacts on the overall render performance."
+      },
+      {
+        "name": "OnLeave",
+        "code_hint": "Sub OnLeave()",
+        "description": "The reverse of OnEnter: Called when the mouse cursor leaves the container's area. This procedure is called only if OnEnter has previously been called for the script's container.\nAttention: Due to the necessary object hit-testing (picking) using this callback can have impacts on the overall render performance."
+      },
+      {
+        "name": "OnEnterSubContainer",
+        "code_hint": "Sub OnEnterSubContainer(subContainer As Container)",
+        "description": "Called when the mouse cursor enters the area occupied by a sub-container of the script's container. Otherwise identical to OnEnter.\nAttention: Due to the necessary object hit-testing (picking) using this callback can have impacts on the overall render performance."
+      },
+      {
+        "name": "OnLeaveSubContainer",
+        "code_hint": "Sub OnLeaveSubContainer(subContainer As Container)",
+        "description": "Called when the mouse cursor leaves the area occupied by a sub-container of the script's container.\nAttention: Due to the necessary object hit-testing (picking) using this callback can have impacts on the overall render performance."
+      },
+      {
+        "name": "OnExecPerField",
+        "code_hint": "Sub OnExecPerField()",
+        "description": "Called once for every field."
+      },
+      {
+        "name": "OnExecAction",
+        "code_hint": "Sub OnExecAction(buttonId As Integer)",
+        "description": "Called when the user clicks on any push button defined by RegisterPushButton. If the script defines several push buttons, use buttonId to determine which button has been clicked on."
+      },
+      {
+        "name": "OnGuiStatus",
+        "code_hint": "Sub OnGuiStatus()",
+        "description": "Called if the GUI wants to refresh the state of the UI. This would be the proper place where the plugin can set the UI state to enabled/disabled with SendGuiStatus or shown/hidden with SendGuiParameterShow."
+      },
+      {
+        "name": "OnParameterChanged",
+        "code_hint": "Sub OnParameterChanged(parameterName As String)",
+        "description": "Called whenever the user changes the value of script parameter defined by any of the RegisterParameter... functions."
+      },
+      {
+        "name": "OnKeyDown",
+        "code_hint": "Sub OnKeyDown(keyCode As Integer)",
+        "description": "Called whenever the user presses a key. keycode identifies the key pressed. Possible values are: KEY_A, KEY_B, ..., KEY_Z, KEY_0, ..., KEY_9, KEY_HOME, KEY_END, KEY_PAGEUP, KEY_PAGEDN, KEY_UP, KEY_DOWN, KEY_LEFT, KEY_RIGHT, KEY_INSERT, KEY_DELETE, KEY_BEGIN, KEY_MULTIPLY, KEY_DIVIDE, KEY_ESCAPE, KEY_RETURN, KEY_ENTER, KEY_SEPARATOR, KEY_SPACE, KEY_BACKSPACE, KEY_TAB, KEY_CONTROL, KEY_MENU, KEY_ALT, KEY_SHIFT, KEY_F1, ... KEY_F12, KEY_SCROLL_LOCK, KEY_PAUSE, NUMPAD_INSERT, NUMPAD_END, NUMPAD_DOWN, NUMPAD_PGDN, NUMPAD_LEFT, NUMPAD_BEGIN, NUMPAD_RIGHT, NUMPAD_HOME, NUMPAD_UP, NUMPAD_PGUP, NUMPAD0, ..., NUMPAD9"
+      },
+      {
+        "name": "OnKeyUp",
+        "code_hint": "Sub OnKeyUp(keyCode As Integer)",
+        "description": "Called whenever the user releases a key."
+      },
+      {
+        "name": "OnButtonDown6DOF",
+        "code_hint": "Sub OnButtonDown6DOF(button As Integer, pos As Vertex, rot As Vertex)",
+        "description": "Called when the user clicks on a scene grid. button defines the ID of the pressed button, pos specifies the 3D world position of the cursor and rot gives you the actual rotation."
+      },
+      {
+        "name": "OnButtonUp6DOF",
+        "code_hint": "Sub OnButtonUp6DOF(button As Integer, pos As Vertex, rot As Vertex)",
+        "description": "Called whenever the user releases a mouse button."
+      },
+      {
+        "name": "OnMove6DOF",
+        "code_hint": "Sub OnMove6DOF(button As Integer, pos As Vertex, rot As Vertex)",
+        "description": "Called when the user moves the cursor on a scene grid. button defines the ID of the pressed button, pos specifies the 3D world position of the cursor and rot gives you the actual rotation."
+      },
+      {
+        "name": "OnMoveRelative6DOF",
+        "code_hint": "Sub OnMoveRelative6DOF(button As Integer, pos As Vertex, rot As Vertex)",
+        "description": "Called when the user moves the cursor on a scene grid. button defines the ID of the pressed button, pos specifies the offset vector to the last 6DOF position of the cursor and rot gives you the actual rotation."
+      },
+      {
+        "name": "OnScale6DOF",
+        "code_hint": "Sub OnScale6DOF(button As Integer, scale As Vertex)",
+        "description": "Called when the user performs a scale operation (e.g.: with a multi-touch device) on a scene grid. button defines the ID of the pressed button and scale specifies the actual scale factor."
+      },
+      {
+        "name": "OnMTHit",
+        "code_hint": "Sub OnMTHit(stroke As Integer, x As Integer, y As Integer)",
+        "description": "Called when the user touches this object (where this scriptplugininstance resides on) at a multi-touch device. stroke gives you the stroke ID of the multi-touch operation. x and y specify the hit position in screen coordinates. This callback is used to instantiate a certain control in the multi-touch server.\nAttention: Due to the necessary object hit-testing (picking) using this callback can have impacts on the overall render performance."
+      },
+      {
+        "name": "OnMTMenu",
+        "code_hint": "Sub OnMTMenu(x As Integer, y As Integer)",
+        "description": "Called when the user performs a menu gesture on the multi-touch device. x and y specify the hit position in screen coordinates.\nAttention: Due to the necessary object hit-testing (picking) using this callback can have impacts on the overall render performance."
+      },
+      {
+        "name": "OnMTControlPZR2D",
+        "code_hint": "Sub OnMTControlPZR2D(x As Integer, y As Integer rot As Vertex, scale As Vertex, pressure As Double)",
+        "description": "Called when a PZR2D control was registered. x and y specify the hit position in screen coordinates, rot gives you the object rotation, scale holds the scale factor and pressure contains the current mean contact pressure."
+      },
+      {
+        "name": "OnMTControlButton",
+        "code_hint": "Sub OnMTControlButton(strokes As Integer, pressure As Double)",
+        "description": "Called when a Button control was registered. strokes contains the current hit count on the button object and pressure defines the mean contact pressure."
+      },
+      {
+        "name": "OnMTControlInactive",
+        "code_hint": "Sub OnMTControlInactive()",
+        "description": "Called when a registered multi-touch control became inactive (all strokes were removed from the object)."
+      },
+      {
+        "name": "OnTouchTrace",
+        "code_hint": "Sub OnTouchTrace(trace As Trace, touch As Touch)",
+        "description": "Called when a new trace is created or when a touch is added to an existing trace.\ntouch contains the new touch.\nThe newly added touch can be also retrieved easily with trace.LastTouch.\nNote that trace IDs and stroke IDs of other callbacks are identical (e.g.: OnMTHit can be easily used for hit testing of traces)."
+      },
+      {
+        "name": "OnGesture",
+        "code_hint": "Sub OnGesture(gesture As Gesture)",
+        "description": "After a GestureRecognizer was fed with an input Trace this callback\nwill be executed with the resulting events.\ngesture contains all properties of the current event."
+      },
+      {
+        "name": "OnMouseMove",
+        "code_hint": "Sub OnMouseMove(x As Integer, y As Integer)",
+        "description": "Called whenever the mouse cursor is moved within the output window. x and y specify the cursor position in screen coordinates."
+      },
+      {
+        "name": "OnLButtonDown",
+        "code_hint": "Sub OnLButtonDown()",
+        "description": "Called whenever the user presses the left mouse button.\nAttention: Due to the necessary object hit-testing (picking) using these callbacks can have impacts on the overall render performance."
+      },
+      {
+        "name": "OnMButtonDown",
+        "code_hint": "Sub OnMButtonDown()",
+        "description": "Called whenever the user presses the middle mouse button.\nAttention: Due to the necessary object hit-testing (picking) using these callbacks can have impacts on the overall render performance."
+      },
+      {
+        "name": "OnRButtonDown",
+        "code_hint": "Sub OnRButtonDown()",
+        "description": "Called whenever the user presses the right mouse button.\nAttention: Due to the necessary object hit-testing (picking) using these callbacks can have impacts on the overall render performance."
+      },
+      {
+        "name": "OnLButtonUp",
+        "code_hint": "Sub OnLButtonUp()",
+        "description": "Called whenever the user releases the left mouse button.\nAttention: Due to the necessary object hit-testing (picking) using these callbacks can have impacts on the overall render performance."
+      },
+      {
+        "name": "OnMButtonUp",
+        "code_hint": "Sub OnMButtonUp()",
+        "description": "Called whenever the user releases the middle mouse button.\nAttention: Due to the necessary object hit-testing (picking) using these callbacks can have impacts on the overall render performance."
+      },
+      {
+        "name": "OnRButtonUp",
+        "code_hint": "Sub OnRButtonUp()",
+        "description": "Called whenever the user releases the right mouse button.\nAttention: Due to the necessary object hit-testing (picking) using these callbacks can have impacts on the overall render performance."
+      },
+      {
+        "name": "OnMouseWheel",
+        "code_hint": "Sub OnMouseWheel(distance As Integer)",
+        "description": "Called whenever the mouse wheel is rotated within the output window."
+      },
+      {
+        "name": "OnSharedMemoryVariableChanged",
+        "code_hint": "sub OnSharedMemoryVariableChanged(map As SharedMemory, mapKey As String)",
+        "description": "Called when a variable in a SharedMemory map is changed. The SharedMemory map and the name of the variable are passed to this procedure as parameters. The name of the variable must previously be registered to the SharedMemory map by calling its RegisterChangedCallback procedure."
+      },
+      {
+        "name": "OnSharedMemoryVariableDeleted",
+        "code_hint": "sub OnSharedMemoryVariableDeleted(map As SharedMemory, mapKey As String)",
+        "description": "Called when a variable in a SharedMemory map is deleted. The SharedMemory map and the name of the variable are passed to this procedure as parameters. The name of the variable must previously be registered to the SharedMemory map by calling its RegisterChangedCallback procedure."
+      },
+      {
+        "name": "OnGeometryChanged",
+        "code_hint": "sub OnGeometryChanged(geom As Geometry)",
+        "description": "Called when a geometry changed which was registered with RegisterChangedCallback or RegisterTextChangedCallback before."
+      },
+      {
+        "name": "OnRequestStatusUpdate",
+        "code_hint": "Sub OnRequestStatusUpdate(requestId as Integer, status as Integer, objectId as Integer)",
+        "description": "Called whenever an asynchronous request changes its status. OnRequestStatusUpdate is mainly used after calls to Container.createTextureBgl and Container.createGeometryBgl. The requestId identifies the corresponding request, its status is 0 on success, nonzero on failure. The objectId identifies the object that was affected by the request."
+      },
+      {
+        "name": "OnPreview",
+        "code_hint": "sub OnPreview(active As Integer)",
+        "description": "The callback is used to inform Scripts and Plugins that the engine switches to preview mode (active == 1) or back (active == 0). To enter or leave Preview mode the command \"SCENE PREVIEW active\" is used. For example: \"RENDERER*MAIN_LAYER PREVIEW 1\" and \"RENDERER*MAIN_LAYER PREVIEW 0\""
+      }
+    ]
+  }

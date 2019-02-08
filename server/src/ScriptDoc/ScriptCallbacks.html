@@ -10,25 +10,6 @@
 
 
 <body>
-
-    <a href="ScriptMain.html">Viz 3 Script</a>
-
-
-    <h2>Viz 3 Script - Callback Procedures</h2>
-
-
-    <p>
-        Here is a list of callback procedures recognized by the script
-        engine. When defined in a script, these procedures are called by
-        the system in response to events such as keyboard and mouse input.
-        All of them are supported by container scripts, while only six (<strong>
-            OnInitParameters,
-            OnInit, OnExecPerField, OnExecAction, OnParameterChanged, OnRequestStatusUpdate
-        </strong>)
-        are meaningful in scene scripts.
-    </p>
-
-
     <p>Sub <strong>OnInitParameters</strong>()</p>
     <blockquote>
         <p>
@@ -305,28 +286,66 @@
     </blockquote>
 
     <p>
-        Sub <strong>OnLButtonDown</strong>()<br />
-        Sub <strong>OnMButtonDown</strong>()<br />
-        Sub <strong>OnRButtonDown</strong>()
+        Sub <strong>OnLButtonDown</strong>()
     </p>
     <blockquote>
         <p>
-            Called whenever the user presses the left/middle/right
-            mouse button.<br />
+            Called whenever the user presses the left mouse button.<br />
             Attention: Due to the necessary object hit-testing (picking) using these callbacks
             can have impacts on the overall render performance.
         </p>
     </blockquote>
 
     <p>
-        Sub <strong>OnLButtonUp</strong>()<br />
-        Sub <strong>OnMButtonUp</strong>()<br />
+        Sub <strong>OnMButtonDown</strong>()
+    </p>
+    <blockquote>
+        <p>
+            Called whenever the user presses the middle mouse button.<br />
+            Attention: Due to the necessary object hit-testing (picking) using these callbacks
+            can have impacts on the overall render performance.
+        </p>
+    </blockquote>
+
+    <p>
+        Sub <strong>OnRButtonDown</strong>()
+    </p>
+    <blockquote>
+        <p>
+            Called whenever the user presses the right mouse button.<br />
+            Attention: Due to the necessary object hit-testing (picking) using these callbacks
+            can have impacts on the overall render performance.
+        </p>
+    </blockquote>
+
+    <p>
+        Sub <strong>OnLButtonUp</strong>()
+    </p>
+    <blockquote>
+        <p>
+            Called whenever the user releases the left mouse button.<br />
+            Attention: Due to the necessary object hit-testing (picking) using these callbacks
+            can have impacts on the overall render performance.
+        </p>
+    </blockquote>
+
+    <p>
+        Sub <strong>OnMButtonUp</strong>()
+    </p>
+    <blockquote>
+        <p>
+            Called whenever the user releases the middle mouse button.<br />
+            Attention: Due to the necessary object hit-testing (picking) using these callbacks
+            can have impacts on the overall render performance.
+        </p>
+    </blockquote>
+
+    <p>
         Sub <strong>OnRButtonUp</strong>()
     </p>
     <blockquote>
         <p>
-            Called whenever the user releases the left/middle/right
-            mouse button.<br />
+            Called whenever the user releases the right mouse button.<br />
             Attention: Due to the necessary object hit-testing (picking) using these callbacks
             can have impacts on the overall render performance.
         </p>

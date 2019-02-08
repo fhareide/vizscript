@@ -21,31 +21,31 @@ onto one of your containers. Then, after clicking on the container's new script 
 
 <h4>Example 1</h4>
 <pre class="code">
-<strong>Sub</strong> OnEnter()
+Sub OnEnter()
     Alpha.Value = 100.0
-<strong>End Sub</strong>
+End Sub
 
-<strong>Sub</strong> OnLeave()
+Sub OnLeave()
     Alpha.Value = 50.0
-<strong>End Sub</strong>
+End Sub
 </pre>
 
-<p>This script consists of two event procedures, <strong>OnEnter</strong> and <strong>OnLeave</strong>,
+<p>This script consists of two event procedures, OnEnter and OnLeave,
 which are recognized by the system and invoked whenever the mouse cursor enters or
 leaves the area occupied by the container in the output window. Let's take a closer look
-at what happens inside <strong>OnEnter:</strong></p>
+at what happens inside OnEnter:</p>
 
 <pre class="code">
 Alpha.Value = 100.0
 </pre>
 
 <p>This code sets the alpha value of the container to 100 (the maximum value). If there is
-no alpha object, no action occurs, so make sure that the container has an alpha object. <strong>Alpha</strong>
-refers to the container's alpha object, <strong>Value</strong> is a member (in this case:
-the only member) of the alpha object, representing its value. Changes made to <strong>Alpha.Value
-</strong>are immediatly made visible in the output window.</p>
+no alpha object, no action occurs, so make sure that the container has an alpha object. Alpha
+refers to the container's alpha object, Value is a member (in this case:
+the only member) of the alpha object, representing its value. Changes made to Alpha.Value
+are immediatly made visible in the output window.</p>
 
-<p>Similarly, the code in the body of <strong>OnLeave</strong>sets the alpha value
+<p>Similarly, the code in the body of OnLeavesets the alpha value
 back to 50.</p>
 
 <p>To execute the script, click <em>Compile &amp; Run. </em>Click <em>Edit</em> to return
@@ -53,32 +53,32 @@ to editing mode.</p>
 
 <h4>Example 2</h4>
 <pre class="code">
-<strong>Sub</strong> OnExecPerField()
-    <strong>Dim</strong> cube <strong>As</strong> Container
+Sub OnExecPerField()
+    Dim cube As Container
     cube = Scene.FindContainer("Cube")
-    <strong>If</strong> scaling.x &gt; 1.5 <strong>Then</strong>
+    If scaling.x &gt; 1.5 Then
         cube.Scaling.x = 2.0
-    <strong>Else</strong>
+    Else
         cube.Scaling.x = 1.0
-    <strong>End If</strong>
-<strong>End Sub</strong>
+    End If
+End Sub
 </pre>
 
 
-<p>This example defines the event procedure <strong>OnExecPerField, </strong>which is
+<p>This example defines the event procedure OnExecPerField, which is
 called periodically for each field. In the first line, a variable named <b>cube</b>, of
 type <b>Container</b>, is defined:</p>
 
 <pre class="code">
-<strong>Dim</strong> cube <strong>As</strong> Container
+Dim cube As Container
 </pre>
 
 <p>Variables of type <b>Container</b> can be initialized to point to a container in the
-scene tree. In the next line, we call the built-in function <strong>FindContainer</strong>
+scene tree. In the next line, we call the built-in function FindContainer
 (which is a member of the scene class, accessible via the container's <b>Scene</b>
-property) to initialize <strong>cube</strong> to point to a container named <strong>cube</strong>.
-If there is no such container,&nbsp;<strong>cube</strong> is set to <span style="font-style: italic;">Null</span>, the consequence
-being that any further operations on <strong>cube</strong> will have no effect.</p>
+property) to initialize cube to point to a container named cube.
+If there is no such container,&nbsp;cube is set to <span style="font-style: italic;">Null</span>, the consequence
+being that any further operations on cube will have no effect.</p>
 
 <pre class="code">
 cube = Scene.FindContainer("Cube")
@@ -86,14 +86,14 @@ cube = Scene.FindContainer("Cube")
 
 <p>Now, we check if the x-scaling of the current container (that is, the container holding
 the script) is greater than 1.5, and, depending on the result, we set the x-scaling of the
-container named <strong>cube</strong> to 2.0 or 1.0: </p>
+container named cube to 2.0 or 1.0: </p>
 
 <pre class="code">
-<strong>If</strong> Scaling.x &gt; 1.5 <strong>Then</strong>
+If Scaling.x &gt; 1.5 Then
     cube.<a href="DatatypeScaling.html">Scaling</a>.x = 2.0
-<strong>Else</strong>
+Else
     cube.<a href="DatatypeScaling.html">Scaling</a>.x = 1.0
-<strong>End If</strong>
+End If
 </pre>
 
 <p>Note that the expression <b>Scaling.x</b> refers to the current container while <b>cube.Scaling.x</b>
@@ -126,7 +126,7 @@ syntax for declaring a variable named <em>varname </em>of type <em>type</em> is<
 
 
 <pre class="code">
-<strong>Dim</strong> <em>varname</em> <strong>As</strong> <em>type</em>
+Dim <em>varname</em> As <em>type</em>
 </pre>
 
 
@@ -134,8 +134,8 @@ syntax for declaring a variable named <em>varname </em>of type <em>type</em> is<
 
 <h4>Examples:</h4>
 <pre class="code">
-<strong>Dim</strong> a <strong>As</strong> Integer       ' declares a single variable of type Integer
-<strong>Dim</strong> b, c <strong>As</strong> Double     ' declares two variables of type Double
+Dim a As Integer       ' declares a single variable of type Integer
+Dim b, c As Double     ' declares two variables of type Double
 </pre>
 
 
@@ -155,8 +155,8 @@ using the syntax </p>
 
 
 <pre class="code">
-<strong>Dim</strong>
-<em>varname</em> <strong>As</strong> <em>type</em> <strong>=</strong> <em>initexpr</em>
+Dim
+<em>varname</em> As <em>type</em> = <em>initexpr</em>
 </pre>
 
 
@@ -164,7 +164,7 @@ using the syntax </p>
 
 <h4>Example:</h4>
 <pre class="code">
-<strong>Dim</strong> a <strong>As</strong> Integer = 10
+Dim a As Integer = 10
 </pre>
 
 
@@ -178,9 +178,9 @@ don't have to specify a type. The variable will then take the type of the <em>in
 
 
 <pre class="code">
-<strong>Dim</strong> a = 10    ' declares an Integer
-<strong>Dim</strong> b = 10.0  ' declares a Double
-<strong>Dim</strong> c = True  ' declares a Boolean
+Dim a = 10    ' declares an Integer
+Dim b = 10.0  ' declares a Double
+Dim c = True  ' declares a Boolean
 </pre>
 
 
@@ -201,9 +201,9 @@ Conditional expressions such as <tt>a&nbsp;&gt;&nbsp;b</tt> always evaluate to <
 
 For example, the code </p>
 <pre class="code">
-<strong>Dim</strong> c <strong>As</strong> Boolean
+Dim c As Boolean
 c = a &gt; b
-<strong>If</strong> c <strong>Then</strong> Println "a &gt; b"
+If c Then Println "a &gt; b"
 </pre>
 
 
@@ -211,7 +211,7 @@ c = a &gt; b
 
 <p>has the same effect as the more concise </p>
 <pre class="code">
-<strong>If</strong> a &gt; b <strong>Then</strong> Println "a &gt; b"
+If a &gt; b Then Println "a &gt; b"
 </pre>
 
 
@@ -219,7 +219,7 @@ c = a &gt; b
 
 <p>Boolean variables often appear as data members of types such as <b>Container</b>: </p>
 <pre class="code">
-<strong>Dim</strong> c <strong>As</strong> Container = Scene.FindContainer("Cube")   ' find the container named "Cube"
+Dim c As Container = Scene.FindContainer("Cube")   ' find the container named "Cube"
 c.Open = True                                       ' open the container in the scene tree
 </pre>
 
@@ -239,9 +239,9 @@ otherwise they are interpreted as being of type <b>Integer</b>. </p>
 
 
 <pre class="code">
-<strong>Dim</strong> a = 10     ' declares an Integer
-<strong>Dim</strong> b = 10.0   ' declares a Double
-<strong>Dim</strong> c = 10.2   ' declares a Double
+Dim a = 10     ' declares an Integer
+Dim b = 10.0   ' declares a Double
+Dim c = 10.2   ' declares a Double
 </pre>
 
 
@@ -252,7 +252,7 @@ otherwise they are interpreted as being of type <b>Integer</b>. </p>
 default, the members are 0.0. </p>
 <p>If we declare <b>v</b> as a <b>Vertex</b>, </p>
 <pre class="code">
-<strong>Dim</strong> v <strong>As</strong> Vertex
+Dim v As Vertex
 </pre>
 
 <p>we can fill the members as follows: </p>
@@ -294,19 +294,19 @@ insert new elements to or to erase elements form the array. See the <a href="Scr
 for details. Example:</p>
 
 <pre class="code">
-<strong>Dim</strong> a <strong>As</strong> Array[Integer]
-<strong>Dim</strong> i <strong>As</strong> Integer
+Dim a As Array[Integer]
+Dim i As Integer
 
 ' Fill "a" with 10 random numbers from the range 1 ... 5
-<strong>For</strong> i = 1 <strong>To</strong> 10
+For i = 1 To 10
     a.Push(Random(5)+1) ' insert new element at the end of the array
-<strong>Next</strong>
+Next
 
 ' Iterate through the array to print the random numbers
 ' (note that indices start at 0; the index of the last index
 ' can be obtained through the "ubound" property)
-<strong>For</strong> i = 0 <strong>To</strong> a.ubound
-    Println a[i]<br /><strong>Next</strong>
+For i = 0 To a.ubound
+    Println a[i]<br />Next
 </pre>
 
 
@@ -330,9 +330,9 @@ property) that identifies the&nbsp;object referred to. To check whether
 the object reference is valid, compare against the predefined <span style="font-style: italic;">Null</span> constant.
 
 <pre class="code">
-<strong>Dim</strong> cube <strong>As</strong> Container
+Dim cube As Container
 cube = Scene.FindContainer("Cube")
-<strong>If</strong> cube = Null <strong>Then </strong>println "Container not found."
+If cube = Null Then println "Container not found."
 </pre>
 
 
@@ -348,10 +348,10 @@ members <b>mass</b>, <b>position</b>, and <b>direction</b>. </p>
 
 
 <pre class="code">
-<strong>Structure</strong> Planet
-    mass <strong>As</strong> Double
-    position, direction <strong>As</strong> Vertex
-<strong>End Structure</strong>
+Structure Planet
+    mass As Double
+    position, direction As Vertex
+End Structure
 </pre>
 
 
@@ -360,7 +360,7 @@ members <b>mass</b>, <b>position</b>, and <b>direction</b>. </p>
 <p>You can now declare and use variables of that type as follows. </p>
 
 <pre class="code">
-<strong>Dim</strong> p <strong>As</strong> Planet
+Dim p As Planet
 ' ...
 p.mass = 1000.0
 p.direction.x = 20.0
@@ -388,23 +388,23 @@ different type:</p>
 
   <tbody>
   <tr>
-    <td><strong>CInt</strong>(x)</td>
+    <td>CInt(x)</td>
     <td>Integer</td>
   </tr>
   <tr>
-    <td><strong>CDbl</strong>(x)</td>
+    <td>CDbl(x)</td>
     <td>Double</td>
   </tr>
   <tr>
-    <td><strong>CBool</strong>(x)</td>
+    <td>CBool(x)</td>
     <td>Boolean</td>
   </tr>
   <tr>
-    <td><strong>CStr</strong>(x)</td>
+    <td>CStr(x)</td>
     <td>String</td>
   </tr>
   <tr>
-    <td><strong>CType</strong>(x, <em>type</em>)</td>
+    <td>CType(x, <em>type</em>)</td>
     <td><em>type</em></td>
   </tr>
   </tbody>
@@ -419,7 +419,7 @@ different type:</p>
 
 
 <pre class="code">
-<strong>Dim</strong> a <strong>As</strong> Integer, b <strong>As</strong> Double
+Dim a As Integer, b As Double
 ' ...
 a = CInt(b) ' convert b to a by truncating the floating point part of 'b'
 a = CType(b, Integer) ' same thing
@@ -431,7 +431,7 @@ a = CType(b, Integer) ' same thing
 <p>In addition, C-style typecasts are also supported:</p>
 
 <pre class="code">
-<strong>Dim</strong> a <strong>As</strong> Integer, b <strong>As</strong> Double
+Dim a As Integer, b As Double
 ' ...
 dim s = (String)a
 dim a = (Integer)b
@@ -583,19 +583,19 @@ are listed in order of their precedence (from highest to lowest).</p>
 
 <p>The syntax for declaring a sub procedure is:</p>
 
-<pre class="code"><strong>Sub</strong> <em>SubName</em><strong>(</strong><em>parameterList</em><strong>)</strong>
+<pre class="code">Sub <em>SubName</em>(<em>parameterList</em>)
     <em>Code</em>
-<strong>End Sub</strong></pre>
+End Sub</pre>
 
 <p><font face="Courier New" size="2"><em>parameterList</em></font> is a list of
 comma-separated parameter declarations, each having the following syntax:</p>
 
 
 <pre class="code">
-[<strong>ByVal</strong> | <strong>ByRef</strong>] <em>parameterName</em> <strong>As</strong> <em>parameterType</em>
+[ByVal | ByRef] <em>parameterName</em> As <em>parameterType</em>
 </pre>
 
-<p>The keywords <strong>ByVal </strong>and<strong> ByRef </strong>specify whether the
+<p>The keywords ByVal and ByRef specify whether the
 argument is passed by value or by reference (more on that later). Passing by reference is
 the default.</p>
 
@@ -603,9 +603,9 @@ the default.</p>
 <p><b>Example:</b> A sub procedure taking no arguments:</p>
 
 <pre class="code">
-<strong>Sub</strong> MoveLocalContainer()
+Sub MoveLocalContainer()
     Position.x += 10.0   ' move the local container 10 units along the x-axis
-<strong>End Sub</strong>
+End Sub
 </pre>
 
 <p>To call this procedure, write</p>
@@ -629,9 +629,9 @@ MoveLocalContainer
 
 
 <pre class="code">
-<strong>Sub</strong> MoveContainer(c <b>As</b> Container, d <b>As</b> Double)
+Sub MoveContainer(c <b>As</b> Container, d <b>As</b> Double)
     c.Position.x += d    ' move the container "c" "d" units
-<strong>End Sub</strong>
+End Sub
 </pre>
 
 
@@ -640,7 +640,7 @@ MoveLocalContainer
 <p>The calling syntax is </p>
 
 <pre class="code">
-<strong>Dim</strong> someContainer <strong>As</strong> Container
+Dim someContainer As Container
 ' ...(intitalize "someContainer")<br />MoveContainer(someContainer, 20.0)
 </pre>
 
@@ -653,7 +653,7 @@ MoveLocalContainer
 
 
 <pre class="code">
-<strong>Dim</strong> someContainer <strong>As</strong> Container
+Dim someContainer As Container
 ' ...<br />MoveContainer someContainer, 20.0
 </pre>
 
@@ -668,9 +668,9 @@ script is defined on a container named <em>mycontainer</em>. </p>
 
 
 <pre class="code">
-<strong>Sub</strong> MoveX(x As Double)
+Sub MoveX(x As Double)
     Position.x += x
-<strong>End Sub</strong>
+End Sub
 </pre>
 
 
@@ -682,7 +682,7 @@ script is defined on a container named <em>mycontainer</em>. </p>
 
 
 <pre class="code">
-<strong>Dim</strong> c <strong>As</strong> Container
+Dim c As Container
 c = Scene.FindContainer("mycontainer")
 c.Script.MoveX(10.0)
 </pre>
@@ -696,10 +696,10 @@ c.Script.MoveX(10.0)
 
 
 <pre class="code">
-<strong>Sub</strong> MySub(i As Integer)
-    <strong>If</strong> i &lt; 0 <strong>Then Exit Sub</strong>
+Sub MySub(i As Integer)
+    If i &lt; 0 Then Exit Sub
     ' ...
-<strong>End Sub</strong></pre>
+End Sub</pre>
 
 
 
@@ -712,9 +712,9 @@ c.Script.MoveX(10.0)
 
 
 
-<pre class="code"><strong>Function </strong><em>FunctionName</em><strong>(</strong><em>parameterList</em><strong>)</strong> <strong>As</strong> <em>returnType</em>
+<pre class="code">Function <em>FunctionName</em>(<em>parameterList</em>) As <em>returnType</em>
     <em>Code</em>
-<strong>End Function</strong></pre>
+End Function</pre>
 
 
 
@@ -731,9 +731,9 @@ value. </p>
 
 
 <pre class="code">
-<strong>Function</strong> Distance(a <strong>As</strong> Vertex, b <strong>As</strong> Vertex) As Double
+Function Distance(a As Vertex, b As Vertex) As Double
     Distance = Sqrt((a.x - b.x) ^ 2 + (a.y - b.y) ^ 2 + (a.z - b.z) ^ 2)
-<strong>End Function</strong>
+End Function
 </pre>
 
 
@@ -742,7 +742,7 @@ value. </p>
 <p>To call this function, write </p>
 
 <pre class="code">
-<strong>Dim</strong> d <strong>As</strong> Double<br /><strong>Dim</strong> v1, v1 <strong>As</strong> Vertex<br />...<br />d = Distance(v1, v2)
+Dim d As Double<br />Dim v1, v1 As Vertex<br />...<br />d = Distance(v1, v2)
 </pre>
 
 
@@ -761,21 +761,21 @@ value. </p>
 <p>There are two mechanisms for a passing a variable to a procedure: by value and and by
 reference. If the variable is passed by value, a copy of the variable is passed.
 Consequenty, changes made to the corresponding paramter variable within the procedure only
-affect the copy of the variable passed. Specify the keyword <strong>ByVal</strong> with a
+affect the copy of the variable passed. Specify the keyword ByVal with a
 parameter name to indicate that variables should be passed by value. </p>
 
 
 
 
 <pre class="code">
-<strong>Sub</strong> CountToZero(<strong>ByVal</strong> i <strong>As</strong> Integer)<br />    <strong>Do While</strong> i &gt;= 0<br />        Println i<br />        i -= 1   ' modifies only local copy of 'i'<br />    <strong>Loop</strong>
-<strong>End Sub</strong>
+Sub CountToZero(ByVal i As Integer)<br />    Do While i &gt;= 0<br />        Println i<br />        i -= 1   ' modifies only local copy of 'i'<br />    Loop
+End Sub
 </pre>
 
 
 
 
-<p>In contrast, if a parameter is marked <strong>ByRef</strong>, only a reference of the
+<p>In contrast, if a parameter is marked ByRef, only a reference of the
 variable is passed to the function. Thus, changes made to the parameter affect the
 corresponding variable in the calling code.</p>
 
@@ -783,8 +783,8 @@ corresponding variable in the calling code.</p>
 
 
 <pre class="code">
-<strong>Sub</strong> Clamp(<strong>ByRef</strong> x <strong>As</strong> Double)<strong>
-    If</strong> x &gt; 1.0 <strong>Then</strong> x = 1.0<br /><strong>    If</strong> x &lt; 0.0 <strong>Then</strong> x = 0.0<br /><strong>End Sub</strong>
+Sub Clamp(ByRef x As Double)
+    If x &gt; 1.0 Then x = 1.0<br />    If x &lt; 0.0 Then x = 0.0<br />End Sub
 </pre>
 
 
@@ -796,7 +796,7 @@ corresponding variable in the calling code.</p>
 
 
 <pre class="code">
-<strong>Dim</strong> d <strong>As</strong> Double<br />d = 1.5<br />Clamp(d)<br />' d is now 1.0<br />d = -0.4<br />Clamp(d)<br />' d is now 0.0
+Dim d As Double<br />d = 1.5<br />Clamp(d)<br />' d is now 1.0<br />d = -0.4<br />Clamp(d)<br />' d is now 0.0
 </pre>
 
 
@@ -804,7 +804,7 @@ corresponding variable in the calling code.</p>
 
 <p>Note that by default variables are passed by reference. Note also that if you pass a
 constant or an expression rather than a variable to a procedure, it is always passed by
-value, even if the corresponding paramter is declared <strong>ByRef</strong>.</p>
+value, even if the corresponding paramter is declared ByRef.</p>
 
 
 
@@ -827,7 +827,7 @@ use the single-line version of <b>If ... Then</b>. </p>
 
 
 <pre class="code">
-<strong>If</strong> a &gt; b <strong>Then</strong> a += 1
+If a &gt; b Then a += 1
 </pre>
 
 
@@ -840,7 +840,7 @@ more than one statement: </p>
 
 
 
-<pre class="code"><strong>If</strong> a &gt; b <strong>Then</strong> <br />    a += 1 <br />    b += 1 <br /><strong>End If</strong></pre>
+<pre class="code">If a &gt; b Then <br />    a += 1 <br />    b += 1 <br />End If</pre>
 
 
 
@@ -851,30 +851,30 @@ more than one statement: </p>
 
 
 
-<pre class="code"><strong>If</strong> a &gt; b <strong>Then</strong>
+<pre class="code">If a &gt; b Then
     a += 1
-<strong>Else</strong>
+Else
     b += 1
-<strong>End If</strong></pre>
+End If</pre>
 
 
 
 
-<p>Use <strong>ElseIf</strong> to test additional conditions if the first condition is <b>False</b>.
+<p>Use ElseIf to test additional conditions if the first condition is <b>False</b>.
 </p>
 
 
 
 
-<pre class="code"><strong>If</strong> a = 1 <strong>Then</strong>
+<pre class="code">If a = 1 Then
     Println "case 1"
-<strong>ElseIf</strong> a = 2 <strong>Then</strong>
+ElseIf a = 2 Then
     Println "case 2"
-<strong>ElseIf</strong> a = 3 <strong>Then</strong>
+ElseIf a = 3 Then
     Println "case 3"
-<strong>Else</strong>
+Else
     Println "default"
-<strong>End If</strong></pre>
+End If</pre>
 
 
 
@@ -891,51 +891,51 @@ With the help of <b>Select Case ...</b> you are able to avoid huge <b>ElseIf</b>
 
 
 
-<p>The following example does the same as the previous <strong>ElseIf</strong> code block but in a more elegant way.
+<p>The following example does the same as the previous ElseIf code block but in a more elegant way.
 </p>
 
 
 
 
-<pre class="code"><strong>Select Case</strong> a
-<strong>Case</strong> 1
+<pre class="code">Select Case a
+Case 1
     Println "case 1"
-<strong>Case</strong> 2
+Case 2
     Println "case 2"
-<strong>Case</strong> 3
+Case 3
     Println "case 3"
-<strong>Case Else</strong>
+Case Else
     Println "default"
-<strong>End Select</strong></pre>
+End Select</pre>
 
 
 
 
 
-<p>The <strong>Case Else</strong> in the previous example is optional and is called only if none
-of the other <strong>Case</strong> expressions fit.
+<p>The Case Else in the previous example is optional and is called only if none
+of the other Case expressions fit.
 </p>
 
 
 
 
-<p>It is also allowed to define multiple <strong>Case</strong> expressions in a comma separated list,
-you can use <strong>Is</strong> (where <strong>Is</strong> stands fo the test expression) for doing boolean comparisons and you are able to define
-<strong>Case</strong> ranges with <strong>To</strong>.
+<p>It is also allowed to define multiple Case expressions in a comma separated list,
+you can use Is (where Is stands fo the test expression) for doing boolean comparisons and you are able to define
+Case ranges with To.
 </p>
 
 
 
-<pre class="code"><strong>Select Case</strong> a
-<strong>Case</strong> 1
+<pre class="code">Select Case a
+Case 1
     Println "case 1"
-<strong>Case</strong> 2, 3, 4
+Case 2, 3, 4
     Println "case 2, 3 or 4"
-<strong>Case</strong> 5 <strong>To</strong> 7
+Case 5 To 7
     Println "case 5, 6 or 7"
-<strong>Case</strong> <strong>Is</strong> &gt; 7
+Case Is &gt; 7
     Println "case &gt; 7"
-<strong>End Select</strong></pre>
+End Select</pre>
 
 
 
@@ -964,7 +964,7 @@ long as the condition is <b>True</b>. </p>
 
 
 
-<pre class="code"><strong>Dim</strong> a = 0<br /><br /><strong>Do While</strong> a &lt;= 10<br />    Println a<br />    a += 1<br /><strong>Loop</strong></pre>
+<pre class="code">Dim a = 0<br /><br />Do While a &lt;= 10<br />    Println a<br />    a += 1<br />Loop</pre>
 
 
 
@@ -975,10 +975,10 @@ once. The loop code is repeated as long as the condition is <b>True</b>. </p>
 
 
 
-<pre class="code"><strong>Dim</strong> a = 0<br /><br /><strong>Do</strong>
+<pre class="code">Dim a = 0<br /><br />Do
     Println a
     a += 1
-<strong>Loop While</strong> a &lt; 10</pre>
+Loop While a &lt; 10</pre>
 
 
 
@@ -989,10 +989,10 @@ once. The loop code is repeated until the condition is <b>True</b>. </p>
 
 
 
-<pre class="code"><strong>Dim</strong> a = 0<br /><br /><strong>Do</strong>
+<pre class="code">Dim a = 0<br /><br />Do
     Println a
     a += 1
-<strong>Loop Until</strong> a &gt; 10</pre>
+Loop Until a &gt; 10</pre>
 
 
 
@@ -1002,11 +1002,11 @@ once. The loop code is repeated until the condition is <b>True</b>. </p>
 
 
 
-<pre class="code"><strong>Dim</strong> a = 0<br /><br /><strong>Do</strong>
+<pre class="code">Dim a = 0<br /><br />Do
     Println a
     a += 1
-    <strong>If</strong> a &gt; 10 <strong>Then Exit Do</strong>
-<strong>Loop</strong></pre>
+    If a &gt; 10 Then Exit Do
+Loop</pre>
 
 
 
@@ -1024,7 +1024,7 @@ or <b>Double</b>.</p>
 
 
 
-<pre class="code"><strong>Dim</strong> i <strong>As</strong> Integer<br /><br />' produce the sequence 0, 1, 2, ... 10<br /><strong>For</strong> i = 0 <strong>To</strong> 10<br />    Println i<br /><strong>Next</strong></pre>
+<pre class="code">Dim i As Integer<br /><br />' produce the sequence 0, 1, 2, ... 10<br />For i = 0 To 10<br />    Println i<br />Next</pre>
 
 
 
@@ -1035,7 +1035,7 @@ value to specify a different increment. </p>
 
 
 
-<pre class="code"><strong>Dim</strong> i <strong>As</strong> Integer<br /><br />' produce the sequence 10, 8, 6, 4, 2, 0<br /><strong>For</strong> i = 10 <strong>To</strong> 0 <strong>Step</strong> -2<br />    Println i<br /><strong>Next</strong></pre>
+<pre class="code">Dim i As Integer<br /><br />' produce the sequence 10, 8, 6, 4, 2, 0<br />For i = 10 To 0 Step -2<br />    Println i<br />Next</pre>
 
 
 
@@ -1043,11 +1043,11 @@ value to specify a different increment. </p>
 <p><b>Exit For</b> can be used to exit a for loop prematurely.</p>
 <p>Declaring the counter variable is optional. If you don't declare it,
 it will automatically&nbsp;assume the type of the value with which it
-is initialized. For example, the following code works even though <strong>i</strong> is never formally declared.</p>
+is initialized. For example, the following code works even though i is never formally declared.</p>
 <pre class="code">
-<strong>For</strong> i = 0 <strong>To</strong> 10    ' i is implicitly declared as an Integer
+For i = 0 To 10    ' i is implicitly declared as an Integer
     Println i
-<strong>Next</strong>
+Next
 </pre>
 
 
@@ -1062,14 +1062,14 @@ is initialized. For example, the following code works even though <strong>i</str
 the elements of an array in a sequential, read-only fashion. For
 example:</p>
 <pre class="code">
-<strong>Dim</strong> a <strong>As</strong> Array[Integer]
+Dim a As Array[Integer]
 a.Push(12)
 a.Push(-6)
 a.Push(7)
 
-<strong>For Each</strong> i <strong>In</strong> a    ' As with ordinary For ... Next, 'i' need not be explicitly declared
+For Each i In a    ' As with ordinary For ... Next, 'i' need not be explicitly declared
     Println i
-<strong>Next</strong>
+Next
 </pre>
 
 
@@ -1095,18 +1095,18 @@ example, the script of container A defines the sub procedure:</p>
 
 
 
-<pre class="code"><strong>Sub</strong> RotateAroundX(d As Double)<br />    Rotation.X += d<br /><strong>End Sub</strong></pre>
+<pre class="code">Sub RotateAroundX(d As Double)<br />    Rotation.X += d<br />End Sub</pre>
 
 
 
 
-<p>To call this function from within container B's script, call the function via A's <strong>Script</strong>
+<p>To call this function from within container B's script, call the function via A's Script
 member:</p>
 
 
 
 
-<pre class="code"><strong>Sub</strong> OnExecPerField()<br />    dim ContainerA = Scene.FindContainer("A")<br />    ContainerA.Script.RotateAroundX(3.0)<br /><strong>End Sub</strong></pre>
+<pre class="code">Sub OnExecPerField()<br />    dim ContainerA = Scene.FindContainer("A")<br />    ContainerA.Script.RotateAroundX(3.0)<br />End Sub</pre>
 
 
 
@@ -1125,15 +1125,15 @@ arguments passed have the correct types, or else the call will result in a run-t
 
 
 <p>Procedures, member variables, and structures defined by a scene script can be used from
-within any container script belonging to the same scene. Use the syntax <strong>Scene.<em>MemberName</em></strong>
+within any container script belonging to the same scene. Use the syntax Scene.<em>MemberName</em>
 to access such a member. For example, if the scene script looks like this:</p>
 
 
 
 
-<pre class="code"><strong>Dim </strong>counter <strong>As</strong> Integer<strong>
+<pre class="code">Dim counter As Integer
 
-Function</strong> GetNameOfRootContainer() <strong>As</strong> String<br />    GetNameOfRootContainer = RootContainer.Name<br /><strong>End Sub</strong></pre>
+Function GetNameOfRootContainer() As String<br />    GetNameOfRootContainer = RootContainer.Name<br />End Sub</pre>
 
 
 
@@ -1144,7 +1144,7 @@ container script as follows.</p>
 
 
 
-<pre class="code"><strong>Sub</strong> OnExecPerField()<br />    Scene.counter += 1<br />    println Scene.GetNameOfRootContainer()<br /><strong>End Sub</strong></pre>
+<pre class="code">Sub OnExecPerField()<br />    Scene.counter += 1<br />    println Scene.GetNameOfRootContainer()<br />End Sub</pre>
 
 
 <h3>Data Sharing via Memory Maps</h3>
@@ -1162,7 +1162,7 @@ suppose this script is defined on a container named <span style="font-style: ita
 
 
 
-<pre class="code"><strong>Sub</strong> SetText(i <span style="font-weight: bold;">As</span> Integer, s <span style="font-weight: bold;">As</span> String)<br />     Geometry.Text = i &amp; ": " &amp; s<br /><strong>End Sub</strong></pre>
+<pre class="code">Sub SetText(i <span style="font-weight: bold;">As</span> Integer, s <span style="font-weight: bold;">As</span> String)<br />     Geometry.Text = i &amp; ": " &amp; s<br />End Sub</pre>
 
 
 <p>This function can be called through the command interface using this command:</p>
