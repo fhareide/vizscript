@@ -1,4 +1,5 @@
 {
+  "intellisense":{
     "completions": [
       {
         "name": "Alpha",
@@ -500,7 +501,8 @@
             "name": "NumChannels",
             "code_hint": "NumChannels As Integer [read-only]",
             "description": "Deprecated. Use IsAnimated or GetChannelsOfObject instead.",
-            "deprecated": "NumChannels As Integer [read-only]"
+            "return_value": "Integer",
+            "deprecated": "true"
           }
         ],
         "methods": [
@@ -544,29 +546,29 @@
             "name": "FindChannel",
             "code_hint": "Function FindChannel(channelName As String) As Channel",
             "description": "Deprecated. Use FindChannelOfObject",
-            "return_value": "Function FindChannel(channelName As String) As Channel",
-            "deprecated": "Function FindChannel(channelName As String) As Channel"
+            "return_value": "Channel",
+            "deprecated": "true"
           },
           {
             "name": "FindKeyframe",
             "code_hint": "Function FindKeyframe(keyframeName As String) As Keyframe",
             "description": "Deprecated. Use FindKeyframeOfObject",
-            "return_value": "Function FindKeyframe(keyframeName As String) As Keyframe",
-            "deprecated": "Function FindKeyframe(keyframeName As String) As Keyframe"
+            "return_value": "Keyframe",
+            "deprecated": "true"
           },
           {
             "name": "GetChannels",
             "code_hint": "Function GetChannels([out] v As Array[Channel]) As Integer",
             "description": "Deprecated. Use GetChannelsOfObject",
-            "return_value": "Function GetChannels([out] v As Array[Channel]) As Integer",
-            "deprecated": "Function GetChannels([out] v As Array[Channel]) As Integer"
+            "return_value": "Integer",
+            "deprecated": "true"
           },
           {
             "name": "GetNumberOfAnimationChannels",
             "code_hint": "Function GetNumberOfAnimationChannels() As Integer",
             "description": "Deprecated. Use IsAnimated instead.",
-            "return_value": "Function GetNumberOfAnimationChannels() As Integer",
-            "deprecated": "Function GetNumberOfAnimationChannels() As Integer"
+            "return_value": "Integer",
+            "deprecated": "true"
           }
         ]
       },
@@ -706,7 +708,9 @@
       },
       {
         "name": "Boolean",
-        "descripton": "A flag that is either true or false."
+        "descripton": "A flag that is either true or false.",
+        "properties": [],
+        "methods":[]
       },
       {
         "name": "Camera",
@@ -1240,7 +1244,8 @@
             "name": "NumKeyframes",
             "code_hint": "NumKeyframes As Integer [read-only]",
             "description": "Deprecated. Use KeyframeCount.",
-            "deprecated": "NumKeyframes As Integer [read-only]"
+            "return_value": "Integer",
+            "deprecated": "true"
           }
         ],
         "methods": [
@@ -2500,13 +2505,15 @@
             "name": "NumChildContainers",
             "code_hint": "NumChildContainers As Integer [read-only]",
             "description": "Deprecated. Use ChildContainerCount instead.",
-            "deprecated": "NumChildContainers As Integer [read-only]"
+            "return_value": "Integer",
+            "deprecated": "true"
           },
           {
             "name": "Transform",
             "code_hint": "Transform As Transform",
             "description": "Deprecated.",
-            "deprecated": "Transform As Transform"
+            "return_value": "Transform",
+            "deprecated": "true"
           }
         ],
         "methods": [
@@ -3055,8 +3062,8 @@
             "name": "ScreenOffsetToWorldOffset",
             "code_hint": "Function ScreenOffsetToWorldOffset(dx As Integer, dy As Integer) As Vertex",
             "description": "Deprecated.",
-            "return_value": "Function ScreenOffsetToWorldOffset(dx As Integer, dy As Integer) As Vertex",
-            "deprecated": "Function ScreenOffsetToWorldOffset(dx As Integer, dy As Integer) As Vertex"
+            "return_value": "Vertex",
+            "deprecated": "true"
           }
         ]
       },
@@ -3262,13 +3269,15 @@
             "name": "NumActionChannels",
             "code_hint": "NumActionChannels As Integer [read-only]",
             "description": "Deprecated. Use ActionChannelCount.",
-            "deprecated": "NumActionChannels As Integer [read-only]"
+            "return_value": "Integer",
+            "deprecated": "true"
           },
           {
             "name": "NumAnimationChannels",
             "code_hint": "NumAnimationChannels As Integer [read-only]",
             "description": "Deprecated. Call GetAnimationChannels to get a list of animation channels.",
-            "deprecated": "NumAnimationChannels As Integer [read-only]"
+            "return_value": "Integer",
+            "deprecated": "true"
           }
         ],
         "methods": [
@@ -3450,14 +3459,16 @@
             "name": "GetAnimationChannel",
             "code_hint": "Function GetAnimationChannel(index As Integer) As Channel",
             "description": "Deprecated. Use GetAnimationChannels instead.",
-            "return_value": "Function GetAnimationChannel(index As Integer) As Channel",
-            "deprecated": "Function GetAnimationChannel(index As Integer) As Channel"
+            "return_value": "Channel",
+            "deprecated": "true"
           }
         ]
       },
       {
         "name": "Double",
-        "descripton": "A double precision floating-point number (64 bits)."
+        "descripton": "A double precision floating-point number (64 bits).",
+        "properties": [],
+        "methods":[]
       },
       {
         "name": "Eventpool",
@@ -5355,7 +5366,8 @@
             "name": "NumAxes",
             "code_hint": "NumAxes As Integer [read-only]",
             "description": "Deprecated. Use NumberOfAxes.",
-            "deprecated": "NumAxes As Integer [read-only]"
+            "return_value": "Integer",
+            "deprecated": "true"
           }
         ],
         "methods": [
@@ -7115,13 +7127,15 @@
             "name": "CallEnterLeaveForBackgroundObjects",
             "code_hint": "CallEnterLeaveForBackgroundObjects As Boolean",
             "description": "Deprecated. Use CallEnterLeaveForTopObjectsOnly instead.",
-            "deprecated": "CallEnterLeaveForBackgroundObjects As Boolean"
+            "return_value": "Boolean",
+            "deprecated": "true"
           },
           {
             "name": "CallMouseMoveForBackgroundObjects",
             "code_hint": "CallMouseMoveForBackgroundObjects As Boolean",
             "description": "Deprecated. Use CallMouseMoveForTopObjectsOnly instead.",
-            "deprecated": "CallMouseMoveForBackgroundObjects As Boolean"
+            "return_value": "Boolean",
+            "deprecated": "true"
           }
         ]
       },
@@ -8250,7 +8264,8 @@
             "name": "RefreshRate",
             "code_hint": "RefreshRate As Double [read-only]",
             "description": "Deprecated.",
-            "deprecated": "RefreshRate As Double [read-only]"
+            "return_value": "Double",
+            "deprecated": "true"
           }
         ],
         "methods": [
@@ -9172,15 +9187,15 @@
             "name": "GlNormal",
             "code_hint": "Sub GlNormal()",
             "description": "Deprecated.",
-            "return_value": ""
-            "deprecated": "Sub GlNormal()"
+            "return_value": "",
+            "deprecated": "true"
           },
           {
             "name": "GlVertex",
             "code_hint": "Sub GlVertex()",
             "description": "Deprecated.",
-            "return_value": ""
-            "deprecated": "Sub GlVertex()"
+            "return_value": "",
+            "deprecated": "true"
           }
         ]
       },
@@ -9988,45 +10003,53 @@
             "name": "IsKeyDown",
             "code_hint": "Function IsKeyDown(keyCode As Integer) As Boolean",
             "description": "Deprecated. Use System.IsKeyDown.",
-            "deprecated": "Function IsKeyDown(keyCode As Integer) As Boolean"
+            "return_value": "Boolean",
+            "deprecated": "true"
           },
           {
             "name": "IsLButtonDown",
             "code_hint": "Function IsLButtonDown() As Boolean",
             "description": "Deprecated. System.LButtonState.",
-            "deprecated": "Function IsLButtonDown() As Boolean"
+            "return_value": "Boolean",
+            "deprecated": "true"
           },
           {
             "name": "IsMButtonDown",
             "code_hint": "Function IsMButtonDown() As Boolean",
             "description": "Deprecated. System.MButtonState.",
-            "deprecated": "Function IsMButtonDown() As Boolean"
+            "return_value": "Boolean",
+            "deprecated": "true"
           },
           {
             "name": "IsRButtonDown",
             "code_hint": "Function IsRButtonDown() As Boolean",
             "description": "Deprecated. System.RButtonState.",
-            "deprecated": "Function IsRButtonDown() As Boolean"
+            "return_value": "Boolean",
+            "deprecated": "true"
           },
           {
             "name": "SendCommand",
             "code_hint": "Function SendCommand(command As String) As String",
             "description": "Deprecated. Use System.SendCommand.",
-            "deprecated": "Function SendCommand(command As String) As String"
+            "return_value": "String",
+            "deprecated": "true"
           },
           {
             "name": "SendRemoteCommand",
             "code_hint": "Function SendRemoteCommand(hostname As String, port As Integer, commandString As String, timeoutInMs As Integer) As String",
             "description": "Deprecated. Use System.SendRemoteCommand.",
-            "deprecated": "Function SendRemoteCommand(hostname As String, port As Integer, commandString As String, timeoutInMs As Integer) As String"
+            "return_value": "String",
+            "deprecated": "true"
           },
           {
             "name": "TcpSend",
             "code_hint": "Function TcpSend(hostname As String, port As Integer, commandString As String, timeoutInMs As Integer) As String",
             "description": "Deprecated. Use System.TcpSend.",
-            "deprecated": "Function TcpSend(hostname As String, port As Integer, commandString As String, timeoutInMs As Integer) As String"
+            "return_value": "String",
+            "deprecated": "true"
           }
         ]
       }
     ]
   }
+}
