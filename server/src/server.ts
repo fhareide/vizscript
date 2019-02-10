@@ -6,12 +6,10 @@
 
 import * as ls from 'vscode-languageserver';
 import { VizSymbol } from "./vizsymbol";
-import * as data from './intellisense_data.json';
-import * as completions from './viz_completions.json';
-import * as event_completions from './vizevent_completions.json';
+import * as olddata from './intellisense_data.json';
+import * as data from './viz_completions.json';
+import * as vizevent from './vizevent_completions.json';
 import { TextDocument } from 'vscode-languageserver';
-
-
 
 // Create a connection for the server. The connection uses Node's IPC as a transport
 let connection: ls.IConnection = ls.createConnection(new ls.IPCMessageReader(process), new ls.IPCMessageWriter(process));
@@ -470,23 +468,23 @@ function GetBuiltinSymbols() {
 	let symbols: VizSymbol[] = [];
 	let startTime: number = Date.now();
 
-	data.intellisense.scopes.scope.forEach(element => {
+	data.intellisense.completions.forEach(element => {
 		if (element.name == "Global Procedures")
 		{
-			element.methods.forEach(submethod => {
+			  element.methods.forEach(submethod => {
 				let symbol: VizSymbol = new VizSymbol();
-				if(submethod.type == "Function") symbol.kind = ls.CompletionItemKind.Function;
-				else if(submethod.type == "Subroutine") symbol.kind = ls.CompletionItemKind.Method;
-				symbol.type = submethod.return_value_scope;
+				if (submethod.name.startsWith("\"Function")) symbol.kind = ls.CompletionItemKind.Function;
+				else if (submethod.name.startsWith("\"Sub")) symbol.kind = ls.CompletionItemKind.Method;
+				symbol.type = submethod.return_value;
 				symbol.name = submethod.name;
 				symbol.insertText = submethod.name;
-				symbol.hint = submethod.code_insight_hint;
+				symbol.hint = submethod.code_hint;
 				symbol.args = submethod.description;
 				symbol.parentName = "root";
 				symbols.push(symbol);
 			});
 		}
-		else
+		 else
 		{
 			let symbol: VizSymbol = new VizSymbol();
 			symbol.kind = ls.CompletionItemKind.Class;
@@ -494,35 +492,35 @@ function GetBuiltinSymbols() {
 			symbol.insertText = element.name;
 			symbol.parentName = "root";
 			symbol.type = element.name;
-			symbol.args = element.description;
+			symbol.args = element.descripton;
 			symbol.hint = "";
 			symbols.push(symbol);
 			
 			element.methods.forEach(submethod => {
 				let subSymbol: VizSymbol = new VizSymbol();
-				subSymbol.type = submethod.return_value_scope;
+				subSymbol.type = submethod.return_value;
 				subSymbol.name = submethod.name;
 				subSymbol.insertText = submethod.name;
-				subSymbol.hint = submethod.code_insight_hint;
+				subSymbol.hint = submethod.code_hint;
 				subSymbol.args = submethod.description;
-				if(submethod.type == "Function") subSymbol.kind = ls.CompletionItemKind.Function;
-				else if(submethod.type == "Subroutine") subSymbol.kind = ls.CompletionItemKind.Method;
+				if(submethod.name.startsWith("\"Function")) subSymbol.kind = ls.CompletionItemKind.Function;
+				else if(submethod.name.startsWith("\"Sub")) subSymbol.kind = ls.CompletionItemKind.Method;
 				subSymbol.parentName = element.name;
 				symbol.children.push(subSymbol);
-			});
-			element.properties.forEach(properties => {
-				let subSymbol: VizSymbol = new VizSymbol();
-				subSymbol.type = properties.return_value_scope;
-				subSymbol.name = properties.name;
-				subSymbol.insertText = properties.name;
-				subSymbol.hint = properties.code_insight_hint;
-				subSymbol.args = properties.description;
-				subSymbol.kind = ls.CompletionItemKind.Variable;
-				subSymbol.parentName = element.name;
-				symbol.children.push(subSymbol);
-			});
+			}); 
+			 element.properties.forEach(properties => {
+			 	let subSymbol: VizSymbol = new VizSymbol();
+			 	subSymbol.type = properties.return_value;
+			 	subSymbol.name = properties.name;
+			 	subSymbol.insertText = properties.name;
+			 	subSymbol.hint = properties.code_hint;
+			 	subSymbol.args = properties.description;
+			 	subSymbol.kind = ls.CompletionItemKind.Variable;
+			 	subSymbol.parentName = element.name;
+			 	symbol.children.push(subSymbol);
+			 });
 
-		}
+	 	} 
 	});
 
 	symbolCache["builtin"] = symbols;
@@ -534,29 +532,17 @@ function GetVizEvents(){
 	let symbols: VizSymbol[] = [];
 	let startTime: number = Date.now();
 
-	vizevent.event_definitions.scene_script_events.event.forEach(event => {
+	vizevent.events.forEach(event => {
 			let symbol: VizSymbol = new VizSymbol();
 			symbol.kind = ls.CompletionItemKind.Event;
-			symbol.type = "Scene event";
+			symbol.type = "Event";
 			symbol.name = event.name;
-			symbol.insertText = event.code;
-			symbol.hint = event.code;
+			symbol.insertText = event.code_hint;
+			symbol.hint = event.code_hint;
 			symbol.args = event.description;
 			symbol.parentName = "root";
 			symbols.push(symbol);
 	});
-
-	vizevent.event_definitions.container_script_events.event.forEach(event => {
-		let symbol: VizSymbol = new VizSymbol();
-		symbol.kind = ls.CompletionItemKind.Event;
-		symbol.type = "Container event";
-		symbol.name = event.name;
-		symbol.insertText = event.code;
-		symbol.hint = event.code;
-		symbol.args = event.description;
-		symbol.parentName = "root";
-		symbols.push(symbol);
-});
 
 	symbolCache["builtin_events"] = symbols;
 	//connection.console.info("Found " + symbols.length + " builtin events in " + (Date.now() - startTime) + " ms");

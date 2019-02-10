@@ -6,7 +6,10 @@
         "descripton": "An alpha object. This is used to control a container's alpha value.",
         "properties": [
           {
-            .
+            "name": "Active",
+            "code_hint": "Active As Boolean",
+            "description": "",
+            "return_value": "Boolean",
             "deprecated": "false"
           },
           {

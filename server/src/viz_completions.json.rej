@@ -1,0 +1,9 @@
+diff a/server/src/viz_completions.json b/server/src/viz_completions.json	(rejected hunks)
+@@ -6,7 +6,6 @@
+         "descripton": "An alpha object. This is used to control a container's alpha value.",
+         "properties": [
+           {
+-            "name": "Active",
+             .
+             "deprecated": "false"
+           },
