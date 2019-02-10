@@ -6,10 +6,7 @@
         "descripton": "An alpha object. This is used to control a container's alpha value.",
         "properties": [
           {
-            "name": "Active",
-            "code_hint": "Active As Boolean",
-            "description": "",
-            "return_value": "Boolean",
+            .
             "deprecated": "false"
           },
           {
@@ -1113,12 +1110,14 @@
           {
             "name": "ResetPositionTracking",
             "code_hint": "Sub ResetPositionTracking()",
+            "description": "",
             "return_value": "",
             "deprecated": "false"
           },
           {
             "name": "ResetRotationTracking",
             "code_hint": "Sub ResetRotationTracking()",
+            "description": "",
             "return_value": "",
             "deprecated": "false"
           },
@@ -1442,30 +1441,35 @@
           {
             "name": "AddKeyframe",
             "code_hint": "Function AddKeyframe(time As Double) As Keyframe",
+            "description": "",
             "return_value": "Keyframe",
             "deprecated": "false"
           },
           {
             "name": "CopyToDirector",
             "code_hint": "Function CopyToDirector(destination As Director) As Boolean",
+            "description": "",
             "return_value": "Boolean",
             "deprecated": "false"
           },
           {
             "name": "Delete",
             "code_hint": "Sub Delete()",
+            "description": "",
             "return_value": "",
             "deprecated": "false"
           },
           {
             "name": "DeleteKeyframe",
             "code_hint": "Function DeleteKeyframe(kf As Keyframe) As Boolean",
+            "description": "",
             "return_value": "Boolean",
             "deprecated": "false"
           },
           {
             "name": "DeleteKeyframe",
             "code_hint": "Function DeleteKeyframe(index As Integer) As Boolean",
+            "description": "",
             "return_value": "Boolean",
             "deprecated": "false"
           },
@@ -1521,6 +1525,7 @@
           {
             "name": "MoveToDirector",
             "code_hint": "Function MoveToDirector(destination As Director) As Boolean",
+            "description": "",
             "return_value": "Boolean",
             "deprecated": "false"
           },
@@ -2951,6 +2956,7 @@
           {
             "name": "CreateExpert",
             "code_hint": "Function CreateExpert() As Expert",
+            "description": "",
             "return_value": "Expert",
             "deprecated": "false"
           },
@@ -2978,36 +2984,42 @@
           {
             "name": "CreateGlow",
             "code_hint": "Function CreateGlow() As Glow",
+            "description": "",
             "return_value": "Glow",
             "deprecated": "false"
           },
           {
             "name": "CreateHDR",
             "code_hint": "Function CreateHDR() As HDR",
+            "description": "",
             "return_value": "HDR",
             "deprecated": "false"
           },
           {
             "name": "CreateInfoText",
             "code_hint": "Function CreateInfoText() As InfoText",
+            "description": "",
             "return_value": "InfoText",
             "deprecated": "false"
           },
           {
             "name": "CreateKey",
             "code_hint": "Function CreateKey() As Key",
+            "description": "",
             "return_value": "Key",
             "deprecated": "false"
           },
           {
             "name": "CreateMaterial",
             "code_hint": "Function CreateMaterial() As Material",
+            "description": "",
             "return_value": "Material",
             "deprecated": "false"
           },
           {
             "name": "CreateMaterial",
             "code_hint": "Function CreateMaterial(location As String) As Material",
+            "description": "",
             "return_value": "Material",
             "deprecated": "false"
           },
@@ -3021,6 +3033,7 @@
           {
             "name": "CreateTexture",
             "code_hint": "Function CreateTexture(image As Image) As Texture",
+            "description": "",
             "return_value": "Texture",
             "deprecated": "false"
           },
@@ -3055,6 +3068,7 @@
           {
             "name": "DeleteExpert",
             "code_hint": "Sub DeleteExpert()",
+            "description": "",
             "return_value": "",
             "deprecated": "false"
           },
@@ -3068,42 +3082,49 @@
           {
             "name": "DeleteGeometry",
             "code_hint": "Sub DeleteGeometry()",
+            "description": "",
             "return_value": "",
             "deprecated": "false"
           },
           {
             "name": "DeleteGlow",
             "code_hint": "Sub DeleteGlow()",
+            "description": "",
             "return_value": "",
             "deprecated": "false"
           },
           {
             "name": "DeleteHDR",
             "code_hint": "Sub DeleteHDR()",
+            "description": "",
             "return_value": "",
             "deprecated": "false"
           },
           {
             "name": "DeleteInfoText",
             "code_hint": "Sub DeleteInfoText()",
+            "description": "",
             "return_value": "",
             "deprecated": "false"
           },
           {
             "name": "DeleteKey",
             "code_hint": "Sub DeleteKey()",
+            "description": "",
             "return_value": "",
             "deprecated": "false"
           },
           {
             "name": "DeleteMaterial",
             "code_hint": "Sub DeleteMaterial()",
+            "description": "",
             "return_value": "",
             "deprecated": "false"
           },
           {
             "name": "DeleteTexture",
             "code_hint": "Sub DeleteTexture()",
+            "description": "",
             "return_value": "",
             "deprecated": "false"
           },
@@ -3187,6 +3208,7 @@
           {
             "name": "GetContainerAndSubContainers",
             "code_hint": "Sub GetContainerAndSubContainers([out] v As Array[Container], traverseMergedGeometries As Boolean)",
+            "description": "",
             "return_value": "",
             "deprecated": "false"
           },
@@ -4691,7 +4713,8 @@
             "return_value": "Vertex",
             "deprecated": "false"
           }
-        ]
+        ],
+        "methods":[]
       },
       {
         "name": "GestureRecognizer",
@@ -5879,7 +5902,9 @@
       },
       {
         "name": "Integer",
-        "descripton": "A 32-bit signed integer."
+        "descripton": "A 32-bit signed integer.",
+        "properties":[],
+        "methods":[]
       },
       {
         "name": "Key",
@@ -6445,12 +6470,14 @@
           {
             "name": "ResetPositionTracking",
             "code_hint": "Sub ResetPositionTracking()",
+            "description": "",
             "return_value": "",
             "deprecated": "false"
           },
           {
             "name": "ResetRotationTracking",
             "code_hint": "Sub ResetRotationTracking()",
+            "description": "",
             "return_value": "",
             "deprecated": "false"
           },
@@ -6818,22 +6845,26 @@
       {
         "name": "Matrix",
         "descripton": "A 4x4 matrix. The index operator [] can be used to access individual entries, with indices 0, 1, 2, 3 referring to the entries of the first column, 4, 5, 6, 7 to the second, etc.",
+        "properties":[],
         "methods": [
           {
             "name": "Frustum",
             "code_hint": "Sub Frustum(left As Double, right As Double, bottom As Double, top As Double, near As Double, far As Double)",
+            "description": "",
             "return_value": "",
             "deprecated": "false"
           },
           {
             "name": "GetDeterminant",
             "code_hint": "Function GetDeterminant() As Double",
+            "description": "",
             "return_value": "Double",
             "deprecated": "false"
           },
           {
             "name": "GetRotation",
             "code_hint": "Function GetRotation() As Vertex",
+            "description": "",
             "return_value": "Vertex",
             "deprecated": "false"
           },
@@ -6854,6 +6885,7 @@
           {
             "name": "GetScaling",
             "code_hint": "Function GetScaling() As Vertex",
+            "description": "",
             "return_value": "Vertex",
             "deprecated": "false"
           },
@@ -6867,18 +6899,21 @@
           {
             "name": "GetTranslation",
             "code_hint": "Function GetTranslation() As Vertex",
+            "description": "",
             "return_value": "Vertex",
             "deprecated": "false"
           },
           {
             "name": "Invert",
             "code_hint": "Function Invert() As Boolean",
+            "description": "",
             "return_value": "Boolean",
             "deprecated": "false"
           },
           {
             "name": "LoadIdentity",
             "code_hint": "Sub LoadIdentity()",
+            "description": "",
             "return_value": "",
             "deprecated": "false"
           },
@@ -6899,60 +6934,70 @@
           {
             "name": "Ortho",
             "code_hint": "Sub Ortho(left As Double, right As Double, bottom As Double, top As Double, near As Double, far As Double)",
+            "description": "",
             "return_value": "",
             "deprecated": "false"
           },
           {
             "name": "Perspective",
             "code_hint": "Sub Perspective(fov As Double, aspect As Double, near As Double, far As Double)",
+            "description": "",
             "return_value": "",
             "deprecated": "false"
           },
           {
             "name": "Rotate",
             "code_hint": "Sub Rotate(angle As Double, v As Vertex)",
+            "description": "",
             "return_value": "",
             "deprecated": "false"
           },
           {
             "name": "Rotate",
             "code_hint": "Sub Rotate(v As Vertex)",
+            "description": "",
             "return_value": "",
             "deprecated": "false"
           },
           {
             "name": "RotateX",
             "code_hint": "Sub RotateX(angle As Double)",
+            "description": "",
             "return_value": "",
             "deprecated": "false"
           },
           {
             "name": "RotateY",
             "code_hint": "Sub RotateY(angle As Double)",
+            "description": "",
             "return_value": "",
             "deprecated": "false"
           },
           {
             "name": "RotateZ",
             "code_hint": "Sub RotateZ(angle As Double)",
+            "description": "",
             "return_value": "",
             "deprecated": "false"
           },
           {
             "name": "Scale",
             "code_hint": "Sub Scale(v As Vertex)",
+            "description": "",
             "return_value": "",
             "deprecated": "false"
           },
           {
             "name": "Translate",
             "code_hint": "Sub Translate(v As Vertex)",
+            "description": "",
             "return_value": "",
             "deprecated": "false"
           },
           {
             "name": "Transpose",
             "code_hint": "Sub Transpose()",
+            "description": "",
             "return_value": "",
             "deprecated": "false"
           }
@@ -8015,6 +8060,7 @@
           {
             "name": "CreateRootContainer",
             "code_hint": "Function CreateRootContainer() As Container",
+            "description": "",
             "return_value": "Container",
             "deprecated": "false"
           },
@@ -8056,6 +8102,7 @@
           {
             "name": "GetCamera",
             "code_hint": "Function GetCamera(cameraIndex As Integer) As Camera",
+            "description": "",
             "return_value": "Camera",
             "deprecated": "false"
           },
@@ -8090,6 +8137,7 @@
           {
             "name": "GetLight",
             "code_hint": "Function GetLight(lightIndex As Integer) As Light",
+            "description": "",
             "return_value": "Light",
             "deprecated": "false"
           },
@@ -8223,7 +8271,9 @@
       },
       {
         "name": "Script",
-        "descripton": "The container's script object. This is used to dynamically call member procedures of another container."
+        "descripton": "The container's script object. This is used to dynamically call member procedures of another container.",
+        "properties":[],
+        "methods":[]
       },
       {
         "name": "ScriptSettings",
@@ -8264,7 +8314,8 @@
             "return_value": "Boolean",
             "deprecated": "true"
           }
-        ]
+        ],
+        "methods":[]
       },
       {
         "name": "SharedMemory",
@@ -8866,18 +8917,21 @@
           {
             "name": "Clear",
             "code_hint": "Sub Clear()",
+            "description": "",
             "return_value": "",
             "deprecated": "false"
           },
           {
             "name": "ContainsKey",
             "code_hint": "Function ContainsKey(key As String) As Boolean",
+            "description": "",
             "return_value": "Boolean",
             "deprecated": "false"
           },
           {
             "name": "DeleteKey",
             "code_hint": "Sub DeleteKey(key As String)",
+            "description": "",
             "return_value": "",
             "deprecated": "false"
           },
@@ -10359,6 +10413,7 @@
       },
       {
         "name": "Touch",
+        "descripton": "",
         "properties": [
           {
             "name": "Direction",
@@ -10416,7 +10471,8 @@
             "return_value": "Vertex",
             "deprecated": "false"
           }
-        ]
+        ],
+        "methods":[]
       },
       {
         "name": "Trace",
@@ -10506,7 +10562,9 @@
       },
       {
         "name": "Variant",
-        "descripton": "A variant type. Objects of this type can hold objects of any other type."
+        "descripton": "A variant type. Objects of this type can hold objects of any other type.",
+        "properties":[],
+        "methods":[]
       },
       {
         "name": "Vertex",
@@ -10545,18 +10603,21 @@
           {
             "name": "DistanceToLine",
             "code_hint": "Function DistanceToLine(linePoint1 As Vertex, linePoint2 As Vertex) As Double",
+            "description": "",
             "return_value": "Double",
             "deprecated": "false"
           },
           {
             "name": "DistanceToPlane",
             "code_hint": "Function DistanceToPlane(planeNormal As Vertex, planePoint As Vertex) As Double",
+            "description": "",
             "return_value": "Double",
             "deprecated": "false"
           },
           {
             "name": "DistanceToPlaneSigned",
             "code_hint": "Function DistanceToPlaneSigned(planeNormal As Vertex, planePoint As Vertex) As Double",
+            "description": "",
             "return_value": "Double",
             "deprecated": "false"
           },
@@ -10570,12 +10631,14 @@
           {
             "name": "MirrorAroundLine",
             "code_hint": "Function MirrorAroundLine(linePoint1 As Vertex, linePoint2 As Vertex) As Vertex",
+            "description": "",
             "return_value": "Vertex",
             "deprecated": "false"
           },
           {
             "name": "MirrorAroundVector",
             "code_hint": "Function MirrorAroundVector(v As Vertex) As Vertex",
+            "description": "",
             "return_value": "Vertex",
             "deprecated": "false"
           },
@@ -10596,24 +10659,28 @@
           {
             "name": "Project",
             "code_hint": "Function Project(viewMat As Matrix, projMat As Matrix, x As Integer, y As Integer, width As Integer, height As Integer) As Boolean",
+            "description": "",
             "return_value": "Boolean",
             "deprecated": "false"
           },
           {
             "name": "Project",
             "code_hint": "Function Project(mat As Matrix, halfwidth As Integer, halfweight As Integer) As Boolean",
+            "description": "",
             "return_value": "Boolean",
             "deprecated": "false"
           },
           {
             "name": "ProjectOnLine",
             "code_hint": "Function ProjectOnLine(linePoint1 As Vertex, linePoint2 As Vertex) As Vertex",
+            "description": "",
             "return_value": "Vertex",
             "deprecated": "false"
           },
           {
             "name": "ProjectOnVector",
             "code_hint": "Function ProjectOnVector(v As Vertex) As Vertex",
+            "description": "",
             "return_value": "Vertex",
             "deprecated": "false"
           },
@@ -10627,12 +10694,14 @@
           {
             "name": "Unproject",
             "code_hint": "Sub Unproject(viewMat As Matrix, projMat As Matrix, x As Integer, y As Integer, width As Integer, height As Integer)",
+            "description": "",
             "return_value": "",
             "deprecated": "false"
           },
           {
             "name": "Unproject",
             "code_hint": "Function Unproject(viewMat As Matrix, projMat As Matrix, x As Integer, y As Integer, width As Integer, height As Integer, plane1 As Vertex, plane2 As Vertex, plane3 As Vertex) As Boolean",
+            "description": "",
             "return_value": "Boolean",
             "deprecated": "false"
           },
@@ -10788,7 +10857,9 @@
       },
       {
         "name": "Global Procedures",
-        "properties": [
+        "descripton":"",
+        "properties":[],
+        "methods": [
           {
             "name": "Abs",
             "code_hint": "Function Abs(x As Double) As Double",
@@ -11212,7 +11283,9 @@
           {
             "name": "Println",
             "code_hint": "Sub Println()",
-            "description": "Prints a newline."
+            "description": "Prints a newline.",
+            "return_value": "",
+            "deprecated": "false"
           },
           {
             "name": "Println",
@@ -11483,7 +11556,9 @@
           {
             "name": "SendGuiRefresh",
             "code_hint": "Sub SendGuiRefresh()",
-            "description": "Sends a refresh command to the GUI"
+            "description": "Sends a refresh command to the GUI",
+            "return_value": "",
+            "deprecated": "false"
           },
           {
             "name": "SendGuiStatus",
@@ -11502,7 +11577,9 @@
           {
             "name": "SetHideParameter",
             "code_hint": "Sub SetHideParameter()",
-            "description": "Hides the last registered parameter in the GUI."
+            "description": "Hides the last registered parameter in the GUI.",
+            "return_value": "",
+            "deprecated": "false"
           },
           {
             "name": "Sign",
@@ -11630,7 +11707,7 @@
             "return_value": "String",
             "deprecated": "true"
           }
-        ]
+        ]        
       }
     ]
   }
