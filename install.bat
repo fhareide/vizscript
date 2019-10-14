@@ -1,1 +1,0 @@
-code --install-extension vizscript-1.0.0.vsix

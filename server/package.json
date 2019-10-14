@@ -13,6 +13,5 @@
 	},
 	"devDependencies": {
 		"vscode": "^1.1.21"
-	},
-	"scripts": {}
+	}
 }

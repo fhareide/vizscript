@@ -2,7 +2,7 @@
 	"Subroutine": {
 		"prefix": "sub",
 		"body": [
-			"sub $1($2)",
+			"sub ${1:name}(${2:params})",
 			"  $0",
 			"end sub"
 		],
@@ -11,7 +11,7 @@
 	"Function": {
 		"prefix": "function",
 		"body": [
-			"function $1($2) as $3",
+			"function ${1:name}(${2:params}) as ${3:type}",
 			"  $0",
 			"end function"
 		],
@@ -20,7 +20,7 @@
 	"Structure": {
 		"prefix": "structure",
 		"body": [
-			"structure $1",
+			"structure ${1:name}",
 			"  $0",
 			"end structure"
 		],
