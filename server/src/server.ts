@@ -35,17 +35,17 @@ connection.onInitialize((params): ls.InitializeResult => {
 		capabilities: {
 			// Tell the client that the server works in FULL text document sync mode
 			textDocumentSync: documents.syncKind,
-			documentSymbolProvider: true,
-			signatureHelpProvider: {
-                triggerCharacters: [ '(']
-            },
+			//documentSymbolProvider: true,
+			//signatureHelpProvider: {
+            //    triggerCharacters: [ '(']
+            //},
 			// Tell the client that the server support code complete
-			definitionProvider: true,
+			//definitionProvider: true,
 			completionProvider: {
 				resolveProvider: true,
 				triggerCharacters: ['.']
 			},
-			hoverProvider: true
+			//hoverProvider: true
 		}
 	}
 });
