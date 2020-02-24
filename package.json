@@ -27,7 +27,8 @@
 				],
 				"extensions": [
 					".vs",
-					".v3script"
+					".v3script",
+					".viz"
 				],
 				"configuration": "./syntaxes/language-configuration.json"
 			}
