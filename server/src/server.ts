@@ -11,6 +11,8 @@ import * as data from './viz_completions.json';
 import * as vizevent from './vizevent_completions.json';
 import { HoverRequest } from 'vscode-languageserver';
 import { create } from 'domain';
+import { addListener } from 'cluster';
+import { WorkspaceFoldersFeature } from 'vscode-languageserver/lib/workspaceFolders';
 
 // Create a connection for the server. The connection uses Node's IPC as a transport
 let connection: ls.IConnection = ls.createConnection(new ls.IPCMessageReader(process), new ls.IPCMessageWriter(process));
@@ -49,9 +51,6 @@ connection.onInitialize((params): ls.InitializeResult => {
 		}
 	}
 });
-
-
-
 
 
 const pendingValidationRequests: { [uri: string]: NodeJS.Timer } = {};
@@ -121,7 +120,7 @@ let lastSuggestions: ls.CompletionItem[] = [];
 // This handler provides the initial list of the completion items.
 connection.onCompletion((params: ls.CompletionParams, cancelToken: ls.CancellationToken): ls.CompletionItem[] => {
 	 let suggestions: ls.CompletionItem[] = [];
-	/*let documentCompletions: ls.CompletionItem[] = [];
+	let documentCompletions: ls.CompletionItem[] = [];
 
 	documentCompletions = SelectCompletionItems(params);
 
@@ -144,15 +143,15 @@ connection.onCompletion((params: ls.CompletionParams, cancelToken: ls.Cancellati
 
 	if (start > 0) {
 		documentCompletions = [];
-		//connection.console.log("Start is larger than 0");
+		connection.console.log("Start is larger than 0");
 		let subString = line.substr(0, start + 1);
 		let memberStartRegex: RegExp = /[\.]?([a-zA-Z0-9\-\_]+)*[\.]$/gi;
 		regexResult = memberStartRegex.exec(subString);
 		if (regexResult != null && regexResult.length > 0) {
-			
-			let item = GetSymbolByType(regexResult[1], params);
+			//connection.console.log("Result is - " + regexResult[1]);
+			let item = GetSymbolByName(regexResult[1], params);
 			if (item != null) {
-				//connection.console.log("Result is - " + regexResult[1]);
+				connection.console.log("Result is - " + regexResult[1]);
 				const symbols = symbolCache[params.textDocument.uri];
 				if (symbols == []) return documentCompletions;
 				let scopeSymbols = GetSymbolsOfScope(symbols, params.position);
@@ -160,7 +159,7 @@ connection.onCompletion((params: ls.CompletionParams, cancelToken: ls.Cancellati
 				let currentType = "";
 				scopeSymbols.forEach(item => {
 					if (item.name == regexResult[1]) {
-						//connection.console.log("Document - " + item.name + " should spawn help for " + item.type);
+						connection.console.log("Document - " + item.name + " should spawn help for " + item.type);
 						let finalSymbols = GetSymbolByName(item.type, params).GetLsChildrenItems();
 						currentType = item.type;
 						suggestions = finalSymbols;
@@ -170,8 +169,10 @@ connection.onCompletion((params: ls.CompletionParams, cancelToken: ls.Cancellati
 					if (currentType == "") currentType = regexResult[1];
 					builtinSymbols.forEach(item => {
 						if (item.name == currentType) {
-							let finalSymbols = item.GetLsChildrenItems();
-							//connection.console.log("Builtin - " + item.name + " should spawn help for " + item.type);
+							let itemInternal = GetSymbolByName(item.type,params);
+							let finalSymbols = itemInternal.GetLsChildrenItems();
+							connection.console.log("Builtin - " + itemInternal.name + " should spawn help for " + itemInternal.type);
+
 							suggestions = finalSymbols;
 						}
 					});
@@ -183,9 +184,9 @@ connection.onCompletion((params: ls.CompletionParams, cancelToken: ls.Cancellati
 		suggestions = suggestions.concat(VizSymbol.GetLanguageServerCompletionItems(symbolCache["builtin_events"]));
 		regexResult = "";
 	}
- */
+ 
 
-
+	//return documentCompletions;
 	return suggestions;
 
 });
@@ -210,7 +211,7 @@ function GetSymbolByName(name: string, params: ls.CompletionParams): VizSymbol {
 	});
 	symbols = symbolCache[params.textDocument.uri];
 	symbols = GetSymbolsOfScope(symbols, params.position);
-	//if (symbols == []) connection.console.log("No symbols found")
+	if (symbols == []) connection.console.log("No symbols found")
 	symbols.forEach(item => {
 		let childsymbols = item.children;
 		if (item.name.toLowerCase() == name.toLowerCase()) {
