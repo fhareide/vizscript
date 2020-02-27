@@ -116,7 +116,7 @@ connection.onDefinition((params: ls.TextDocumentPositionParams, cancelToken: ls.
 });
 
 let lastSuggestions: ls.CompletionItem[] = [];
-
+let lastType;
 // This handler provides the initial list of the completion items.
 connection.onCompletion((params: ls.CompletionParams, cancelToken: ls.CancellationToken): ls.CompletionItem[] => {
 	 let suggestions: ls.CompletionItem[] = [];
@@ -132,6 +132,7 @@ connection.onCompletion((params: ls.CompletionParams, cancelToken: ls.Cancellati
 
 	let start = 0;
 	let regexResult;
+	
 
 	// Gets position of last '.'
 	for (var i = params.position.character; i >= 0; i--) {
@@ -145,7 +146,8 @@ connection.onCompletion((params: ls.CompletionParams, cancelToken: ls.Cancellati
 		documentCompletions = [];
 		connection.console.log("Start is larger than 0");
 		let subString = line.substr(0, start + 1);
-		let memberStartRegex: RegExp = /[\.]?([a-zA-Z0-9\-\_]+)*[\.]$/gi;
+		let memberStartRegex: RegExp = /[\.]*([a-zA-Z0-9\-\_]+)*[\.]*$/gi;
+		memberStartRegex.lastIndex = 0;
 		regexResult = memberStartRegex.exec(subString);
 		if (regexResult != null && regexResult.length > 0) {
 			//connection.console.log("Result is - " + regexResult[1]);
@@ -160,8 +162,9 @@ connection.onCompletion((params: ls.CompletionParams, cancelToken: ls.Cancellati
 				scopeSymbols.forEach(item => {
 					if (item.name == regexResult[1]) {
 						connection.console.log("Document - " + item.name + " should spawn help for " + item.type);
-						let finalSymbols = GetSymbolByName(item.type, params).GetLsChildrenItems();
+						let finalSymbols = GetSymbolByType(item.type, params).GetLsChildrenItems();
 						currentType = item.type;
+						lastType = currentType;
 						suggestions = finalSymbols;
 					}
 				});
@@ -172,11 +175,26 @@ connection.onCompletion((params: ls.CompletionParams, cancelToken: ls.Cancellati
 							let itemInternal = GetSymbolByName(item.type,params);
 							let finalSymbols = itemInternal.GetLsChildrenItems();
 							connection.console.log("Builtin - " + itemInternal.name + " should spawn help for " + itemInternal.type);
-
+							lastType = itemInternal.type;
 							suggestions = finalSymbols;
 						}
 					});
 				}
+			}
+			else{
+				let prevItem = GetSymbolByName(lastType,params);
+				let itemChildren = prevItem.GetLsChildrenItems();
+				itemChildren.forEach(item => {
+					if (item.filterText == regexResult[1]) {
+						let itemInternal = GetSymbolByName(item.data,params);
+						let finalSymbols = itemInternal.GetLsChildrenItems();
+						lastType = itemInternal.type;
+						suggestions = finalSymbols;
+					}
+				
+				});
+
+				connection.console.log("Is null - Last type " + lastType + " This text " + regexResult[1]);
 			}
 		}
 	} else {
@@ -184,6 +202,8 @@ connection.onCompletion((params: ls.CompletionParams, cancelToken: ls.Cancellati
 		suggestions = suggestions.concat(VizSymbol.GetLanguageServerCompletionItems(symbolCache["builtin_events"]));
 		regexResult = "";
 	}
+
+	
  
 
 	//return documentCompletions;
