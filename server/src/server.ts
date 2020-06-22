@@ -111,18 +111,22 @@ connection.onSignatureHelp((params: ls.TextDocumentPositionParams,cancelToken: l
 
 connection.onDefinition((params: ls.TextDocumentPositionParams, cancelToken: ls.CancellationToken): ls.Definition => {
 
-	connection.console.log("Definition is: " + params.position.line.toString() + " " + params.position.character.toString());
+	//connection.console.log("Definition is: " + params.position.line.toString() + " " + params.position.character.toString());
 	return null;
 });
+
 
 let lastSuggestions: ls.CompletionItem[] = [];
 let lastType;
 // This handler provides the initial list of the completion items.
 connection.onCompletion((params: ls.CompletionParams, cancelToken: ls.CancellationToken): ls.CompletionItem[] => {
-	 let suggestions: ls.CompletionItem[] = [];
+	let suggestions: ls.CompletionItem[] = [];
 	let documentCompletions: ls.CompletionItem[] = [];
 
-	documentCompletions = SelectCompletionItems(params);
+
+	//documentCompletions = SelectCompletionItems(params);
+
+	
 
 	// Gets current line
 	let line: string = documents.get(params.textDocument.uri).getText(ls.Range.create(
@@ -131,20 +135,29 @@ connection.onCompletion((params: ls.CompletionParams, cancelToken: ls.Cancellati
 	);
 
 	let start = 0;
+	let startlast = 0;
 	let regexResult;
 	
 
-	// Gets position of last '.'
+	//Gets position of last '.'
+	let count = 0;
 	for (var i = params.position.character; i >= 0; i--) {
 		if (line[i] == ".") {
-			start = i;
-			i = 0;
+			
+			count++;
+			if(count == 1){
+			  start = i;
+			}else if(count == 2){
+			  startlast = i;
+              i = 0;
+			}
 		}
 	}
 
+    connection.console.log("Start last is " + startlast);
 	if (start > 0) {
 		documentCompletions = [];
-		connection.console.log("Start is larger than 0");
+		connection.console.log("Start is " + start);
 		let subString = line.substr(0, start + 1);
 		let memberStartRegex: RegExp = /[\.]*([a-zA-Z0-9\-\_]+)*[\.]*$/gi;
 		memberStartRegex.lastIndex = 0;
@@ -153,7 +166,6 @@ connection.onCompletion((params: ls.CompletionParams, cancelToken: ls.Cancellati
 			//connection.console.log("Result is - " + regexResult[1]);
 			let item = GetSymbolByName(regexResult[1], params);
 			if (item != null) {
-				connection.console.log("Result is - " + regexResult[1]);
 				const symbols = symbolCache[params.textDocument.uri];
 				if (symbols == []) return documentCompletions;
 				let scopeSymbols = GetSymbolsOfScope(symbols, params.position);
@@ -161,10 +173,9 @@ connection.onCompletion((params: ls.CompletionParams, cancelToken: ls.Cancellati
 				let currentType = "";
 				scopeSymbols.forEach(item => {
 					if (item.name == regexResult[1]) {
-						connection.console.log("Document - " + item.name + " should spawn help for " + item.type);
-						let finalSymbols = GetSymbolByType(item.type, params).GetLsChildrenItems();
+						//connection.console.log("Document - " + item.name + " should spawn help for " + item.type);
+						let finalSymbols = GetSymbolByName(item.type, params).GetLsChildrenItems();
 						currentType = item.type;
-						lastType = currentType;
 						suggestions = finalSymbols;
 					}
 				});
@@ -174,42 +185,60 @@ connection.onCompletion((params: ls.CompletionParams, cancelToken: ls.Cancellati
 						if (item.name == currentType) {
 							let itemInternal = GetSymbolByName(item.type,params);
 							let finalSymbols = itemInternal.GetLsChildrenItems();
-							connection.console.log("Builtin - " + itemInternal.name + " should spawn help for " + itemInternal.type);
-							lastType = itemInternal.type;
+							//connection.console.log("Builtin - " + itemInternal.name + " should spawn help for " + itemInternal.type);
 							suggestions = finalSymbols;
 						}
 					});
 				}
-			}
-			else{
-				let prevItem = GetSymbolByName(lastType,params);
-				let itemChildren = prevItem.GetLsChildrenItems();
-				itemChildren.forEach(item => {
-					if (item.filterText == regexResult[1]) {
-						let itemInternal = GetSymbolByName(item.data,params);
-						let finalSymbols = itemInternal.GetLsChildrenItems();
-						lastType = itemInternal.type;
-						suggestions = finalSymbols;
-					}
+			} else {
+			
+			    let missingTypeName = regexResult[1];
+			    let subString = line.substr(0, startlast + 1);
+			    let memberStartRegex: RegExp = /[\.]*([a-zA-Z0-9\-\_]+)*[\.]*$/gi;
+				memberStartRegex.lastIndex = 0;
+				regexResult = memberStartRegex.exec(subString);
+				//connection.console.log("Not found. Need to search by type - " + missingTypeName + " in children of " + regexResult[1] );
 				
-				});
-
-				connection.console.log("Is null - Last type " + lastType + " This text " + regexResult[1]);
+				let itemInternal = GetSymbolByName(regexResult[1],params);
+				if(itemInternal != null){
+					let searchSymbols = itemInternal.GetLsChildrenItems();
+					searchSymbols.forEach(item => {
+						if (item.filterText == missingTypeName) {
+							let finalSymbols = GetSymbolByName(item.data, params).GetLsChildrenItems();
+							//connection.console.log("Builtin - " + item.label + " should spawn help for " + item.data + " Found : " + finalSymbols.length);
+							suggestions = finalSymbols;
+						}
+					});
+				}
+			  
 			}
 		}
 	} else {
-		suggestions = documentCompletions.concat(SelectBuiltinCompletionItems())
-		suggestions = suggestions.concat(VizSymbol.GetLanguageServerCompletionItems(symbolCache["builtin_events"]));
-		regexResult = "";
+		let memberStartRegex: RegExp = /[ \t]+([a-zA-Z0-9\-\_\,]+)[ \t]+as[ \t]*/gi;
+		memberStartRegex.lastIndex = 0;
+		regexResult = memberStartRegex.exec(line);
+		if (regexResult != null) {
+			suggestions = suggestions.concat(SelectBuiltinCompletionItems());
+		} else {
+          if (line.length == 0){
+			suggestions = documentCompletions.concat(VizSymbol.GetLanguageServerCompletionItems(symbolCache["builtin_events"]));
+			suggestions = suggestions.concat(VizSymbol.GetLanguageServerCompletionItems(symbolCache["builtin_global"]));
+			suggestions = suggestions.concat(VizSymbol.GetLanguageServerCompletionItems(symbolCache["builtin"]));
+		  }
+		}
+		
+		//suggestions = documentCompletions.concat(VizSymbol.GetLanguageServerCompletionItems(symbolCache["builtin_events"]));
+
 	}
 
-	
- 
-
-	//return documentCompletions;
+		//return documentCompletions;
 	return suggestions;
 
 });
+
+function GetLastType(){
+
+}
 
 connection.onCompletionResolve((complItem: ls.CompletionItem): ls.CompletionItem => {
 	return complItem;
@@ -231,6 +260,7 @@ function GetSymbolByName(name: string, params: ls.CompletionParams): VizSymbol {
 	});
 	symbols = symbolCache[params.textDocument.uri];
 	symbols = GetSymbolsOfScope(symbols, params.position);
+	//connection.console.log("Symbols " + symbols.length)
 	if (symbols == []) connection.console.log("No symbols found")
 	symbols.forEach(item => {
 		let childsymbols = item.children;
@@ -484,6 +514,7 @@ function AddArrayToSet(s: Set<any>, a: any[]) {
 
 function GetBuiltinSymbols() {
 	let symbols: VizSymbol[] = [];
+	let globalsymbols: VizSymbol[] = [];
 	let startTime: number = Date.now();
 
 	data.intellisense.completions.forEach(element => {
@@ -498,7 +529,7 @@ function GetBuiltinSymbols() {
 				symbol.hint = submethod.code_hint;
 				symbol.args = submethod.description;
 				symbol.parentName = "root";
-				symbols.push(symbol);
+			    globalsymbols.push(symbol);
 			});
 		}
 		else {
@@ -540,6 +571,7 @@ function GetBuiltinSymbols() {
 	});
 
 	symbolCache["builtin"] = symbols;
+	symbolCache["builtin_global"] = globalsymbols;
 	//connection.console.info("Found " + symbols.length + " builtin symbols in " + (Date.now() - startTime) + " ms");
 }
 
@@ -568,10 +600,16 @@ function SelectBuiltinCompletionItems(): ls.CompletionItem[] {
 	return VizSymbol.GetLanguageServerCompletionItems(symbolCache["builtin"]);
 }
 
+function SelectBuiltinGlobalCompletionItems(): ls.CompletionItem[] {
+	return VizSymbol.GetLanguageServerCompletionItems(symbolCache["builtin_global"]);
+}
+
+let pendingChildren: VizSymbol[] = [];
+
 function FindSymbol(statement: LineStatement, uri: string, symbols: Set<VizSymbol>): void {
 	let newSym: VizSymbol;
 	let newSyms: VizSymbol[] = null;
-	let pendingChildren: VizSymbol[] = null;
+	
 
 	if (GetMethodStart(statement, uri)) {
 		return;
@@ -587,9 +625,10 @@ function FindSymbol(statement: LineStatement, uri: string, symbols: Set<VizSymbo
 		return;
 
 	newSym = GetStructureSymbol(statement, uri, pendingChildren);
-	pendingChildren = [];
+	
 	if (newSym != null) {
 		symbols.add(newSym);
+		pendingChildren = [];
 		return;
 	}
 
@@ -843,6 +882,7 @@ function GetVariableSymbol(statement: LineStatement, uri: string): VizSymbol[] {
 
 	let variableSymbols: VizSymbol[] = [];
 	let memberStartRegex: RegExp = /^[ \t]*dim[ \t]+([a-zA-Z0-9\-\_\,]+)[ \t]+as[ \t]+([a-zA-Z0-9\-\_\,\[\]]+).*$/gi;
+
 	let regexResult = memberStartRegex.exec(line);
 
 	if (regexResult == null || regexResult.length < 3)
@@ -945,6 +985,7 @@ function GetStructureSymbol(statement: LineStatement, uri: string, children: Viz
 	let symbol: VizSymbol = new VizSymbol();
 	symbol.kind = ls.CompletionItemKind.Struct;
 	symbol.name = openStructureName;
+	symbol.type = "Structure"
 	symbol.insertText = symbol.name;
 	symbol.nameLocation = ls.Location.create(uri,
 		ls.Range.create(openStructureStart,
@@ -953,6 +994,8 @@ function GetStructureSymbol(statement: LineStatement, uri: string, children: Viz
 	);
 	symbol.symbolRange = range;
 	symbol.children = children;
+
+	
 	//let symbol: ls.SymbolInformation = ls.SymbolInformation.create(openClassName, ls.SymbolKind.Class, range, uri);
 
 	openStructureName = null;
@@ -985,7 +1028,7 @@ connection.onDidCloseTextDocument((params) => {
 	// A text document got closed in VSCode.
 	// params.uri uniquely identifies the document.
 	symbolCache[params.textDocument.uri] = null;
-	connection.console.log(`${params.textDocument.uri} closed.`);
+	//connection.console.log(`${params.textDocument.uri} closed.`);
 });
 
 // Listen on the connection

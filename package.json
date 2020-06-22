@@ -33,12 +33,6 @@
 				"configuration": "./syntaxes/language-configuration.json"
 			}
 		],
-		"snippets": [
-			{
-				"language": "viz",
-				"path": "./syntaxes/snippets.json"
-			}
-		],
 		"grammars": [
 			{
 				"language": "viz",
