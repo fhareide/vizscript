@@ -230,17 +230,38 @@ connection.onCompletion((params: ls.CompletionParams, cancelToken: ls.Cancellati
 			}
 		}
 	} else {
-		let memberStartRegex: RegExp = /[ \t]+([a-zA-Z0-9\-\_\,]+)[ \t]+as[ \t]*/gi;
+		let memberStartRegex: RegExp =/([ \t]*as[ \t]+\S*)$(?!.*\1)/gi;
 		memberStartRegex.lastIndex = 0;
 		regexResult = memberStartRegex.exec(line);
+		let symbols = symbolCache[params.textDocument.uri];
 		if (regexResult != null) {
+			documentCompletions = [];
+			let finalSymbols = [];
+			if(symbols != []){
+				symbols.forEach(item => {
+					if (item.kind == ls.CompletionItemKind.Struct) {
+						finalSymbols.push(item);
+					}
+				});
+				documentCompletions = VizSymbol.GetLanguageServerCompletionItems(finalSymbols);
+			}
 			suggestions = documentCompletions.concat(SelectBuiltinCompletionItems());
 		} else {
-          if (line.length == 0){
-			suggestions = documentCompletions.concat(VizSymbol.GetLanguageServerCompletionItems(symbolCache["builtin_events"]));
-			suggestions = suggestions.concat(VizSymbol.GetLanguageServerCompletionItems(symbolCache["builtin_global"]));
-			suggestions = suggestions.concat(VizSymbol.GetLanguageServerCompletionItems(symbolCache["builtin"]));
-		  }
+		  	let tmpline = line.replace(/\s/g, '');
+        	if (tmpline.length == 0) {
+				documentCompletions = SelectCompletionItems(params);
+				suggestions = documentCompletions.concat(VizSymbol.GetLanguageServerCompletionItems(symbolCache["builtin_events"]));
+				suggestions = suggestions.concat(VizSymbol.GetLanguageServerCompletionItems(symbolCache["builtin_global"]));			
+				suggestions = suggestions.concat(VizSymbol.GetLanguageServerCompletionItems(symbolCache["builtin"]));
+		  	} else{
+				/* if(tmpline.length < 2){
+					const symbols = symbolCache[params.textDocument.uri];
+					let scopeSymbols = GetSymbolsOfScope(symbols, params.position);
+					suggestions = VizSymbol.GetLanguageServerCompletionItems(scopeSymbols);
+				}else{
+					suggestions = [];
+				}  */   
+			}
 		}
 		
 		//suggestions = documentCompletions.concat(VizSymbol.GetLanguageServerCompletionItems(symbolCache["builtin_events"]));
