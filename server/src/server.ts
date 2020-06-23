@@ -124,18 +124,19 @@ connection.onCompletion((params: ls.CompletionParams, cancelToken: ls.Cancellati
 	let documentCompletions: ls.CompletionItem[] = [];
 
 
-	//documentCompletions = SelectCompletionItems(params);
+	documentCompletions = SelectCompletionItems(params);
 
 	
 
-	// Gets current line
+	// Gets current liney
 	let line: string = documents.get(params.textDocument.uri).getText(ls.Range.create(
 		ls.Position.create(params.position.line, 0),
 		ls.Position.create(params.position.line, params.position.character))
 	);
 
-	let start = 0;
-	let startlast = 0;
+	let start1 = 0;
+	let start2 = 0;
+	let start3 = 0;
 	let regexResult;
 	
 
@@ -146,69 +147,97 @@ connection.onCompletion((params: ls.CompletionParams, cancelToken: ls.Cancellati
 			
 			count++;
 			if(count == 1){
-			  start = i;
+				start1 = i;
 			}else if(count == 2){
-			  startlast = i;
-              i = 0;
+				start2 = i;
+			}else if(count == 3){
+				start3 = i;
+				i = 0;
 			}
 		}
 	}
 
-    connection.console.log("Start last is " + startlast);
-	if (start > 0) {
+	if (start1 > 0) {
 		documentCompletions = [];
-		connection.console.log("Start is " + start);
-		let subString = line.substr(0, start + 1);
-		let memberStartRegex: RegExp = /[\.]*([a-zA-Z0-9\-\_]+)*[\.]*$/gi;
+		let subString = line.substr(0, start1 + 1);
+		let memberStartRegex: RegExp = /[\.]*([a-zA-Z0-9\-\_]+)*(\((.*?)\))*[\.]*$/gi;
 		memberStartRegex.lastIndex = 0;
 		regexResult = memberStartRegex.exec(subString);
 		if (regexResult != null && regexResult.length > 0) {
 			//connection.console.log("Result is - " + regexResult[1]);
 			let item = GetSymbolByName(regexResult[1], params);
 			if (item != null) {
+				suggestions = [];
+				//connection.console.log("Item parent " + item.parentName);
 				const symbols = symbolCache[params.textDocument.uri];
 				if (symbols == []) return documentCompletions;
 				let scopeSymbols = GetSymbolsOfScope(symbols, params.position);
 				const builtinSymbols = symbolCache["builtin"];
-				let currentType = "";
-				scopeSymbols.forEach(item => {
+				builtinSymbols.forEach(item => {
 					if (item.name == regexResult[1]) {
-						//connection.console.log("Document - " + item.name + " should spawn help for " + item.type);
-						let finalSymbols = GetSymbolByName(item.type, params).GetLsChildrenItems();
-						currentType = item.type;
+						let itemInternal = GetSymbolByName(item.type,params);
+						let finalSymbols = itemInternal.GetLsChildrenItems();
+						//connection.console.log("Builtin - " + itemInternal.name + " should spawn help for " + itemInternal.type);
 						suggestions = finalSymbols;
 					}
 				});
-				if (!suggestions || suggestions.length === 0) {
-					if (currentType == "") currentType = regexResult[1];
-					builtinSymbols.forEach(item => {
-						if (item.name == currentType) {
-							let itemInternal = GetSymbolByName(item.type,params);
-							let finalSymbols = itemInternal.GetLsChildrenItems();
-							//connection.console.log("Builtin - " + itemInternal.name + " should spawn help for " + itemInternal.type);
+				if (suggestions.length == 0) {
+					scopeSymbols.forEach(item => {
+						if (item.name == regexResult[1]) {
+							//connection.console.log("Document - " + item.name + " should spawn help for " + item.type);
+							let finalSymbols = GetSymbolByName(item.type, params).GetLsChildrenItems();
 							suggestions = finalSymbols;
 						}
 					});
 				}
 			} else {
-			
+				// Need to add a way to check if it should find the type from document or built in.
 			    let missingTypeName = regexResult[1];
-			    let subString = line.substr(0, startlast + 1);
-			    let memberStartRegex: RegExp = /[\.]*([a-zA-Z0-9\-\_]+)*[\.]*$/gi;
+			    let subString = line.substr(0, start2 + 1);
+			    let memberStartRegex: RegExp = /[\.]*([a-zA-Z0-9\-\_]+)*(\((.*?)\))*[\.]*$/gi;
 				memberStartRegex.lastIndex = 0;
 				regexResult = memberStartRegex.exec(subString);
 				//connection.console.log("Not found. Need to search by type - " + missingTypeName + " in children of " + regexResult[1] );
+
+				let currentType = "";
+				suggestions = [];
+			
+				suggestions = GetChildrenOfSymbolByName(regexResult[1],params,missingTypeName);
 				
-				let itemInternal = GetSymbolByName(regexResult[1],params);
-				if(itemInternal != null){
-					let searchSymbols = itemInternal.GetLsChildrenItems();
-					searchSymbols.forEach(item => {
-						if (item.filterText == missingTypeName) {
-							let finalSymbols = GetSymbolByName(item.data, params).GetLsChildrenItems();
-							//connection.console.log("Builtin - " + item.label + " should spawn help for " + item.data + " Found : " + finalSymbols.length);
-							suggestions = finalSymbols;
+				if(suggestions == null){
+					//connection.console.log("Couldn't find " + missingTypeName + " in children of " + regexResult[1] );
+
+					let newMissingName = regexResult[1];
+			    	let subString = line.substr(0, start3 + 1);
+			    	let memberStartRegex: RegExp = /[\.]*([a-zA-Z0-9\-\_]+)*(\((.*?)\))*[\.]*$/gi;
+					memberStartRegex.lastIndex = 0;
+					regexResult = memberStartRegex.exec(subString);
+					//connection.console.log("New search: Need to search by type - " + newMissingName + " in children of " + regexResult[1] );
+					
+					let children = GetChildrenOfSymbolByName(regexResult[1],params,newMissingName);
+
+					children.forEach(child => {
+						if (child.label == missingTypeName) {
+							suggestions = GetSymbolByName(child.data,params).GetLsChildrenItems();
 						}
 					});
+
+					/* const symbols = symbolCache[params.textDocument.uri];
+					let scopeSymbols = GetSymbolsOfScope(symbols, params.position);
+				
+					scopeSymbols.forEach(item => {
+						if (item.name == regexResult[1]) {
+							let searchSymbols = GetSymbolByName(item.type, params).GetLsChildrenItems();
+							searchSymbols.forEach(item => {
+								if (item.filterText == missingTypeName) {
+									let finalSymbols = GetSymbolByName(item.data, params).GetLsChildrenItems();
+									currentType = item.data;
+									connection.console.log("Document - " + item.label + " should spawn help for " + item.data + " Found : " + finalSymbols.length);
+									suggestions = finalSymbols;
+								}
+							});
+						}
+					}); */
 				}
 			  
 			}
@@ -218,7 +247,7 @@ connection.onCompletion((params: ls.CompletionParams, cancelToken: ls.Cancellati
 		memberStartRegex.lastIndex = 0;
 		regexResult = memberStartRegex.exec(line);
 		if (regexResult != null) {
-			suggestions = suggestions.concat(SelectBuiltinCompletionItems());
+			suggestions = documentCompletions.concat(SelectBuiltinCompletionItems());
 		} else {
           if (line.length == 0){
 			suggestions = documentCompletions.concat(VizSymbol.GetLanguageServerCompletionItems(symbolCache["builtin_events"]));
@@ -268,6 +297,27 @@ function GetSymbolByName(name: string, params: ls.CompletionParams): VizSymbol {
 			result = item;
 		}
 	});
+
+	return result;
+}
+
+function GetChildrenOfSymbolByName(name: string, params: ls.CompletionParams, searchname: string): ls.CompletionItem[] {
+	let result: ls.CompletionItem[] = null;
+	let itemInternal = GetSymbolByName(name,params);
+				
+	if(itemInternal != null){
+		//connection.console.log("Item parent " + itemInternal.parentName);
+		//connection.console.log("Item internal " + itemInternal.name);
+		let symbolType = GetSymbolByName(itemInternal.type,params);
+		let searchSymbols = symbolType.GetLsChildrenItems();
+		searchSymbols.forEach(item => {
+			if (item.filterText == searchname) {
+				let finalSymbols = GetSymbolByName(item.data, params).GetLsChildrenItems();
+				//connection.console.log(item.label + " should spawn help for " + item.data + " Found : " + finalSymbols.length);
+				result = finalSymbols;
+			}
+		});
+	}
 
 	return result;
 }
@@ -856,7 +906,7 @@ function GetMemberSymbol(statement: LineStatement, uri: string): VizSymbol {
 	);
 
 	let symbol: VizSymbol = new VizSymbol();
-	symbol.kind = ls.CompletionItemKind.Field;
+	symbol.kind = ls.CompletionItemKind.Variable;//ls.CompletionItemKind.Field;
 	symbol.type = type
 	symbol.name = name;
 	symbol.insertText = name;
@@ -892,7 +942,7 @@ function GetVariableSymbol(statement: LineStatement, uri: string): VizSymbol[] {
 	let variables = GetVariableNamesFromList(regexResult[1]);
 	let intendention = GetNumberOfFrontSpaces(line);
 	let nameStartIndex = line.indexOf(line);
-	let parentName: string = "";
+	let parentName: string = "root";
 	let type: string = regexResult[2]
 
 	if (openStructureName != null)
@@ -960,6 +1010,7 @@ function GetStructureStart(statement: LineStatement, uri: string): boolean {
 
 function GetStructureSymbol(statement: LineStatement, uri: string, children: VizSymbol[]): VizSymbol {
 	let line: string = statement.line;
+	let parentName: string = "root";
 
 	let classEndRegex: RegExp = /^[ \t]*end[ \t]+structure[ \t]*$/gi;
 
@@ -981,12 +1032,16 @@ function GetStructureSymbol(statement: LineStatement, uri: string, children: Viz
 		console.error("ERROR - Structure - line " + statement.startLine + " at " + statement.startCharacter + ": 'end property' expected!");
 	}
 
+	if (openStructureName != null)
+		parentName = openStructureName;
+
 	let range: ls.Range = ls.Range.create(openStructureStart, statement.GetPostitionByCharacter(regexResult[0].length))
 	let symbol: VizSymbol = new VizSymbol();
 	symbol.kind = ls.CompletionItemKind.Struct;
 	symbol.name = openStructureName;
 	symbol.type = "Structure"
 	symbol.insertText = symbol.name;
+	symbol.parentName = parentName;
 	symbol.nameLocation = ls.Location.create(uri,
 		ls.Range.create(openStructureStart,
 			ls.Position.create(openStructureStart.line, openStructureStart.character + openStructureName.length)
