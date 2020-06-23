@@ -173,22 +173,26 @@ connection.onCompletion((params: ls.CompletionParams, cancelToken: ls.Cancellati
 				if (symbols == []) return documentCompletions;
 				let scopeSymbols = GetSymbolsOfScope(symbols, params.position);
 				const builtinSymbols = symbolCache["builtin"];
-				builtinSymbols.forEach(item => {
-					if (item.name == regexResult[1]) {
-						let itemInternal = GetSymbolByName(item.type,params);
-						let finalSymbols = itemInternal.GetLsChildrenItems();
-						//connection.console.log("Builtin - " + itemInternal.name + " should spawn help for " + itemInternal.type);
-						suggestions = finalSymbols;
-					}
-				});
-				if (suggestions.length == 0) {
-					scopeSymbols.forEach(item => {
+				if (builtinSymbols != []){
+					builtinSymbols.forEach(item => {
 						if (item.name == regexResult[1]) {
-							//connection.console.log("Document - " + item.name + " should spawn help for " + item.type);
-							let finalSymbols = GetSymbolByName(item.type, params).GetLsChildrenItems();
+							let itemInternal = GetSymbolByName(item.type,params);
+							let finalSymbols = itemInternal.GetLsChildrenItems();
+							//connection.console.log("Builtin - " + itemInternal.name + " should spawn help for " + itemInternal.type);
 							suggestions = finalSymbols;
 						}
 					});
+				}
+				if (suggestions.length == 0) {
+					if(scopeSymbols != []){
+						scopeSymbols.forEach(item => {
+							if (item.name == regexResult[1]) {
+								//connection.console.log("Document - " + item.name + " should spawn help for " + item.type);
+								let finalSymbols = GetSymbolByName(item.type, params).GetLsChildrenItems();
+								suggestions = finalSymbols;
+							}
+						});
+					}
 				}
 			} else {
 				// Need to add a way to check if it should find the type from document or built in.
@@ -204,9 +208,8 @@ connection.onCompletion((params: ls.CompletionParams, cancelToken: ls.Cancellati
 			
 				suggestions = GetChildrenOfSymbolByName(regexResult[1],params,missingTypeName);
 				
-				if(suggestions == null){
+				if(suggestions == []){
 					//connection.console.log("Couldn't find " + missingTypeName + " in children of " + regexResult[1] );
-
 					let newMissingName = regexResult[1];
 			    	let subString = line.substr(0, start3 + 1);
 			    	let memberStartRegex: RegExp = /[\.]*([a-zA-Z0-9\-\_]+)*(\((.*?)\))*[\.]*$/gi;
@@ -215,29 +218,13 @@ connection.onCompletion((params: ls.CompletionParams, cancelToken: ls.Cancellati
 					//connection.console.log("New search: Need to search by type - " + newMissingName + " in children of " + regexResult[1] );
 					
 					let children = GetChildrenOfSymbolByName(regexResult[1],params,newMissingName);
-
-					children.forEach(child => {
-						if (child.label == missingTypeName) {
-							suggestions = GetSymbolByName(child.data,params).GetLsChildrenItems();
-						}
-					});
-
-					/* const symbols = symbolCache[params.textDocument.uri];
-					let scopeSymbols = GetSymbolsOfScope(symbols, params.position);
-				
-					scopeSymbols.forEach(item => {
-						if (item.name == regexResult[1]) {
-							let searchSymbols = GetSymbolByName(item.type, params).GetLsChildrenItems();
-							searchSymbols.forEach(item => {
-								if (item.filterText == missingTypeName) {
-									let finalSymbols = GetSymbolByName(item.data, params).GetLsChildrenItems();
-									currentType = item.data;
-									connection.console.log("Document - " + item.label + " should spawn help for " + item.data + " Found : " + finalSymbols.length);
-									suggestions = finalSymbols;
-								}
-							});
-						}
-					}); */
+					if (children != []){
+						children.forEach(child => {
+							if (child.label == missingTypeName) {
+								suggestions = GetSymbolByName(child.data,params).GetLsChildrenItems();
+							}
+						});
+					}
 				}
 			  
 			}
@@ -281,23 +268,26 @@ function GetSymbolsOfDocument(uri: string): ls.SymbolInformation[] {
 function GetSymbolByName(name: string, params: ls.CompletionParams): VizSymbol {
 	let symbols = symbolCache["builtin"];
 	let result: VizSymbol = null;
-	symbols.forEach(item => {
-		let childsymbols = item.children;
-		if (item.name.toLowerCase() == name.toLowerCase()) {
-			result = item;
-		}
-	});
+	if(symbols != []){
+		symbols.forEach(item => {
+			let childsymbols = item.children;
+			if (item.name.toLowerCase() == name.toLowerCase()) {
+				result = item;
+			}
+		});
+	}
 	symbols = symbolCache[params.textDocument.uri];
 	symbols = GetSymbolsOfScope(symbols, params.position);
 	//connection.console.log("Symbols " + symbols.length)
-	if (symbols == []) connection.console.log("No symbols found")
-	symbols.forEach(item => {
-		let childsymbols = item.children;
-		if (item.name.toLowerCase() == name.toLowerCase()) {
-			result = item;
-		}
-	});
-
+	if (symbols != []){
+		symbols.forEach(item => {
+			let childsymbols = item.children;
+			if (item.name.toLowerCase() == name.toLowerCase()) {
+				result = item;
+			}
+		});
+	}
+	
 	return result;
 }
 
@@ -309,14 +299,20 @@ function GetChildrenOfSymbolByName(name: string, params: ls.CompletionParams, se
 		//connection.console.log("Item parent " + itemInternal.parentName);
 		//connection.console.log("Item internal " + itemInternal.name);
 		let symbolType = GetSymbolByName(itemInternal.type,params);
-		let searchSymbols = symbolType.GetLsChildrenItems();
-		searchSymbols.forEach(item => {
-			if (item.filterText == searchname) {
-				let finalSymbols = GetSymbolByName(item.data, params).GetLsChildrenItems();
-				//connection.console.log(item.label + " should spawn help for " + item.data + " Found : " + finalSymbols.length);
-				result = finalSymbols;
+		if (symbolType != null){
+			let searchSymbols = symbolType.GetLsChildrenItems();
+			if (searchSymbols != null){
+				searchSymbols.forEach(item => {
+					if (item.filterText == searchname) {
+						let finalSymbols = GetSymbolByName(item.data, params).GetLsChildrenItems();
+						//connection.console.log(item.label + " should spawn help for " + item.data + " Found : " + finalSymbols.length);
+						result = finalSymbols;
+					}
+				});
 			}
-		});
+			
+		}
+		
 	}
 
 	return result;
