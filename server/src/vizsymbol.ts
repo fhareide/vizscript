@@ -11,6 +11,7 @@ export class VizSymbol {
 	public nameLocation: ls.Location = null;
 	public children: VizSymbol[] = [];
 	public kind: ls.CompletionItemKind;
+	public signatureHelp: ls.SignatureHelp;
 	
 	public parentName: string = "";
 

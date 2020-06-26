@@ -14,6 +14,7 @@ import { create } from 'domain';
 import { addListener } from 'cluster';
 import { WorkspaceFoldersFeature } from 'vscode-languageserver/lib/workspaceFolders';
 
+
 // Create a connection for the server. The connection uses Node's IPC as a transport
 let connection: ls.IConnection = ls.createConnection(new ls.IPCMessageReader(process), new ls.IPCMessageWriter(process));
 
@@ -39,12 +40,12 @@ connection.onInitialize((params): ls.InitializeResult => {
 		capabilities: {
 			// Tell the client that the server works in FULL text document sync mode
 			textDocumentSync: documents.syncKind,
-			//documentSymbolProvider: true,
+			documentSymbolProvider: true,
 			signatureHelpProvider: {
                 triggerCharacters: [ '(']
             },
 			// Tell the client that the server support code complete
-			//definitionProvider: true,
+			definitionProvider: true,
 			completionProvider: {
 				resolveProvider: true,
 				triggerCharacters: ['.']
@@ -59,12 +60,13 @@ const pendingValidationRequests: { [uri: string]: NodeJS.Timer } = {};
 const validationDelayMs = 500;
 
 let LastType: string = "";
+let documentUri: string;
 
 // The content of a text document has changed. This event is emitted
 // when the text document first opened or when its content has changed.
 documents.onDidChangeContent((change: ls.TextDocumentChangeEvent) => {
 	//connection.console.log("Document changed. version: " + change.document.version.toString());
-	//RefreshDocumentsSymbols(change.document.uri);
+	documentUri = change.document.uri;
 	triggerValidation(change.document);
 });
 
@@ -100,9 +102,62 @@ connection.onHover(({ textDocument, position }): ls.Hover => {
 		ls.Position.create(position.line, 50000))
 	);
 
+	if (line.length < 2)return;
 
-	return {contents: line};
+	let word = getWordAt(line, position.character);
+
+	var paramStrings = line.split(word);
+	var newline = paramStrings[0] + word;
+
+	let memberStartRegex: RegExp = /[\.]?([^\.\ ]+)[\.]+/gi;
+
+	let matches = [];
+	let regexResult = [];
+
+	let noOfMatches = 0;
+
+	while (matches = memberStartRegex.exec(newline)) {
+		let tmpline = matches[1].replace(/\([^()]*\)/g, '')
+		regexResult.push(tmpline);   
+	}
+	noOfMatches = regexResult.length;
+
+
+	let item = null;
+	if(noOfMatches == 0){
+		item = GetSymbolByName(word,position);
+	} else{
+		item = GetItemForSignature(word,noOfMatches,regexResult,position);
+	}
+	
+	if(item == null) return null;
+	let returnText = "";
+	returnText = item.hint;
+	if(returnText == ""){
+		returnText = item.type; 
+	} 
+
+	return {contents: returnText};
 });
+
+function getWordAt (str, pos) {
+
+    // Perform type conversions.
+    str = String(str);
+
+    // Search for the word's beginning and end.
+    var left = str.slice(0, pos + 1).search(/[a-zA-Z0-9\-\_]+$/),
+        right = str.slice(pos).search(/[\s\.\(\)]/);
+
+    // The last word in the string is a special case.
+    if (right < 0) {
+        return str.slice(left);
+    }
+
+    // Return the word, using the located bounds to extract it from the string.
+    return str.slice(left, right + pos);
+
+}
 
 connection.onSignatureHelp((params: ls.TextDocumentPositionParams,cancelToken: ls.CancellationToken) : ls.SignatureHelp => {
 	let line: string = documents.get(params.textDocument.uri).getText(ls.Range.create(
@@ -116,6 +171,7 @@ connection.onSignatureHelp((params: ls.TextDocumentPositionParams,cancelToken: l
 
 	let matches = [];
 	let regexResult = [];
+	
 	let noOfMatches = 0;
 
 	while (matches = memberStartRegex.exec(line)) {
@@ -124,25 +180,100 @@ connection.onSignatureHelp((params: ls.TextDocumentPositionParams,cancelToken: l
 	}
 	noOfMatches = regexResult.length;
 
-	let item = GetItemDefinition(regexResult[noOfMatches-1],noOfMatches,regexResult,params);
+	let regexResult2 = [];
+	
+	let noOfCommas = 0;
 
-	let signature: ls.SignatureInformation[] = [];
-
-	if (item != null) {
-		//connection.console.log("Should return signature help for :" + item.name + " " + item.hint);
-		signature.push(ls.SignatureInformation.create(item.hint,item.args));
+	matches = [];
+	memberStartRegex = /([,]+)/gi;
+	while (matches = memberStartRegex.exec(line)) {
+		regexResult2.push(matches[1]);   
 	}
+	noOfCommas = regexResult2.length;
 
-	return {signatures: signature, activeParameter: 0,activeSignature: 0};
+	let item = GetItemForSignature(regexResult[noOfMatches-1],noOfMatches,regexResult,params.position);
+
+	if(item == null) return null;
+	let signHelp = item.signatureHelp;
+	if(signHelp == null) return null;
+	signHelp.activeParameter = noOfCommas;
+
+	return signHelp;
     
 });
 
+function GenerateSignatureHelp(hint: string, documentation: string): ls.SignatureHelp {
+	let regexResult = [];
+	let regexResult3 = [];
+	//let memberStartRegex: RegExp = /^[ \t]*(function|sub|Function|Sub)+[ \t]+([a-zA-Z0-9\-\_]+)+[ \t]*(\(([a-zA-Z0-9\[\]\_\-, \t(\(\))]*)\))+[ \t]*(as|As)?[ \t]*([a-zA-Z0-9\-\_]*)?[ \t]*$/gi;
+	let memberStartRegex: RegExp = /^([^.]*)\((.*?)\)([^.]*)$/gi;
+	
+	if(hint == "")return null;
+	regexResult3 = memberStartRegex.exec(hint);
+	//connection.console.info("Hint length: " + regexResult3.length);
+	if (regexResult3.length < 4) return null;
+
+	//connection.console.info("Hint: " + regexResult3[1]);
+
+	
+	let signature: ls.SignatureInformation = {
+		label: '',
+		documentation: undefined,
+		parameters: []
+	};
+
+	let signHelp: ls.SignatureHelp = {
+		signatures: [],
+		activeParameter: 0,
+		activeSignature: 0
+	}
+	
+	var paramStrings = regexResult3[2].split(',');
+
+	signature.label += regexResult3[1] +"(";
+
+	for (var i = 0; i < paramStrings.length; i++) {
+		let label = paramStrings[i].trim();
+
+		let parameter: ls.ParameterInformation = {
+			label: label,
+			documentation: ""
+		};
+		signature.label += label;
+		signature.parameters!.push(parameter);
+		if (i < paramStrings.length - 1) {
+			signature.label += ",";
+		}
+	}
+
+	signature.label += ")" + regexResult3[3];
+	signHelp.signatures.push(signature);
+
+	return signHelp;
+}
+
 connection.onDefinition((params: ls.TextDocumentPositionParams, cancelToken: ls.CancellationToken): ls.Definition => {
+	let line: string = documents.get(params.textDocument.uri).getText(ls.Range.create(
+		ls.Position.create(params.position.line, 0),
+		ls.Position.create(params.position.line, 50000))
+	);
 
-	//connection.console.log("Definition is: " + params.position.line.toString() + " " + params.position.character.toString());
-	return null;
+	if (line.length < 2)return;
+
+	let word = getWordAt(line, params.position.character);
+
+	let item = GetSymbolByName(word,params.position);
+	if(item == null)return null;
+	if(item.symbolRange == null)return null;
+	if(PositionInRange(item.symbolRange, params.position))return null;
+
+	let DefinitionItem: ls.Definition = {
+		range: item.symbolRange,
+		uri: params.textDocument.uri
+	}
+
+	return DefinitionItem;
 });
-
 
 // This handler provides the initial list of the completion items.
 connection.onCompletion((params: ls.CompletionParams, cancelToken: ls.CancellationToken): ls.CompletionItem[] => {
@@ -174,7 +305,7 @@ connection.onCompletion((params: ls.CompletionParams, cancelToken: ls.Cancellati
 		
 		if (regexResult != null && regexResult.length > 0) {
 			//connection.console.log("Result is - " + regexResult[1]);
-			let item = GetItemType(regexResult[noOfMatches-1],noOfMatches,regexResult,params);
+			let item = GetItemType(regexResult[noOfMatches-1],noOfMatches,regexResult,params.position);
 			if (item != null) {
 				suggestions = [];
 				suggestions = item.GetLsChildrenItems();;
@@ -202,20 +333,16 @@ connection.onCompletion((params: ls.CompletionParams, cancelToken: ls.Cancellati
 			suggestions = documentCompletions.concat(SelectBuiltinCompletionItems());
 		} else {
 		  	let tmpline = line.replace(/\s/g, '');
-        	if (tmpline.length == 0) {
+        	if (tmpline.length < 4) {
 				documentCompletions = SelectCompletionItems(params);
-				suggestions = documentCompletions.concat(VizSymbol.GetLanguageServerCompletionItems(symbolCache["builtin_events"]));
-				suggestions = suggestions.concat(VizSymbol.GetLanguageServerCompletionItems(symbolCache["builtin_global"]));			
-				suggestions = suggestions.concat(VizSymbol.GetLanguageServerCompletionItems(symbolCache["builtin"]));
-		  	} else{
-				/* if(tmpline.length < 2){
-					const symbols = symbolCache[params.textDocument.uri];
-					let scopeSymbols = GetSymbolsOfScope(symbols, params.position);
-					suggestions = VizSymbol.GetLanguageServerCompletionItems(scopeSymbols);
-				}else{
-					suggestions = [];
-				}  */   
+				suggestions = documentCompletions.concat(SelectBuiltinEventCompletionItems());
+				suggestions = suggestions.concat(SelectBuiltinGlobalCompletionItems());			
+				suggestions = suggestions.concat(SelectBuiltinCompletionItems());
+			} else {
+				documentCompletions = SelectCompletionItems(params);
+				suggestions = documentCompletions;
 			}
+		
 		}
 
 
@@ -225,17 +352,16 @@ connection.onCompletion((params: ls.CompletionParams, cancelToken: ls.Cancellati
 
 });
 
-function GetItemType(name: string, currentIdx: number,regexResult: any[],params: ls.CompletionParams): VizSymbol {
+function GetItemType(name: string, currentIdx: number,regexResult: any[],position: ls.Position): VizSymbol {
 	let children: VizSymbol[] = null;
 	let item: VizSymbol = null;
 	for (var i = 0; i < currentIdx; i++) {
-		
 		if(children == null){
-			item = GetSymbolByName(regexResult[i], params);
+			item = GetSymbolByName(regexResult[i], position);
 			if(item != null){
 				children = item.children;
 				if(children.length < 1){
-					let innerItem = GetSymbolByName(item.type, params);
+					let innerItem = GetSymbolByName(item.type, position);
 					if(innerItem != null){
 						children = innerItem.children;
 						item = innerItem;
@@ -246,7 +372,7 @@ function GetItemType(name: string, currentIdx: number,regexResult: any[],params:
 		}else{
 			let outerItem = GetSymbolInScope(regexResult[i],children);
 			if(outerItem != null){		
-				item = GetSymbolByName(outerItem.type, params);
+				item = GetSymbolByName(outerItem.type, position);
 				if(item != null){	
 					children = item.children;	
 				}else{
@@ -261,17 +387,17 @@ function GetItemType(name: string, currentIdx: number,regexResult: any[],params:
 	return item;	
 }
 
-function GetItemDefinition(name: string, currentIdx: number,regexResult: any[],params: ls.CompletionParams): VizSymbol {
+function GetItemForSignature(name: string, currentIdx: number,regexResult: any[],position: ls.Position): VizSymbol {
 	let children: VizSymbol[] = null;
 	let item: VizSymbol = null;
 	for (var i = 0; i < currentIdx; i++) {
 		
 		if(children == null){
-			item = GetSymbolByName(regexResult[i], params);
+			item = GetSymbolByName(regexResult[i], position);
 			if(item != null){
 				children = item.children;
-				if(children.length < 1){
-					let innerItem = GetSymbolByName(item.type, params);
+				if((children.length < 1) && (item.parentName != "global") && (item.parentName != "event")) {
+					let innerItem = GetSymbolByName(item.type, position);
 					if(innerItem != null){
 						children = innerItem.children;
 						item = innerItem;
@@ -282,7 +408,7 @@ function GetItemDefinition(name: string, currentIdx: number,regexResult: any[],p
 		}else{
 			let outerItem = GetSymbolInScope(regexResult[i],children);
 			if(outerItem != null){		
-				item = GetSymbolByName(outerItem.type, params);
+				item = GetSymbolByName(outerItem.type, position);
 				if(item != null){	
 					children = item.children;	
 				}else{
@@ -308,9 +434,28 @@ function GetSymbolsOfDocument(uri: string): ls.SymbolInformation[] {
 	return VizSymbol.GetLanguageServerSymbols(symbolCache[uri]);
 }
 
-function GetSymbolByName(name: string, params: ls.CompletionParams): VizSymbol {
+function GetSymbolByName(name: string, position: ls.Position): VizSymbol {
 	if(name == undefined) return null;
+	let regexResult;
+	let memberStartRegex: RegExp =/array[\ ]*\[(.*?)\]/gi; // Remove array[]
+	memberStartRegex.lastIndex = 0;
+	regexResult = memberStartRegex.exec(name);
+	if(regexResult != null){
+		name = regexResult[1];
+	}
+	regexResult = null;
+	memberStartRegex =/([^.]*)\[(.*?)\]/gi; // Remove [] from arrays
+	memberStartRegex.lastIndex = 0;
+	regexResult = memberStartRegex.exec(name);
+	if(regexResult != null){
+		name = regexResult[1];
+	}
+
 	let symbols = symbolCache["builtin"];
+	let globalsymbols = symbolCache["builtin_global"];
+	let globalevents = symbolCache["builtin_events"];
+	symbols = symbols.concat(globalsymbols);
+	symbols = symbols.concat(globalevents);
 	let result: VizSymbol = null;
 	if(symbols != []){
 		symbols.forEach(item => {		
@@ -323,8 +468,8 @@ function GetSymbolByName(name: string, params: ls.CompletionParams): VizSymbol {
 		});
 	}
 
-	symbols = symbolCache[params.textDocument.uri];
-	symbols = GetSymbolsOfScope(symbols, params.position);
+	symbols = symbolCache[documentUri];
+	symbols = GetSymbolsOfScope(symbols, position);
 	//connection.console.log("Symbols " + symbols.length)
 	if (symbols != []){
 		symbols.forEach(item => {
@@ -339,33 +484,6 @@ function GetSymbolByName(name: string, params: ls.CompletionParams): VizSymbol {
 	return result;
 }
 
-function GetChildrenOfSymbolByName(name: string, params: ls.CompletionParams, searchname: string): ls.CompletionItem[] {
-	let result: ls.CompletionItem[] = null;
-	let itemInternal = GetSymbolByName(name,params);
-				
-	if(itemInternal != null){
-		//connection.console.log("Item parent " + itemInternal.parentName);
-		//connection.console.log("Item internal " + itemInternal.name);
-		let symbolType = GetSymbolByName(itemInternal.type,params);
-		if (symbolType != null){
-			let searchSymbols = symbolType.GetLsChildrenItems();
-			if (searchSymbols != null){
-				searchSymbols.forEach(item => {
-					if (item.filterText == searchname) {
-						let finalSymbols = GetSymbolByName(item.data, params).GetLsChildrenItems();
-						//connection.console.log(item.label + " should spawn help for " + item.data + " Found : " + finalSymbols.length);
-						result = finalSymbols;
-					}
-				});
-			}
-			
-		}
-		
-	}
-
-	return result;
-}
-
 function GetSymbolInScope(name: string, items: VizSymbol[] ): VizSymbol {
 	let symbols = items;
 	let result: VizSymbol = null;
@@ -376,25 +494,6 @@ function GetSymbolInScope(name: string, items: VizSymbol[] ): VizSymbol {
 	});
 
 	return result;
-}
-
-function DisplayDiagnostics(uri: string, openMethod: OpenMethod): void {
-	let diagnostics: ls.Diagnostic[] = [];
-
-	let diagnostic: ls.Diagnostic = {
-		severity: ls.DiagnosticSeverity.Error,
-		range: openMethod.nameLocation.range,
-		message: `${openMethod.name} is missing 'end sub'.`,
-		source: 'vizsub Ts'
-	};
-	diagnostics.push(diagnostic);
-
-	connection.sendDiagnostics({ uri, diagnostics });
-}
-
-function ClearDiagnostics(uri: string) {
-	let diagnostics: ls.Diagnostic[] = [];
-	connection.sendDiagnostics({ uri, diagnostics });
 }
 
 function SelectCompletionItems(textDocumentPosition: ls.TextDocumentPositionParams): ls.CompletionItem[] {
@@ -603,7 +702,8 @@ function GetBuiltinSymbols() {
 				symbol.insertText = submethod.name;
 				symbol.hint = submethod.code_hint;
 				symbol.args = submethod.description;
-				symbol.parentName = "root";
+				symbol.parentName = "global";
+				symbol.signatureHelp = GenerateSignatureHelp(symbol.hint, symbol.args);
 			    globalsymbols.push(symbol);
 			});
 		}
@@ -616,6 +716,7 @@ function GetBuiltinSymbols() {
 			symbol.type = element.name;
 			symbol.args = element.descripton;
 			symbol.hint = "";
+			symbol.signatureHelp = null;
 			symbols.push(symbol);
 
 			element.methods.forEach(submethod => {
@@ -625,12 +726,9 @@ function GetBuiltinSymbols() {
 				subSymbol.insertText = submethod.name;
 				subSymbol.hint = submethod.code_hint;
 				subSymbol.args = submethod.description;
-				if (submethod.code_hint.startsWith("\"Function")){
-					subSymbol.kind = ls.CompletionItemKind.Function;
-				} 
-				else if (submethod.code_hint.startsWith("\"Sub")){
-					subSymbol.kind = ls.CompletionItemKind.Method;
-				}
+				if (submethod.code_hint.startsWith("\"Function")) subSymbol.kind = ls.CompletionItemKind.Function;
+				else if (submethod.code_hint.startsWith("\"Sub")) subSymbol.kind = ls.CompletionItemKind.Method;
+				subSymbol.signatureHelp = GenerateSignatureHelp(subSymbol.hint, subSymbol.args);
 				subSymbol.parentName = element.name;
 				symbol.children.push(subSymbol);
 			});
@@ -667,7 +765,9 @@ function GetVizEvents() {
 		symbol.insertText = event.name;
 		symbol.hint = event.code_hint;
 		symbol.args = event.description;
-		symbol.parentName = "root";
+		symbol.kind = ls.CompletionItemKind.Variable;
+		symbol.signatureHelp = GenerateSignatureHelp(symbol.hint, symbol.args);
+		symbol.parentName = "event";
 		symbols.push(symbol);
 	});
 
@@ -681,6 +781,10 @@ function SelectBuiltinCompletionItems(): ls.CompletionItem[] {
 
 function SelectBuiltinGlobalCompletionItems(): ls.CompletionItem[] {
 	return VizSymbol.GetLanguageServerCompletionItems(symbolCache["builtin_global"]);
+}
+
+function SelectBuiltinEventCompletionItems(): ls.CompletionItem[] {
+	return VizSymbol.GetLanguageServerCompletionItems(symbolCache["builtin_events"]);
 }
 
 let pendingChildren: VizSymbol[] = [];
@@ -767,7 +871,7 @@ function GetMethodStart(statement: LineStatement, uri: string): boolean {
 			type: regexResult[1],
 			name: regexResult[2],
 			argsIndex: preLength + 1, // opening bracket
-			args: regexResult[4],
+			args: "",
 			hint: line,
 			startPosition: statement.GetPostitionByCharacter(leadingSpaces),
 			nameLocation: ls.Location.create(uri, ls.Range.create(
@@ -781,11 +885,6 @@ function GetMethodStart(statement: LineStatement, uri: string): boolean {
 			openMethod.args = "";
 
 		return true;
-	} else {
-		// ERROR!!! I expected "end function|sub"!
-
-		DisplayDiagnostics(uri, openMethod);
-		//console.error("ERROR - line " + statement.startLine + " at " + statement.startCharacter + ": 'end " + openMethod.type + "' expected!");
 	}
 
 	return false;
@@ -820,21 +919,22 @@ function GetMethodSymbol(statement: LineStatement, uri: string): VizSymbol[] {
 	let range: ls.Range = ls.Range.create(openMethod.startPosition, statement.GetPostitionByCharacter(GetNumberOfFrontSpaces(line) + regexResult[0].trim().length))
 
 	let symbol: VizSymbol = new VizSymbol();
-	symbol.kind = ls.CompletionItemKind.Method;
+	if(type == "function")symbol.kind = ls.CompletionItemKind.Function;
+	if(type == "sub")symbol.kind = ls.CompletionItemKind.Method;
 	symbol.type = openMethod.type;
 	symbol.name = openMethod.name;
 	symbol.hint = openMethod.hint;
 	symbol.insertText = openMethod.name;
 	symbol.args = openMethod.args;
 	symbol.nameLocation = openMethod.nameLocation;
-	symbol.parentName = openStructureName;
+	symbol.parentName = openMethod.name;
+	symbol.signatureHelp = GenerateSignatureHelp(symbol.hint, symbol.args);
 	symbol.symbolRange = range;
 
 	let parametersSymbol = [];
 	parametersSymbol = GetParameterSymbols(openMethod.name, openMethod.args, openMethod.argsIndex, openMethod.statement, uri);
 
 	openMethod = null;
-	ClearDiagnostics(uri);
 	//return [symbol];
 	return parametersSymbol.concat(symbol);
 }
@@ -915,7 +1015,6 @@ class OpenProperty {
 
 let openProperty: OpenProperty = null;
 
-
 function GetMemberSymbol(statement: LineStatement, uri: string): VizSymbol {
 
 	if (openStructureName == null)//No structure is open. There can't be any members of nothing.
@@ -956,7 +1055,6 @@ function GetMemberSymbol(statement: LineStatement, uri: string): VizSymbol {
 
 	return symbol;
 }
-
 
 function GetVariableNamesFromList(vars: string): string[] {
 	return vars.split(',').map(function (s) { return s.trim(); });
@@ -1000,6 +1098,7 @@ function GetVariableSymbol(statement: LineStatement, uri: string): VizSymbol[] {
 		symbol.insertText = varName;
 		symbol.type = type;
 		symbol.args = "";
+		symbol.kind = ls.CompletionItemKind.Variable;
 		symbol.nameLocation = ls.Location.create(uri,
 			GetNameRange(statement, varName)
 		);
@@ -1099,26 +1198,6 @@ function GetStructureSymbol(statement: LineStatement, uri: string, children: Viz
 	return symbol;
 }
 
-
-
-/*
-connection.onDidOpenTextDocument((params) => {
-	// A text document got opened in VSCode.
-	// params.uri uniquely identifies the document. For documents store on disk this is a file URI.
-	// params.text the initial full content of the document.
-	connection.console.log("created!");
-	//RefreshDocumentsSymbols(params.textDocument.uri);
-	//connection.console.log(`${params.textDocument.uri} opened.`);
-});5
-connection.onDidChangeTextDocument((params) => {
-	// The content of a text document did change in VSCode.
-	// params.uri uniquely identifies the document.
-	// params.contentChanges describe the content changes to the document.
-	//RefreshDocumentsSymbols(params.textDocument.uri);
-	connection.console.log(`${params.textDocument.uri} changed: ${JSON.stringify(params.contentChanges)}`);
-});
-
-*/
 connection.onDidCloseTextDocument((params) => {
 	// A text document got closed in VSCode.
 	// params.uri uniquely identifies the document.
@@ -1128,3 +1207,23 @@ connection.onDidCloseTextDocument((params) => {
 
 // Listen on the connection
 connection.listen();
+
+
+/* function DisplayDiagnostics(uri: string, openMethod: OpenMethod): void {
+	let diagnostics: ls.Diagnostic[] = [];
+
+	let diagnostic: ls.Diagnostic = {
+		severity: ls.DiagnosticSeverity.Error,
+		range: openMethod.nameLocation.range,
+		message: `${openMethod.name} is missing 'end sub'.`,
+		source: 'vizsub Ts'
+	};
+	diagnostics.push(diagnostic);
+
+	connection.sendDiagnostics({ uri, diagnostics });
+}
+
+function ClearDiagnostics(uri: string) {
+	let diagnostics: ls.Diagnostic[] = [];
+	connection.sendDiagnostics({ uri, diagnostics });
+} */
