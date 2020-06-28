@@ -118,7 +118,6 @@ function getDocumentSettings(resource: string): Thenable<VizScriptSettings> {
 let settings;
 
 async function validateTextDocument(textDocument: TextDocument): Promise<void> {
-	// In this simple example we get the settings for every validate run.
 	settings = await getDocumentSettings(textDocument.uri);
 
 	//connection.console.log("NoOfProblems: " + settings.maxNumberOfProblems);
@@ -231,43 +230,39 @@ connection.onSignatureHelp((params: ls.SignatureHelpParams,cancelToken: ls.Cance
 	if (line.length < 2)return;
 	let regexResult = [];
 
-	let memberStartRegex: RegExp = /^[ \t]*(function|sub)+[ \t]+([a-zA-Z0-9\-\_]+)+[ \t]*(\(([a-zA-Z0-9\[\]\_\-, \t(\(\))]*)\))+[ \t]*(as)?[ \t]*([a-zA-Z0-9\-\_]*)?[ \t]*$/gi;
+	let signatureRegex: RegExp = /^[ \t]*(function|sub)+[ \t]+([a-zA-Z0-9\-\_]+)+[ \t]*(\(([a-zA-Z0-9\[\]\_\-, \t(\(\))]*)\))+[ \t]*(as)?[ \t]*([a-zA-Z0-9\-\_]*)?[ \t]*$/gi;
 
-	regexResult = memberStartRegex.exec(line);
-	if (regexResult != null) return null;
+	regexResult = signatureRegex.exec(line);
+	if (regexResult != null) return null; //Return here since we don't want to provide signatureHelp while writing a function or sub.
 	
 	if(params.context.activeSignatureHelp != undefined){
 		activeSignature = params.context.activeSignatureHelp.activeSignature;
 	}
 
-	memberStartRegex = /[\.]?([^\.\ ]+)[\.\(]+/gi;
+	signatureRegex = /[\.]?([^\.\ ]+)[\.\(]+/gi; // Get signature parts
 
 	let matches = [];
 	regexResult = [];
 	
 	let noOfMatches = 0;
 
-	while (matches = memberStartRegex.exec(line)) {
-		let tmpline = matches[1].replace(/\([^()]*\)/g, '')
+	while (matches = signatureRegex.exec(line)) {
+		let tmpline = matches[1].replace(/\([^()]*\)/g, '') // Remove parantheses
 		regexResult.push(tmpline);   
 	}
 	noOfMatches = regexResult.length;
 
-	let regexResult2 = [];
-	
-	let noOfCommas = 0;
-
-
 	matches = [];
-	memberStartRegex = /([,]+)/gi;
-	while (matches = memberStartRegex.exec(line)) {
+	let regexResult2 = [];
+	let noOfCommas = 0;
+	
+	signatureRegex = /([,]+)/gi; // Split on commas
+	while (matches = signatureRegex.exec(line)) {
 		regexResult2.push(matches[1]);   
 	}
 	noOfCommas = regexResult2.length;
 
 	let item = GetItemForSignature(regexResult[noOfMatches-1],noOfMatches,regexResult,params.position);
-
-	
 
 	if(item == null) return null;
 	let signature = item.signatureInfo;
@@ -289,8 +284,6 @@ connection.onSignatureHelp((params: ls.SignatureHelpParams,cancelToken: ls.Cance
     
 });
 
-
-
 function GenerateSignatureHelp(hint: string, documentation: string): ls.SignatureInformation {
 	let regexResult3 = [];
 
@@ -302,7 +295,6 @@ function GenerateSignatureHelp(hint: string, documentation: string): ls.Signatur
 	if (regexResult3.length < 4) return null;
 
 	//connection.console.info("Hint: " + regexResult3[1]);
-
 	
 	let signature: ls.SignatureInformation = {
 		label: '',
@@ -356,7 +348,6 @@ connection.onDefinition((params: ls.TextDocumentPositionParams, cancelToken: ls.
 	return DefinitionItem;
 });
 
-// This handler provides the initial list of the completion items.
 connection.onCompletion((params: ls.CompletionParams, cancelToken: ls.CancellationToken): ls.CompletionItem[] => {
 	let suggestions: ls.CompletionItem[] = [];
 	let documentCompletions: ls.CompletionItem[] = [];
@@ -968,7 +959,7 @@ function GetMethodStart(statement: LineStatement, uri: string): boolean {
 			type: regexResult[1],
 			name: regexResult[2],
 			argsIndex: preLength + 1, // opening bracket
-			args: "",
+			args: regexResult[4],
 			hint: line,
 			startPosition: statement.GetPostitionByCharacter(leadingSpaces),
 			nameLocation: ls.Location.create(uri, ls.Range.create(
