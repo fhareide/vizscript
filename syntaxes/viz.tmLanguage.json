@@ -1,7 +1,8 @@
 {
-	"comment": "Based on language-vb by Gorea235, extended to include Viz script by James Watton",
+	"comment": "Based on language-vb by Gorea235, extended to include Viz script by James Watton and further improved and extended by fhareide",
 	"fileTypes": [
 		"vs",
+		"viz",
 		"v3script"
 	  ],
 	"foldingStartMarker": "^(?i:(sub\\s+|function\\s+).*$)\\n?",
@@ -56,7 +57,7 @@
 	  },
 	  {
 		"name": "meta.function.viz",
-		"match": "^\\s*((?i:function|sub))\\s*([a-zA-Z_]\\w*)\\s*(\\()([^)]*)(\\))[ \\t]+(as)[ \\t]+([a-zA-Z\\[\\]_]\\w*)[ \\t]*('.*$)\\n?",
+		"match": "^\\s*((?i:function|sub))\\s*([a-zA-Z_]\\w*)\\s*(\\()([^)]*)(\\))[ \\t]*(as)?[ \\t]*([a-zA-Z\\[\\]_]\\w*)?[ \\t]*('.*$)?\\n?",
   
 		"captures": {
 		  "1": {
@@ -73,7 +74,7 @@
 			"patterns": [
 				{
 				  "name": "storage.type.viz",
-				  "match": "(?i:\\s*\\b(Alpha|Base|BezierHandle|Camera|Center|Channel|ClipChannel|Color|Container|DateTime|Director|Expert|Geometry|Gesture|GestureRecognizer|Procedures|Grid|Image|InfoText|Key|Keyframe|Light|Material|Matrix|PluginInstance|Position|Rotation|Scaling|Scene|Script|ScriptSettings|SharedMemory|Stage|StringMap|System|Texture|Timecode|Touch|Trace|Uuid|Variant|Vertex|VizCommunication|Array|Boolean|Byte|Char|Date|Decimal|Double|Integer|Long|Object|Println|SByte|Short|Single|String|StringMap|UInteger|ULong|UShort)\\b)"
+				  "match": "(?i:\\s*\\b(Alpha|Array|AVChannel|Base|BezierHandle|Boolean|Camera|Center|Channel|ClipChannel|Color|Container|DateTime|Director|Double|Eventpool|Expert|Geometry|Gesture|GestureRecognizer|GfxChannel|Glow|Grid|HDR|Image|ImageChannel|InfoText|Integer|Key|Keyframe|Light|LiveChannel|Material|Matrix|PluginInstance|Position|ProxyChannel|Rotation|Scaling|Scene|Script|ScriptSettings|SharedMemory|Stage|String|StringMap|SuperChannel|System|Texture|Timecode|Touch|Trace|Uuid|Variant|Vertex|VizCommunication|Byte|Char|Date|Println)\\b)"
 				},
 				{
 				  "name": "keyword.control.viz",
@@ -147,11 +148,7 @@
 		"name": "storage.type.viz"
 	  },
 	  {
-		"match": "(?i:\\s*\\b(Array|Boolean|Byte|Char|Date|Decimal|Double|Integer|Long|Object|Println|SByte|Short|Single|String|UInteger|ULong|UShort)\\b\\s*)",
-		"name": "storage.type.viz"
-	  },
-	  {
-		"match": "(?i:\\s*\\b(Alpha|Base|BezierHandle|Camera|Center|Channel|ClipChannel|Color|Container|DateTime|Director|Expert|Geometry|Gesture|GestureRecognizer|Procedures|Grid|Image|InfoText|Key|Keyframe|Light|Material|Matrix|PluginInstance|Position|Rotation|Scaling|Scene|Script|ScriptSettings|SharedMemory|Stage|StringMap|System|Texture|Timecode|Touch|Trace|Uuid|Variant|Vertex|VizCommunication)\\b\\s*)",
+		"match": "(?i:\\s*\\b(Alpha|Array|AVChannel|Base|BezierHandle|Boolean|Camera|Center|Channel|ClipChannel|Color|Container|DateTime|Director|Double|Eventpool|Expert|Geometry|Gesture|GestureRecognizer|GfxChannel|Glow|Grid|HDR|Image|ImageChannel|InfoText|Integer|Key|Keyframe|Light|LiveChannel|Material|Matrix|PluginInstance|Position|ProxyChannel|Rotation|Scaling|Scene|Script|ScriptSettings|SharedMemory|Stage|String|StringMap|SuperChannel|System|Texture|Timecode|Touch|Trace|Uuid|Variant|Vertex|VizCommunication|Byte|Char|Date|Println)\\b\\s*)",
 		"name": "storage.type.viz"
 	  },
 	  {

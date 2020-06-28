@@ -10,7 +10,8 @@ import {
 	LanguageClient,
 	LanguageClientOptions,
 	ServerOptions,
-	TransportKind
+	TransportKind,
+	ClientCapabilities
 } from 'vscode-languageclient';
 
 let client: LanguageClient;
@@ -35,6 +36,7 @@ export function activate(context: ExtensionContext) {
 		}
 	};
 
+
 	// Options to control the language client
 	let clientOptions: LanguageClientOptions = {
 		// Register the server for viz documents
@@ -42,7 +44,7 @@ export function activate(context: ExtensionContext) {
 		synchronize: {
 			// Notify the server about file changes to '.clientrc files contained in the workspace
 			fileEvents: workspace.createFileSystemWatcher('**/.clientrc')
-		}
+		},
 	};
 
 	// Create the language client and start the client.

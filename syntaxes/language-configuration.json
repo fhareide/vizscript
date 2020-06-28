@@ -7,15 +7,12 @@
     },
     // symbols used as brackets
     "brackets": [
-    //    ["sub", "end sub"],
-    //    ["function", "end function"],
-    //    ["structure", "end structure"],
         ["[", "]"],
         ["(", ")"]
     ],
     // symbols that are auto closed when typing
     //"autoClosingPairs": [
-    //    ["{", "}"],
+    //   ["{", "}"],
     //    ["[", "]"],
     //    ["(", ")"],
     //    ["\"", "\""],

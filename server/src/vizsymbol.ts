@@ -9,9 +9,11 @@ export class VizSymbol {
 	public insertText: string = "";
 	public symbolRange: ls.Range = null;
 	public nameLocation: ls.Location = null;
+	public noOfOverloads: number = 0;
+	public overloads: VizSymbol[] = [];
 	public children: VizSymbol[] = [];
 	public kind: ls.CompletionItemKind;
-	public signatureHelp: ls.SignatureHelp;
+	public signatureInfo: ls.SignatureInformation;
 	
 	public parentName: string = "";
 

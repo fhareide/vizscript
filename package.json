@@ -1,17 +1,21 @@
 {
 	"name": "vizscript",
 	"displayName": "Viz Script",
-	"description": "Language syntax highlighting, snippets and autocomplete for Viz Script",
+	"description": "Language syntax highlighting, autocomplete, signature help and jump to definition for Viz Script",
 	"author": "Fredrik Hareide",
 	"license": "MIT",
-	"version": "1.0.0",
+	"version": "0.1.0",
 	"publisher": "fhareide",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/fhareide/vizscript"
+	},
 	"categories": [
 		"Language Packs"
 	],
 	"icon": "images/vizicon.png",
 	"engines": {
-		"vscode": "^1.23.0"
+		"vscode": "^1.26.0"
 	},
 	"activationEvents": [
 		"onLanguage:viz"
@@ -49,7 +53,7 @@
 		],
 		"configuration": {
 			"type": "object",
-			"title": "Example configuration",
+			"title": "Viz Script",
 			"properties": {
 				"vizLanguageServer.maxNumberOfProblems": {
 					"scope": "resource",
@@ -72,7 +76,6 @@
 		}
 	},
 	"scripts": {
-		"vscode:prepublish": "cd client && npm run update-vscode && cd .. && npm run compile",
 		"compile": "tsc -b",
 		"watch": "tsc -b -w",
 		"postinstall": "cd client && npm install && cd ../server && npm install && cd ..",
@@ -83,7 +86,8 @@
 		"@types/node": "^8.10.61",
 		"tslint": "^5.20.1",
 		"typescript": "^3.9.5",
-		"vscode": "^1.1.37"
+		"@types/vscode": "^1.26.0",
+		"vscode-test": "1.4.0"
 	},
 	"dependencies": {}
 }

@@ -11278,16 +11278,16 @@
           },
           {
             "name": "Println",
-            "code_hint": "Sub Println(colorindex As Integer, v As Boolean)",
-            "description": "Prints a boolean in the given color. colorindex can be a combination of 1 (blue), 2 (green), 4 (red), 8 (light).",
-            "return_value": "Boolean",
+            "code_hint": "Sub Println()",
+            "description": "Prints a newline.",
+            "return_value": "",
             "deprecated": "false"
           },
           {
             "name": "Println",
-            "code_hint": "Sub Println()",
-            "description": "Prints a newline.",
-            "return_value": "",
+            "code_hint": "Sub Println(colorindex As Integer, v As Boolean)",
+            "description": "Prints a boolean in the given color. colorindex can be a combination of 1 (blue), 2 (green), 4 (red), 8 (light).",
+            "return_value": "Boolean",
             "deprecated": "false"
           },
           {
