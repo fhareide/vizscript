@@ -24,10 +24,17 @@ let documents = new ls.TextDocuments(TextDocument);
 // for open, change and close text document events
 documents.listen(connection);
 
+let hasConfigurationCapability: boolean = false;
+
 // After the server has started the client sends an initialize request. The server receives
 // in the passed params the rootPath of the workspace plus the client capabilities.
 let workspaceRoot: string;
 connection.onInitialize((params): ls.InitializeResult => {
+	let capabilities = params.capabilities;
+
+	// Does the client support the `workspace/configuration` request?
+	// If not, we will fall back using global settings
+	hasConfigurationCapability = !!(capabilities.workspace && !!capabilities.workspace.configuration);
 	
 	workspaceRoot = params.rootPath;
 	//Initialize built in symbols
@@ -54,6 +61,34 @@ connection.onInitialize((params): ls.InitializeResult => {
 	}
 });
 
+connection.onInitialized(() => {
+	if (hasConfigurationCapability) {
+		// Register for all configuration changes.
+		connection.client.register(
+			ls.DidChangeConfigurationNotification.type,
+			undefined
+		);
+	}
+});
+
+// The example settings
+interface VizScriptSettings {
+	dummy: number;
+	test: string;
+}
+
+// Cache the settings of all open documents
+let documentSettings: Map<string, Thenable<VizScriptSettings>> = new Map();
+
+connection.onDidChangeConfiguration(change => {
+	if (hasConfigurationCapability) {
+		// Reset all cached document settings
+		documentSettings.clear();
+	}
+
+	// Revalidate all open text documents
+	documents.all().forEach(validateTextDocument);
+});
 
 const pendingValidationRequests: { [uri: string]: NodeJS.Timer } = {};
 const validationDelayMs = 500;
@@ -63,16 +98,40 @@ let documentUri: string;
 // The content of a text document has changed. This event is emitted
 // when the text document first opened or when its content has changed.
 documents.onDidChangeContent((change: ls.TextDocumentChangeEvent<TextDocument>) => {
-	connection.console.log("Document changed. version: " + change.document.version.toString());
+	//connection.console.log("Document changed. version: " + change.document.version.toString());
 	documentUri = change.document.uri;
 	triggerValidation(change.document);
 });
 
+function getDocumentSettings(resource: string): Thenable<VizScriptSettings> {
+	let result = documentSettings.get(resource);
+	if (!result) {
+		result = connection.workspace.getConfiguration({
+			scopeUri: resource,
+			section: 'vizLanguageServer'
+		});
+		documentSettings.set(resource, result);
+	}
+	return result;
+}
+
+let settings;
+
+async function validateTextDocument(textDocument: TextDocument): Promise<void> {
+	// In this simple example we get the settings for every validate run.
+	settings = await getDocumentSettings(textDocument.uri);
+
+	//connection.console.log("NoOfProblems: " + settings.maxNumberOfProblems);
+	//connection.console.log("Trace Server:  " + settings.test);
+}
+
+	
 
 // a document has closed: clear all diagnostics
 documents.onDidClose(event => {
 	cleanPendingValidation(event.document);
 	connection.sendDiagnostics({ uri: event.document.uri, diagnostics: [] });
+	documentSettings.delete(event.document.uri);
 });
 
 function cleanPendingValidation(textDocument: ls.TextDocument): void {

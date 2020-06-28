@@ -55,13 +55,13 @@
 			"type": "object",
 			"title": "Viz Script",
 			"properties": {
-				"vizLanguageServer.maxNumberOfProblems": {
+				"vizLanguageServer.dummy": {
 					"scope": "resource",
 					"type": "number",
 					"default": 100,
-					"description": "Controls the maximum number of problems produced by the server."
+					"description": "Dummy config, not yet implemented"
 				},
-				"vizLanguageServer.trace.server": {
+				"vizLanguageServer.test": {
 					"scope": "window",
 					"type": "string",
 					"enum": [
@@ -70,7 +70,7 @@
 						"verbose"
 					],
 					"default": "off",
-					"description": "Traces the communication between VS Code and the language server."
+					"description": "Dummy config, not yet implemented"
 				}
 			}
 		}
