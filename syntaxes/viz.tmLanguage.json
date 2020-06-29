@@ -57,7 +57,7 @@
 	  },
 	  {
 		"name": "meta.function.viz",
-		"match": "^\\s*((?i:function|sub))\\s*([a-zA-Z_]\\w*)\\s*(\\()([^)]*)(\\))[ \\t]*(as)?[ \\t]*([a-zA-Z\\[\\]_]\\w*)?[ \\t]*('.*$)?\\n?",
+		"match": "^\\s*((?i:function|sub))\\s*([a-zA-Z_]\\w*)\\s*(\\()([^)]*)(\\))[ \\t]*(as|As)?[ \\t]*([a-zA-Z\\[\\]_]\\w*)?[ \\t]*('.*$)?\\n?",
   
 		"captures": {
 		  "1": {
@@ -78,7 +78,7 @@
 				},
 				{
 				  "name": "keyword.control.viz",
-				  "match": "(as |byref |byval )"
+				  "match": "(?i:(as |byref |byval ))"
 				}
 			  ]
 		  },

@@ -11,7 +11,8 @@
 		"url": "https://github.com/fhareide/vizscript"
 	},
 	"categories": [
-		"Language Packs"
+		"Language Packs",
+		"Programming Languages"
 	],
 	"icon": "images/vizicon.png",
 	"engines": {

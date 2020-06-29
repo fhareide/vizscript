@@ -355,11 +355,15 @@ connection.onCompletion((params: ls.CompletionParams, cancelToken: ls.Cancellati
 
 	documentCompletions = SelectCompletionItems(params);
 
-	// Gets current liney
+	// Gets current line
 	let line: string = documents.get(params.textDocument.uri).getText(ls.Range.create(
 		ls.Position.create(params.position.line, 0),
 		ls.Position.create(params.position.line, params.position.character))
 	);
+
+	let declarationRegex: RegExp = /^[ \t]*dim[ \t]+([a-zA-Z0-9\-\_\,]+)[ \t]+as$/gi;
+	if(declarationRegex.exec(line) != null) return;
+
 	let matches = [];
 	let regexResult = [];
 	let noOfMatches = 0;
@@ -409,7 +413,7 @@ connection.onCompletion((params: ls.CompletionParams, cancelToken: ls.Cancellati
 				documentCompletions = SelectCompletionItems(params);
 				suggestions = documentCompletions.concat(SelectBuiltinEventCompletionItems());
 				suggestions = suggestions.concat(SelectBuiltinGlobalCompletionItems());			
-				suggestions = suggestions.concat(SelectBuiltinCompletionItems());
+				//suggestions = suggestions.concat(SelectBuiltinCompletionItems());
 			} else {
 				documentCompletions = SelectCompletionItems(params);
 				suggestions = documentCompletions;
@@ -842,7 +846,7 @@ function GetVizEvents() {
 		symbol.kind = ls.CompletionItemKind.Event;
 		symbol.type = "Event";
 		symbol.name = event.name;
-		symbol.insertText = event.name;
+		symbol.insertText = event.code_hint;
 		symbol.hint = event.code_hint;
 		symbol.args = event.description;
 		symbol.kind = ls.CompletionItemKind.Variable;
@@ -1006,6 +1010,27 @@ function GetMethodSymbol(statement: LineStatement, uri: string): VizSymbol[] {
 
 	let range: ls.Range = ls.Range.create(openMethod.startPosition, statement.GetPostitionByCharacter(GetNumberOfFrontSpaces(line) + regexResult[0].trim().length))
 
+	let globalevents = symbolCache["builtin_events"];
+	let result: VizSymbol = null;
+	if(globalevents != []){
+		globalevents.forEach(item => {		
+			if (item != null){
+				if (item.name.toLowerCase() == openMethod.name.toLowerCase()) {
+					result = item;
+				}
+			}
+			
+		});
+	}
+
+	if(result != null){
+		result.symbolRange = range;
+		let parametersSymbol = [];
+		parametersSymbol = GetParameterSymbols(result.name, openMethod.args, openMethod.argsIndex, openMethod.statement, uri);
+		openMethod = null;
+		return parametersSymbol;
+	}
+
 	let symbol: VizSymbol = new VizSymbol();
 	if(type == "function")symbol.kind = ls.CompletionItemKind.Function;
 	if(type == "sub")symbol.kind = ls.CompletionItemKind.Method;
@@ -1027,10 +1052,6 @@ function GetMethodSymbol(statement: LineStatement, uri: string): VizSymbol[] {
 	
 	return parametersSymbol.concat(symbol);
 }
-
-function ReplaceAll(target: string, search: string, replacement: string): string {
-	return target.replace(new RegExp(search, 'g'), replacement);
-};
 
 function GetParameterSymbols(name: string, args: string, argsIndex: number, statement: LineStatement, uri: string): VizSymbol[] {
 	let symbols: VizSymbol[] = [];
