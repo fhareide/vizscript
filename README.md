@@ -16,13 +16,30 @@
 * .v3script 
 * .viz
 
+
+## VS Code Settings
+I recommend these settings in VS Code to get the best result with this plugin.
+
+```json
+	"editor.quickSuggestions": {
+        "other": true,
+        "comments": false,
+        "strings": false
+    },
+    "editor.wordBasedSuggestions": false,
+    "editor.foldingHighlight": false
+```
+
+
 ## Disclaimer
 I have no affiliation with Vizrt and this extension is personal work. 
 
-
+<br>
 
 ---
 
+<br>
+<br>
 
 ## Demos
 
