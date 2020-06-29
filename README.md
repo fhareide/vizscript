@@ -10,6 +10,7 @@
 * Auto-Completion (supports both built-in and document completions)
 	Includes completions updated to Viz Engine/Artist 3.12
 
+
 ## Supported filetypes
 * .vs 
 * .v3script 
@@ -17,3 +18,22 @@
 
 ## Disclaimer
 I have no affiliation with Vizrt and this extension is personal work. 
+
+
+
+---
+
+
+## Demos
+
+### Type Completion
+![Structure support demo](images/TypeCompletion.gif)
+
+### Structure support
+![Structure support demo](images/StructureSupport.gif)
+
+### Jump to Definition
+![Jump to Definition demo](images/JumpToDefinition.gif)
+
+### Signature Help
+![Signature Help demo](images/SignatureHelp.gif)
