@@ -47,10 +47,15 @@
 		],
 		"themes": [
 			{
-				"label": "Viz Script Colors",
+				"label": "Viz Script Enhanced",
 				"uiTheme": "vs-dark",
-				"path": "./themes/Viz Script Colors-color-theme.json"
-			}
+				"path": "./themes/Viz Script-color-theme.json"
+			},
+			{
+				"label": "Viz Script Classic",
+				"uiTheme": "vs-dark",
+				"path": "./themes/Viz Script Classic-color-theme.json"
+			}			
 		],
 		"configuration": {
 			"type": "object",

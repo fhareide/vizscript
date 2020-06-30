@@ -1,0 +1,145 @@
+{
+	"name": "Viz Script Colors",
+	"type": "dark",
+	"colors": {
+		"activityBarBadge.background": "#007acc",
+		"editor.background": "#202020",
+		"editor.foreground": "#d4d4d4",
+		"editor.inactiveSelectionBackground": "#3a3d41",
+		"editor.selectionHighlightBackground": "#add6ff26",
+		"editorIndentGuide.activeBackground": "#707070",
+		"editorIndentGuide.background": "#404040",
+		"input.placeholderForeground": "#a6a6a6",
+		"list.dropBackground": "#383b3d",
+		"menu.background": "#252526",
+		"menu.foreground": "#cccccc",
+		"settings.numberInputBackground": "#292929",
+		"settings.textInputBackground": "#292929",
+		"sideBarTitle.foreground": "#bbbbbb",
+	},
+	"tokenColors": [
+		{
+			"name": "Comment",
+			"scope": "comment",
+			"settings": {
+				"foreground": "#6A9955"
+			}
+		},
+		{
+			"name": "String",
+			"scope": "string",
+			"settings": {
+				"foreground": "#ce9178"
+			}
+		},
+		{
+			"name": "Number",
+			"scope": "constant.numeric",
+			"settings": {
+				"foreground": "#b5cea8"
+			}
+		},
+		{
+			"name": "Built-in constant",
+			"scope": "constant.language",
+			"settings": {
+				"foreground": "#569cd6"
+			}
+		},
+		{
+			"name": "User-defined constant",
+			"scope": "constant.character, constant.other",
+			"settings": {
+				"foreground": "#fcc264"
+			}
+		},
+		{
+			"name": "Variable",
+			"scope": "variable",
+			"settings": {
+				"fontStyle": "",
+				"foreground": "#fcc264"
+			}
+		},
+		{
+			"name": "Keyword",
+			"scope": "keyword",
+			"settings": {
+				"foreground": "#569cd6"
+			}
+		},
+		{
+			"name": "Keyword control",
+			"scope": "keyword.control",
+			"settings": {
+				"foreground": "#b36dc9"
+			}
+		},
+		{
+			"name": "Document types",
+			"scope": "support.type.document",
+			"settings": {
+				"foreground": "#dadada"
+			}
+		},
+		{
+			"name": "Storage type",
+			"scope": "storage.type",
+			"settings": {
+				"foreground": "#569cd6"
+			}
+		},
+		{
+			"name": "Storage type Viz",
+			"scope": "support.type",
+			"settings": {
+				"foreground": "#4EC9B0"
+			}
+		},
+		{
+			"name": "Global Procedures",
+			"scope": "support.function.global",
+			"settings": {
+				"foreground": "#DCDCAA"
+			}
+		},
+		{
+			"name": "Function name",
+			"scope": "entity.name.function",
+			"settings": {
+				"fontStyle": "",
+				"foreground": "#DCDCAA"
+			}
+		},
+		{
+			"name": "Function argument",
+			"scope": "variable.parameter",
+			"settings": {
+				"fontStyle": "italic",
+				"foreground": "#4EC9B0"
+			}
+		},
+		
+		{
+			"name": "this.self",
+			"scope": "variable.language",
+			"settings": {
+				"foreground": "#9CDCFE"
+			}
+		},
+		{
+			"name": "Default",
+			"scope": "source.viz",
+			"settings": {
+				"foreground": "#dadada"
+			}
+		},
+
+		{
+			"scope": "meta.comment.viz",
+			"settings": {
+				"fontStyle": "italic"
+			}
+		}
+	]
+}

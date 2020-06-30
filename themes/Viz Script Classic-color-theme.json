@@ -1,0 +1,124 @@
+{
+	"name": "Viz Script Colors",
+	"type": "dark",
+	"colors": {
+		"activityBarBadge.background": "#007acc",
+		"editor.background": "#202020",
+		"editor.foreground": "#d4d4d4",
+		"editor.inactiveSelectionBackground": "#3a3d41",
+		"editor.selectionHighlightBackground": "#add6ff26",
+		"editorIndentGuide.activeBackground": "#707070",
+		"editorIndentGuide.background": "#404040",
+		"input.placeholderForeground": "#a6a6a6",
+		"list.dropBackground": "#383b3d",
+		"menu.background": "#252526",
+		"menu.foreground": "#cccccc",
+		"settings.numberInputBackground": "#292929",
+		"settings.textInputBackground": "#292929",
+		"sideBarTitle.foreground": "#bbbbbb",
+	},
+	"tokenColors": [
+		{
+			"name": "Comment",
+			"scope": "comment",
+			"settings": {
+				"foreground": "#708090"
+			}
+		},
+		{
+			"name": "String",
+			"scope": "string",
+			"settings": {
+				"foreground": "#bc8f8f"
+			}
+		},
+		{
+			"name": "Number",
+			"scope": "constant.numeric",
+			"settings": {
+				"foreground": "#fcc264"
+			}
+		},
+		{
+			"name": "Built-in constant",
+			"scope": "constant.language",
+			"settings": {
+				"foreground": "#fcc264"
+			}
+		},
+		{
+			"name": "User-defined constant",
+			"scope": "constant.character, constant.other",
+			"settings": {
+				"foreground": "#fcc264"
+			}
+		},
+		{
+			"name": "Variable",
+			"scope": "variable",
+			"settings": {
+				"fontStyle": "",
+				"foreground": "#fcc264"
+			}
+		},
+		{
+			"name": "Keyword",
+			"scope": "keyword",
+			"settings": {
+				"foreground": "#87ceeb"
+			}
+		},
+		{
+			"name": "Storage type",
+			"scope": "storage.type",
+			"settings": {
+				"foreground": "#87ceeb"
+			}
+		},
+		{
+			"name": "Storage type Viz",
+			"scope": "storage.type.viz",
+			"settings": {
+				"foreground": "#fcc264"
+			}
+		},
+		{
+			"name": "Function name",
+			"scope": "entity.name.function",
+			"settings": {
+				"fontStyle": "",
+				"foreground": "#fcc264"
+			}
+		},
+		{
+			"name": "Function argument",
+			"scope": "variable.parameter",
+			"settings": {
+				"fontStyle": "italic",
+				"foreground": "#fcc264"
+			}
+		},
+		{
+			"name": "Library function",
+			"scope": "support.function",
+			"settings": {
+				"fontStyle": "",
+				"foreground": "#fcc264"
+			}
+		},
+		{
+			"name": "this.self",
+			"scope": "variable.language",
+			"settings": {
+				"foreground": "#fcc264"
+			}
+		},
+		{
+			"name": "Default",
+			"scope": "source.viz",
+			"settings": {
+				"foreground": "#fcc264"
+			}
+		}
+	]
+}

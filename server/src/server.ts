@@ -363,6 +363,9 @@ connection.onCompletion((params: ls.CompletionParams, cancelToken: ls.Cancellati
 
 	let declarationRegex: RegExp = /^[ \t]*dim[ \t]+([a-zA-Z0-9\-\_\,]+)[ \t]+as$/gi;
 	if(declarationRegex.exec(line) != null) return;
+	
+	declarationRegex = /^[ \t]*sub[ \t]+o?$/gi;
+	if(declarationRegex.exec(line) != null) return SelectBuiltinEventCompletionItems();
 
 	let matches = [];
 	let regexResult = [];
@@ -411,8 +414,7 @@ connection.onCompletion((params: ls.CompletionParams, cancelToken: ls.Cancellati
 		  	let tmpline = line.replace(/\s/g, '');
         	if (tmpline.length < 4) {
 				documentCompletions = SelectCompletionItems(params);
-				suggestions = documentCompletions.concat(SelectBuiltinEventCompletionItems());
-				suggestions = suggestions.concat(SelectBuiltinGlobalCompletionItems());			
+				suggestions = documentCompletions.concat(SelectBuiltinGlobalCompletionItems());			
 				//suggestions = suggestions.concat(SelectBuiltinCompletionItems());
 			} else {
 				documentCompletions = SelectCompletionItems(params);
@@ -847,6 +849,7 @@ function GetVizEvents() {
 		symbol.type = "Event";
 		symbol.name = event.name;
 		symbol.insertText = event.code_hint;
+		symbol.insertText = symbol.insertText.replace("Sub ", "");
 		symbol.hint = event.code_hint;
 		symbol.args = event.description;
 		symbol.kind = ls.CompletionItemKind.Variable;
