@@ -194,7 +194,7 @@ connection.onHover(({ textDocument, position }): ls.Hover => {
 	return {contents: returnText};
 });
 
-function getWordAt (str, pos) {
+function getWordAt(str, pos) {
 
     // Perform type conversions.
     str = String(str);
@@ -610,11 +610,6 @@ function GetVizSymbolTree(symbols: VizSymbol[]) {
 
 function GetSymbolsOfScope(symbols: VizSymbol[], position: ls.Position): VizSymbol[] {
 	let symbolTree = GetVizSymbolTree(symbols);
-	// bacause of hoisting we will have just a few possible scopes:
-	// - file wide
-	// - method of file wide
-	// - class scope
-	// - method or property of class scope
 
 	return symbolTree.FindDirectParent(position).GetAllParentsAndTheirDirectChildren();
 }
@@ -783,6 +778,7 @@ function GetBuiltinSymbols() {
 				symbol.args = submethod.description;
 				symbol.parentName = "global";
 				symbol.signatureInfo = GenerateSignatureHelp(symbol.hint, symbol.args);
+				symbol.commitCharacters = ["("];
 				let found = globalsymbols.find(item => item.name == submethod.name);
 				if (found != null) {
 					found.noOfOverloads ++;
@@ -803,6 +799,7 @@ function GetBuiltinSymbols() {
 			symbol.args = element.descripton;
 			symbol.hint = "";
 			symbol.signatureInfo = null;
+			symbol.commitCharacters = ["."];
 			symbols.push(symbol);
 
 			element.methods.forEach(submethod => {
@@ -816,6 +813,7 @@ function GetBuiltinSymbols() {
 				else if (submethod.code_hint.startsWith("\"Sub")) subSymbol.kind = ls.CompletionItemKind.Method;
 				subSymbol.parentName = element.name;
 				subSymbol.signatureInfo = GenerateSignatureHelp(subSymbol.hint, subSymbol.args);
+				subSymbol.commitCharacters = ["("];
 				symbol.children.push(subSymbol);
 			});
 			element.properties.forEach(properties => {
@@ -827,6 +825,7 @@ function GetBuiltinSymbols() {
 				subSymbol.args = properties.description;
 				subSymbol.kind = ls.CompletionItemKind.Variable;
 				subSymbol.parentName = element.name;
+				subSymbol.commitCharacters = ["."];
 				symbol.children.push(subSymbol);
 			});
 
@@ -855,6 +854,7 @@ function GetVizEvents() {
 		symbol.kind = ls.CompletionItemKind.Variable;
 		symbol.signatureInfo = GenerateSignatureHelp(symbol.hint, symbol.args);
 		symbol.parentName = "event";
+		symbol.commitCharacters = ["("];
 		symbols.push(symbol);
 	});
 
@@ -889,7 +889,7 @@ function FindSymbol(statement: LineStatement, uri: string, symbols: Set<VizSymbo
 	newSyms = GetMethodSymbol(statement, uri);
 	if (newSyms != null && newSyms.length != 0) {
 		let found = currentSymbols.find(item => item.name == newSyms[0].name);
-		if (found != null) {
+		if ((found != null) && ((found.kind == ls.CompletionItemKind.Function) || (found.kind == ls.CompletionItemKind.Method))) {
 			found.noOfOverloads ++;
 			found.hint = found.name + "() (+ " + (found.noOfOverloads) + " overload(s))"
 			found.overloads.push(newSyms[0]);
@@ -1045,6 +1045,7 @@ function GetMethodSymbol(statement: LineStatement, uri: string): VizSymbol[] {
 	symbol.nameLocation = openMethod.nameLocation;
 	symbol.parentName = openMethod.name;
 	symbol.signatureInfo = GenerateSignatureHelp(symbol.hint, symbol.args);
+	symbol.commitCharacters = ["("];
 	symbol.symbolRange = range;
 
 	let parametersSymbol = [];
@@ -1093,6 +1094,7 @@ function GetParameterSymbols(name: string, args: string, argsIndex: number, stat
 			statement.GetPostitionByCharacter(argsIndex + arg.indexOf(varSymbol.name) + varSymbol.name.length)
 		);
 		varSymbol.nameLocation = ls.Location.create(uri, range);
+		varSymbol.commitCharacters = ["."];
 		varSymbol.symbolRange = range;
 
 		symbols.push(varSymbol);
@@ -1164,6 +1166,7 @@ function GetMemberSymbol(statement: LineStatement, uri: string): VizSymbol {
 			statement.GetPostitionByCharacter(nameStartIndex + name.length)
 		)
 	);
+	symbol.commitCharacters = [""];
 	symbol.parentName = openStructureName;
 
 	return symbol;
@@ -1222,7 +1225,10 @@ function GetVariableSymbol(statement: LineStatement, uri: string): VizSymbol[] {
 			ls.Position.create(symbol.nameLocation.range.end.line, symbol.nameLocation.range.end.character)
 		);
 
+		
+
 		symbol.parentName = parentName;
+		symbol.commitCharacters = ["."];
 
 		variableSymbols.push(symbol);
 	}
@@ -1300,6 +1306,7 @@ function GetStructureSymbol(statement: LineStatement, uri: string, children: Viz
 		)
 	);
 	symbol.symbolRange = range;
+	symbol.commitCharacters = [""];
 	symbol.children = children;
 
 	

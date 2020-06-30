@@ -14,6 +14,7 @@ export class VizSymbol {
 	public children: VizSymbol[] = [];
 	public kind: ls.CompletionItemKind;
 	public signatureInfo: ls.SignatureInformation;
+	public commitCharacters: string[] = [""];
 	
 	public parentName: string = "";
 
@@ -31,7 +32,7 @@ export class VizSymbol {
 			item.data = symbol.type;
 			item.documentation = symbol.args;
 			item.detail = symbol.hint;
-			item.commitCharacters = ['.'];
+			item.commitCharacters = symbol.commitCharacters;
 			symbols.push(item);
 		});
 
@@ -46,7 +47,7 @@ export class VizSymbol {
 		item.data = this.type;
 		item.documentation = this.args;
 		item.detail = this.hint;
-		item.commitCharacters = ['.'];
+		item.commitCharacters = this.commitCharacters;
 		return item;
 	}
 	

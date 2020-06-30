@@ -17,7 +17,7 @@
 	  },
 	  {
 		"name": "meta.function.viz",
-		"match": "^\\s*((?i:function|sub))\\s*([a-zA-Z_]\\w*)\\s*(\\()([^)]*)(\\))[ \\t]*(?i:as)?[ \\t]*([a-zA-Z\\[\\]_]\\w*)?[ \\t]*('.*$)?\\n?",
+		"match": "^\\s*((?i:function|sub))\\s*([a-zA-Z_]\\w*)\\s*(\\()([^)]*)(\\))[ \\t]*((?i:as))?[ \\t]*([a-zA-Z\\[\\]_]\\w*)?[ \\t]*('.*$)?\\n?",
   
 		"captures": {
 		  "1": {
@@ -49,7 +49,7 @@
 			"name": "keyword.control.viz"
 		  },
 		  "7": {
-			"name": "storage.type.viz"
+			"name": "support.type.viz"
 		  },
 		  "8": {
 			"name": "comment.line.apostrophe.viz"
