@@ -4,7 +4,7 @@
 	"description": "Language syntax highlighting, autocomplete, signature help and jump to definition for Viz Script",
 	"author": "Fredrik Hareide",
 	"license": "MIT",
-	"version": "0.1.5",
+	"version": "0.1.6",
 	"publisher": "fhareide",
 	"repository": {
 		"type": "git",
@@ -55,7 +55,7 @@
 				"label": "Viz Script Classic",
 				"uiTheme": "vs-dark",
 				"path": "./themes/Viz Script Classic-color-theme.json"
-			}			
+			}
 		],
 		"configuration": {
 			"type": "object",
