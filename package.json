@@ -100,7 +100,8 @@
 		"compile": "tsc -b",
 		"watch": "tsc -b -w",
 		"postinstall": "cd client && npm install && cd ../server && npm install && cd ..",
-		"clean": "rimraf client/out && rimraf server/out"
+		"clean": "rimraf client/out && rimraf server/out",
+		"development": "npm run webpack-dev && npm run watch"
 	},
 	"devDependencies": {
 		"@types/mocha": "^5.2.7",

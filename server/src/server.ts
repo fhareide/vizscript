@@ -856,7 +856,7 @@ function FindSymbol(statement: LineStatement, uri: string, symbols: Set<VizSymbo
 
 	newSyms = GetMethodSymbol(statement, uri);
 	if (newSyms != null && newSyms.length != 0) {
-		let found = currentSymbols.find(item => item.name == newSyms[0].name);
+		let found = currentSymbols.find(item => item.name == newSyms[newSyms.length-1].name);
 		if ((found != null) && ((found.kind == ls.CompletionItemKind.Function) || (found.kind == ls.CompletionItemKind.Method))) {
 			found.noOfOverloads ++;
 			found.hint = found.name + "() (+ " + (found.noOfOverloads) + " overload(s))"
@@ -955,7 +955,6 @@ function GetMethodStart(statement: LineStatement, uri: string): boolean {
 
 function GetMethodSymbol(statement: LineStatement, uri: string): VizSymbol[] {
 	let line: string = statement.line;
-	let symbols: VizSymbol[] = [];
 
 	let classEndRegex: RegExp = /^[ \t]*end[ \t]+(function|sub)?[ \t]*$/gi;
 
@@ -1017,15 +1016,13 @@ function GetMethodSymbol(statement: LineStatement, uri: string): VizSymbol[] {
 	symbol.commitCharacters = ["("];
 	symbol.symbolRange = range;
 
-	symbols.push(symbol);
-
 	let parametersSymbol = [];
 	parametersSymbol = GetParameterSymbols(openMethod.name, openMethod.args, openMethod.argsIndex, openMethod.statement, uri);
 
 	openMethod = null;
 	//return [symbol];
 	
-	return symbols.concat(parametersSymbol);
+	return parametersSymbol.concat(symbol);
 }
 
 function GetParameterSymbols(name: string, args: string, argsIndex: number, statement: LineStatement, uri: string): VizSymbol[] {
