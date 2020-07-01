@@ -61,13 +61,25 @@
 			"type": "object",
 			"title": "Viz Script",
 			"properties": {
-				"vizLanguageServer.dummy": {
-					"scope": "resource",
-					"type": "number",
-					"default": 100,
-					"description": "Dummy config, not yet implemented"
+				"vizscript.enableAutoComplete": {
+					"type": "boolean",
+					"default": true,
+					"description": "Enable Auto Complete functionality",
+					"scope": "resource"
 				},
-				"vizLanguageServer.test": {
+				"vizscript.enableSignatureHelp": {
+					"type": "boolean",
+					"default": true,
+					"description": "Enable Signature Help for both built-in and custom procedures",
+					"scope": "resource"
+				},
+				"vizscript.enableDefinition": {
+					"type": "boolean",
+					"default": true,
+					"description": "Enable Jump to Definition for easy navigation",
+					"scope": "resource"
+				},
+				"vizscript.trace.server": {
 					"scope": "window",
 					"type": "string",
 					"enum": [
@@ -76,24 +88,31 @@
 						"verbose"
 					],
 					"default": "off",
-					"description": "Dummy config, not yet implemented"
+					"description": "Traces the communication between VS Code and the Viz language server."
 				}
 			}
 		}
 	},
 	"scripts": {
+		"vscode:prepublish": "npm run webpack",
+		"webpack": "npm run clean && webpack --mode production --config ./client/webpack.config.js && webpack --mode production --config ./server/webpack.config.js",
+		"webpack-dev": "npm run clean && webpack --mode development --config ./client/webpack.config.js && webpack --mode development --config ./server/webpack.config.js",
 		"compile": "tsc -b",
 		"watch": "tsc -b -w",
 		"postinstall": "cd client && npm install && cd ../server && npm install && cd ..",
-		"test": "sh ./scripts/e2e.sh"
+		"clean": "rimraf client/out && rimraf server/out"
 	},
 	"devDependencies": {
 		"@types/mocha": "^5.2.7",
 		"@types/node": "^8.10.61",
+		"@types/vscode": "^1.26.0",
+		"merge-options": "^2.0.0",
+		"ts-loader": "^6.2.1",
 		"tslint": "^5.20.1",
 		"typescript": "^3.9.5",
-		"@types/vscode": "^1.26.0",
-		"vscode-test": "1.4.0"
+		"vscode-test": "1.4.0",
+		"webpack": "^4.43.0",
+		"webpack-cli": "^3.3.12"
 	},
 	"dependencies": {}
 }

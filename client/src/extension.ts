@@ -10,8 +10,7 @@ import {
 	LanguageClient,
 	LanguageClientOptions,
 	ServerOptions,
-	TransportKind,
-	ClientCapabilities
+	TransportKind
 } from 'vscode-languageclient';
 
 let client: LanguageClient;
@@ -44,12 +43,12 @@ export function activate(context: ExtensionContext) {
 		synchronize: {
 			// Notify the server about file changes to '.clientrc files contained in the workspace
 			fileEvents: workspace.createFileSystemWatcher('**/.clientrc')
-		},
+		}
 	};
 
 	// Create the language client and start the client.
 	client = new LanguageClient(
-		'vizLanguageClient',
+		'vizscript',
 		'VizScript',
 		serverOptions,
 		clientOptions

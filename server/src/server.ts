@@ -44,7 +44,6 @@ connection.onInitialize((params): ls.InitializeResult => {
 
 	return {
 		capabilities: {
-			// Tell the client that the server works in FULL text document sync mode
 			textDocumentSync: TextDocumentSyncKind.Incremental,
 			documentSymbolProvider: true,
 			signatureHelpProvider: {
@@ -55,11 +54,11 @@ connection.onInitialize((params): ls.InitializeResult => {
 			completionProvider: {
 				resolveProvider: true,
 				triggerCharacters: ['.']
-			},
-			//hoverProvider: true
+			}
 		}
 	}
 });
+
 
 connection.onInitialized(() => {
 	if (hasConfigurationCapability) {
@@ -73,8 +72,9 @@ connection.onInitialized(() => {
 
 // The example settings
 interface VizScriptSettings {
-	dummy: number;
-	test: string;
+	enableAutoComplete: boolean;
+	enableSignatureHelp: boolean;
+	enableDefinition: boolean;
 }
 
 // Cache the settings of all open documents
@@ -87,7 +87,7 @@ connection.onDidChangeConfiguration(change => {
 	}
 
 	// Revalidate all open text documents
-	documents.all().forEach(validateTextDocument);
+	documents.all().forEach(cacheConfiguration);
 });
 
 const pendingValidationRequests: { [uri: string]: NodeJS.Timer } = {};
@@ -108,7 +108,7 @@ function getDocumentSettings(resource: string): Thenable<VizScriptSettings> {
 	if (!result) {
 		result = connection.workspace.getConfiguration({
 			scopeUri: resource,
-			section: 'vizLanguageServer'
+			section: "vizscript"
 		});
 		documentSettings.set(resource, result);
 	}
@@ -117,14 +117,14 @@ function getDocumentSettings(resource: string): Thenable<VizScriptSettings> {
 
 let settings;
 
-async function validateTextDocument(textDocument: TextDocument): Promise<void> {
+async function cacheConfiguration(textDocument: TextDocument): Promise<void> {
 	settings = await getDocumentSettings(textDocument.uri);
-
-	//connection.console.log("NoOfProblems: " + settings.maxNumberOfProblems);
-	//connection.console.log("Trace Server:  " + settings.test);
 }
 
-	
+// a document has opened: cache configuration
+documents.onDidOpen(event => {
+	cacheConfiguration(event.document);
+});
 
 // a document has closed: clear all diagnostics
 documents.onDidClose(event => {
@@ -149,51 +149,6 @@ function triggerValidation(textDocument: ls.TextDocument): void {
 	}, validationDelayMs);
 }
 
-connection.onHover(({ textDocument, position }): ls.Hover => {   
-	
-	let line: string = documents.get(textDocument.uri).getText(ls.Range.create(
-		ls.Position.create(position.line, 0),
-		ls.Position.create(position.line, 50000))
-	);
-
-	if (line.length < 2)return;
-
-	let word = getWordAt(line, position.character);
-
-	var paramStrings = line.split(word);
-	var newline = paramStrings[0] + word;
-
-	let memberStartRegex: RegExp = /[\.]?([^\.\ ]+)[\.]+/gi;
-
-	let matches = [];
-	let regexResult = [];
-
-	let noOfMatches = 0;
-
-	while (matches = memberStartRegex.exec(newline)) {
-		let tmpline = matches[1].replace(/\([^()]*\)/g, '')
-		regexResult.push(tmpline);   
-	}
-	noOfMatches = regexResult.length;
-
-
-	let item = null;
-	if(noOfMatches == 0){
-		item = GetSymbolByName(word,position);
-	} else{
-		item = GetItemForSignature(word,noOfMatches,regexResult,position);
-	}
-	
-	if(item == null) return null;
-	let returnText = "";
-	returnText = item.hint;
-	if(returnText == ""){
-		returnText = item.type; 
-	} 
-
-	return {contents: returnText};
-});
-
 function getWordAt(str, pos) {
 
     // Perform type conversions.
@@ -214,6 +169,7 @@ function getWordAt(str, pos) {
 }
 
 connection.onSignatureHelp((params: ls.SignatureHelpParams,cancelToken: ls.CancellationToken) : ls.SignatureHelp => {
+	if(settings != null){ if (!settings.enableSignatureHelp) return;}
 	let line: string = documents.get(params.textDocument.uri).getText(ls.Range.create(
 		ls.Position.create(params.position.line, 0),
 		ls.Position.create(params.position.line, params.position.character))
@@ -301,6 +257,17 @@ function GenerateSignatureHelp(hint: string, documentation: string): ls.Signatur
 		documentation: undefined,
 		parameters: []
 	};
+
+	let markdown: ls.MarkupContent = {
+		kind: ls.MarkupKind.Markdown,
+		value: [
+			'## Header',
+			'Some text',
+			'```viz',
+			hint,
+			'```'
+			].join('\n')
+	};
 	
 	var paramStrings = regexResult3[2].split(',');
 
@@ -326,6 +293,7 @@ function GenerateSignatureHelp(hint: string, documentation: string): ls.Signatur
 }
 
 connection.onDefinition((params: ls.TextDocumentPositionParams, cancelToken: ls.CancellationToken): ls.Definition => {
+	if(settings != null){ if (!settings.enableDefinition) return;}
 	let line: string = documents.get(params.textDocument.uri).getText(ls.Range.create(
 		ls.Position.create(params.position.line, 0),
 		ls.Position.create(params.position.line, 50000))
@@ -349,6 +317,7 @@ connection.onDefinition((params: ls.TextDocumentPositionParams, cancelToken: ls.
 });
 
 connection.onCompletion((params: ls.CompletionParams, cancelToken: ls.CancellationToken): ls.CompletionItem[] => {
+	if(settings != null){ if (!settings.enableAutoComplete) return;}
 	let suggestions: ls.CompletionItem[] = [];
 	let documentCompletions: ls.CompletionItem[] = [];
 
@@ -880,8 +849,7 @@ function FindSymbol(statement: LineStatement, uri: string, symbols: Set<VizSymbo
 	let newSym: VizSymbol;
 	let newSyms: VizSymbol[] = null;
 	let currentSymbols = Array.from(symbols);
-	
-
+		
 	if (GetMethodStart(statement, uri)) {
 		return;
 	}
@@ -921,7 +889,7 @@ function FindSymbol(statement: LineStatement, uri: string, symbols: Set<VizSymbo
 		AddArrayToSet(symbols, newSyms);
 		return;
 	}
-
+	
 }
 
 let openStructureName: string = null;
@@ -987,6 +955,7 @@ function GetMethodStart(statement: LineStatement, uri: string): boolean {
 
 function GetMethodSymbol(statement: LineStatement, uri: string): VizSymbol[] {
 	let line: string = statement.line;
+	let symbols: VizSymbol[] = [];
 
 	let classEndRegex: RegExp = /^[ \t]*end[ \t]+(function|sub)?[ \t]*$/gi;
 
@@ -999,14 +968,14 @@ function GetMethodSymbol(statement: LineStatement, uri: string): VizSymbol[] {
 
 	if (openMethod == null) {
 		// ERROR!!! I cannot close any method!
-		console.error("ERROR - line " + statement.startLine + " at " + statement.startCharacter + ": There is no " + type + " to end!");
+		//console.error("ERROR - line " + statement.startLine + " at " + statement.startCharacter + ": There is no " + type + " to end!");
 		return null;
 	}
 	if (type != null){
 		if (type.toLowerCase() != openMethod.type.toLowerCase()) {
 			// ERROR!!! I expected end function|sub and not sub|function!
 			// show the user the error and then go on like it was the right type!
-			console.error("ERROR - line " + statement.startLine + " at " + statement.startCharacter + ": 'end " + openMethod.type + "' expected!");
+			//console.error("ERROR - line " + statement.startLine + " at " + statement.startCharacter + ": 'end " + openMethod.type + "' expected!");
 		}
 	}
 	
@@ -1044,9 +1013,11 @@ function GetMethodSymbol(statement: LineStatement, uri: string): VizSymbol[] {
 	symbol.args = openMethod.args;
 	symbol.nameLocation = openMethod.nameLocation;
 	symbol.parentName = openMethod.name;
-	symbol.signatureInfo = GenerateSignatureHelp(symbol.hint, symbol.args);
+	symbol.signatureInfo = GenerateSignatureHelp(symbol.hint, "");
 	symbol.commitCharacters = ["("];
 	symbol.symbolRange = range;
+
+	symbols.push(symbol);
 
 	let parametersSymbol = [];
 	parametersSymbol = GetParameterSymbols(openMethod.name, openMethod.args, openMethod.argsIndex, openMethod.statement, uri);
@@ -1054,7 +1025,7 @@ function GetMethodSymbol(statement: LineStatement, uri: string): VizSymbol[] {
 	openMethod = null;
 	//return [symbol];
 	
-	return parametersSymbol.concat(symbol);
+	return symbols.concat(parametersSymbol);
 }
 
 function GetParameterSymbols(name: string, args: string, argsIndex: number, statement: LineStatement, uri: string): VizSymbol[] {
@@ -1193,7 +1164,6 @@ function GetVariableSymbol(statement: LineStatement, uri: string): VizSymbol[] {
 	let nameStartIndex = line.indexOf(line);
 	let parentName: string = "root";
 
-
 	let type: string = regexResult[2]
 
 
@@ -1235,6 +1205,7 @@ function GetVariableSymbol(statement: LineStatement, uri: string): VizSymbol[] {
 
 	return variableSymbols;
 }
+
 
 function GetNameRange(statement: LineStatement, name: string): ls.Range {
 	let line: string = statement.line;
@@ -1282,12 +1253,14 @@ function GetStructureSymbol(statement: LineStatement, uri: string, children: Viz
 
 	if (openMethod != null) {
 		// ERROR! expected to close method before!
-		console.error("ERROR - Structure - line " + statement.startLine + " at " + statement.startCharacter + ": 'end " + openMethod.type + "' expected!");
+		//console.error("ERROR - Structure - line " + statement.startLine + " at " + statement.startCharacter + ": 'end " + openMethod.type + "' expected!");
+		return null;
 	}
 
 	if (openProperty != null) {
 		// ERROR! expected to close property before!
-		console.error("ERROR - Structure - line " + statement.startLine + " at " + statement.startCharacter + ": 'end property' expected!");
+		//console.error("ERROR - Structure - line " + statement.startLine + " at " + statement.startCharacter + ": 'end property' expected!");
+		return null;
 	}
 
 	if (openStructureName != null)
