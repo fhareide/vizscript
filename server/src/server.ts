@@ -179,6 +179,15 @@ function getLineAt(str, pos) {
 	let matches = [];
 	let dotResult = [];
 
+	let result = GetRegexResult(line, /\=((.*)+)$/gi);
+
+	if (result != null){
+		if( result[1] != undefined){
+			line = result[1];
+		}
+		
+	}
+
 	let memberStartRegex: RegExp = /([^\.]+)([\.])*/gi;
 
 	while (matches = memberStartRegex.exec(line)) {
@@ -208,6 +217,8 @@ function getLineAt(str, pos) {
 	} else {
 	  finalString = cleanString.slice(left, right + pos);
 	}
+
+	finalString = finalString.replace(/^\(/g, '');
 
 	//connection.console.log("Final: " + finalString);
 
