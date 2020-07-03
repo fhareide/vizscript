@@ -97,8 +97,22 @@
 			}
 		},
 		{
+			"name": "Storage type Viz",
+			"scope": "support.type.properties",
+			"settings": {
+				"foreground": "#4EC9B0"
+			}
+		},
+		{
 			"name": "Global Procedures",
 			"scope": "support.function.global",
+			"settings": {
+				"foreground": "#DCDCAA"
+			}
+		},
+		{
+			"name": "Global Procedures",
+			"scope": "support.function.sub",
 			"settings": {
 				"foreground": "#DCDCAA"
 			}
