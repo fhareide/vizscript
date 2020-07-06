@@ -295,8 +295,8 @@ connection.onSignatureHelp((params: ls.SignatureHelpParams,cancelToken: ls.Cance
 	if(item.overloads != []){
 		item.overloads.forEach(overload => {		
 			if (overload != null){
-				if ((overload.signatureInfo.documentation != undefined) || (overload.signatureInfo.parameters != [])){
-					signHelp.signatures.push(overload.signatureInfo);
+				if ((overload.documentation != undefined) || (overload.parameters != [])){
+					signHelp.signatures.push(overload);
 				}
 			  
 			}
@@ -838,7 +838,7 @@ function GetBuiltinSymbols() {
 				if (found != null) {
 					found.noOfOverloads ++;
 					found.hint = found.name + "() (+ " + (found.noOfOverloads) + " overload(s))"
-					found.overloads.push(symbol);
+					found.overloads.push(symbol.signatureInfo);
 				}else{
 					globalsymbols.push(symbol);
 				}
@@ -943,7 +943,7 @@ let pendingChildren: VizSymbol[] = [];
 function FindSymbol(statement: LineStatement, uri: string, symbols: Set<VizSymbol>): void {
 	let newSym: VizSymbol;
 	let newSyms: VizSymbol[] = null;
-	let currentSymbols = Array.from(symbols);
+	let currentSymbols =Array.from(symbols);
 		
 	if (GetMethodStart(statement, uri)) {
 		return;
@@ -955,7 +955,7 @@ function FindSymbol(statement: LineStatement, uri: string, symbols: Set<VizSymbo
 		if ((found != null) && ((found.kind == ls.CompletionItemKind.Function) || (found.kind == ls.CompletionItemKind.Method))) {
 			found.noOfOverloads ++;
 			found.hint = found.name + "() (+ " + (found.noOfOverloads) + " overload(s))"
-			found.overloads.push(newSyms[newSyms.length-1]);
+			found.overloads.push(newSyms[newSyms.length-1].signatureInfo);
 			newSyms[newSyms.length-1].visibility = "hidden";
 		}
 		AddArrayToSet(symbols, newSyms);
@@ -1011,41 +1011,39 @@ function GetMethodStart(statement: LineStatement, uri: string): boolean {
 	let regexResult = rex.exec(line);
 
 	if (regexResult == null || regexResult.length < 5)
-		return;
+		return false;
 
-	if (openMethod == null) {
-		let leadingSpaces = GetNumberOfFrontSpaces(line);
-		let preLength = leadingSpaces + regexResult.index;
+	openMethod = null;
 
-		for (var i = 1; i < 3; i++) {
-			var resElement = regexResult[i];
-			if (resElement != null)
-				preLength += resElement.length;
-		}
+	let leadingSpaces = GetNumberOfFrontSpaces(line);
+	let preLength = leadingSpaces + regexResult.index;
 
-		//connection.console.log("Opening bracket at: " + (preLength+1).toString());
-
-		openMethod = {
-			type: regexResult[1],
-			name: regexResult[2],
-			argsIndex: preLength + 1, // opening bracket
-			args: regexResult[4],
-			hint: line,
-			startPosition: statement.GetPostitionByCharacter(leadingSpaces),
-			nameLocation: ls.Location.create(uri, ls.Range.create(
-				statement.GetPostitionByCharacter(line.indexOf(regexResult[2])),
-				statement.GetPostitionByCharacter(line.indexOf(regexResult[2]) + regexResult[2].length))
-			),
-			statement: statement
-		};
-
-		if (openMethod.args == null)
-			openMethod.args = "";
-
-		return true;
+	for (var i = 1; i < 3; i++) {
+		var resElement = regexResult[i];
+		if (resElement != null)
+			preLength += resElement.length;
 	}
 
-	return false;
+	//connection.console.log("Opening bracket at: " + (preLength+1).toString());
+
+	openMethod = {
+		type: regexResult[1],
+		name: regexResult[2],
+		argsIndex: preLength + 1, // opening bracket
+		args: regexResult[4],
+		hint: line,
+		startPosition: statement.GetPostitionByCharacter(leadingSpaces),
+		nameLocation: ls.Location.create(uri, ls.Range.create(
+			statement.GetPostitionByCharacter(line.indexOf(regexResult[2])),
+			statement.GetPostitionByCharacter(line.indexOf(regexResult[2]) + regexResult[2].length))
+		),
+		statement: statement
+	};
+
+	if (openMethod.args == null)
+		openMethod.args = "";
+
+	return true;
 }
 
 function GetMethodSymbol(statement: LineStatement, uri: string): VizSymbol[] {
@@ -1067,6 +1065,7 @@ function GetMethodSymbol(statement: LineStatement, uri: string): VizSymbol[] {
 	}
 	if (type != null){
 		if (type.toLowerCase() != openMethod.type.toLowerCase()) {
+			return null;
 			// ERROR!!! I expected end function|sub and not sub|function!
 			// show the user the error and then go on like it was the right type!
 			//console.error("ERROR - line " + statement.startLine + " at " + statement.startCharacter + ": 'end " + openMethod.type + "' expected!");

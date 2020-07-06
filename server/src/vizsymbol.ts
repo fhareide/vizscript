@@ -10,7 +10,7 @@ export class VizSymbol {
 	public symbolRange: ls.Range = null;
 	public nameLocation: ls.Location = null;
 	public noOfOverloads: number = 0;
-	public overloads: VizSymbol[] = [];
+	public overloads: ls.SignatureInformation[] = [];
 	public children: VizSymbol[] = [];
 	public kind: ls.CompletionItemKind;
 	public signatureInfo: ls.SignatureInformation;
