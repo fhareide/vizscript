@@ -72,8 +72,10 @@ export class VizSymbol {
 		let completionItems: ls.CompletionItem[] = [];
 
 		symbols.forEach(symbol => {
-			let lsItem = symbol.GetLsCompletionItem();
-			completionItems.push(lsItem);
+			if(symbol.visibility != "hidden"){
+				let lsItem = symbol.GetLsCompletionItem();
+			    completionItems.push(lsItem);
+			}
 		});
 
 		return completionItems;

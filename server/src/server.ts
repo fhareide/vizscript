@@ -168,7 +168,7 @@ function getWordAt(str, pos) {
 
 }
 
-function getLineAt(str, pos) {
+function getLineAt(str, pos, isSignatureHelp) {
 
     // Perform type conversions.
 	str = String(str);
@@ -218,7 +218,10 @@ function getLineAt(str, pos) {
 	  finalString = cleanString.slice(left, right + pos);
 	}
 
-	finalString = finalString.replace(/^\(/g, '');
+	if(!isSignatureHelp){
+		finalString = finalString.replace(/^.*\(/g, '');
+	}
+	finalString = finalString.replace(/^.*\[/g, '');
 
 	//connection.console.log("Final: " + finalString);
 
@@ -240,17 +243,17 @@ connection.onSignatureHelp((params: ls.SignatureHelpParams,cancelToken: ls.Cance
 		activeSignature: 0
 	}
 
-	let activeSignature = 0;
+	let activeSignature =0;
 
 	if (line.length < 2)return;
 	let regexResult = [];
 
-	let signatureRegex: RegExp = /^[ \t]*(function|sub)+[ \t]+([a-zA-Z0-9\-\_]+)+[ \t]*(\(([a-zA-Z0-9\[\]\_\-, \t(\(\))]*)\))+[ \t]*(as)?[ \t]*([a-zA-Z0-9\-\_]*)?[ \t]*$/gi;
+	let signatureRegex: RegExp = /^[ \t]*(function|sub)+[ \t]+([a-zA-Z0-9\-\_]+)+[ \t]*(\()+$/gi;
 
 	regexResult = signatureRegex.exec(line);
 	if (regexResult != null) return null; //Return here since we don't want to provide signatureHelp while writing a function or sub.
 	
-	let lineAt = getLineAt(line, params.position.character);
+	let lineAt = getLineAt(line, params.position.character, true);
 
 	if(params.context.activeSignatureHelp != undefined){
 		activeSignature = params.context.activeSignatureHelp.activeSignature;
@@ -282,21 +285,27 @@ connection.onSignatureHelp((params: ls.SignatureHelpParams,cancelToken: ls.Cance
 	let item = GetItemForSignature(regexResult[noOfMatches-1],noOfMatches,regexResult,params.position);
 
 	if(item == null) return null;
-	let signature = item.signatureInfo;
 	signHelp.signatures = [];
-	signHelp.signatures.push(signature);
+
+	let signature = item.signatureInfo;
+	if ((signature.documentation != "") || (signature.parameters.length != 0) || (item.overloads != [])) {
+		signHelp.signatures.push(signature);
+	}
 
 	if(item.overloads != []){
 		item.overloads.forEach(overload => {		
 			if (overload != null){
-			  signHelp.signatures.push(overload.signatureInfo);
+				if ((overload.signatureInfo.documentation != undefined) || (overload.signatureInfo.parameters != [])){
+					signHelp.signatures.push(overload.signatureInfo);
+				}
+			  
 			}
 		});
 	}
 
 	signHelp.activeSignature = activeSignature;
 	signHelp.activeParameter = noOfCommas;
-
+	
 	return signHelp;
     
 });
@@ -316,7 +325,7 @@ function GenerateSignatureHelp(hint: string, documentation: string): ls.Signatur
 	
 	let signature: ls.SignatureInformation = {
 		label: '',
-		documentation: undefined,
+		documentation: documentation,
 		parameters: []
 	};
 
@@ -334,18 +343,19 @@ function GenerateSignatureHelp(hint: string, documentation: string): ls.Signatur
 	var paramStrings = regexResult3[2].split(',');
 
 	signature.label += regexResult3[1] +"(";
-
-	for (var i = 0; i < paramStrings.length; i++) {
-		let label = paramStrings[i].trim();
-
-		let parameter: ls.ParameterInformation = {
-			label: label,
-			documentation: documentation
-		};
-		signature.label += label;
-		signature.parameters!.push(parameter);
-		if (i < paramStrings.length - 1) {
-			signature.label += ",";
+	if (paramStrings != ""){
+		for (var i = 0; i < paramStrings.length; i++) {
+			let label = paramStrings[i].trim();
+	
+			let parameter: ls.ParameterInformation = {
+				label: label,
+				documentation: ""
+			};
+			signature.label += label;
+			signature.parameters!.push(parameter);
+			if (i < paramStrings.length - 1) {
+				signature.label += ",";
+			}
 		}
 	}
 
@@ -395,10 +405,13 @@ connection.onCompletion((params: ls.CompletionParams, cancelToken: ls.Cancellati
 		ls.Position.create(params.position.line, 0),
 		ls.Position.create(params.position.line, params.position.character))
 	);
-
-	if (GetRegexResult(line, /^[ \t]*dim[ \t]+([a-zA-Z0-9\-\_\,]+)[ \t]+as$/gi) != null) return;
-	if (GetRegexResult(line, /^[ \t]*sub[ \t]+o?$/gi) != null) return SelectBuiltinEventCompletionItems();
-	if (GetRegexResult(line, /\=[\s]*([^\=\.\)]+)$/gi) != null){
+	
+	if (GetRegexResult(line, /^[ \t]*dim[ \t]+([a-zA-Z0-9\-\_\,]+)[ \t]*([as]+)?$/gi) != null) return;// No sugggestions when declaring variables
+	if (GetRegexResult(line, /^[ \t]*function[ \t]+([a-zA-Z0-9\-\_\,]+)$/gi) != null) return;// No suggestions when declaring functions
+	if (GetRegexResult(line, /^[ \t]*end[ \t]+([a-zA-Z0-9\-\_\,]*)$/gi) != null) return;// No suggestions for ending sub or function
+	if (GetRegexResult(line, /^[ \t]*sub[ \t]+?$/gi) != null) return SelectBuiltinEventCompletionItems();// Only event suggestions when declaring submethod
+	if (GetRegexResult(line, /\=[\s]*([^\=\.\)]+)$/gi) != null) // Suggestions after "="
+	{
 		documentCompletions = SelectCompletionItems(params);
 		suggestions = documentCompletions.concat(SelectBuiltinGlobalCompletionItems());			
 		suggestions = suggestions.concat(SelectBuiltinRootCompletionItems());
@@ -406,7 +419,7 @@ connection.onCompletion((params: ls.CompletionParams, cancelToken: ls.Cancellati
 	} 
 
 
-	let lineAt = getLineAt(line, params.position.character);
+	let lineAt = getLineAt(line, params.position.character,false);
 
 	let matches = [];
 	let regexResult = [];
@@ -421,17 +434,13 @@ connection.onCompletion((params: ls.CompletionParams, cancelToken: ls.Cancellati
 	noOfMatches = regexResult.length;
 
 	if (noOfMatches != 0) {
-		//documentCompletions = [];
-		
 		if (regexResult != null && regexResult.length > 0) {
-			//connection.console.log("Result is - " + regexResult[1]);
 			let item = GetItemType(regexResult[noOfMatches-1],noOfMatches,regexResult,params.position);
 			if (item != null) {
 				suggestions = [];
 				suggestions = item.GetLsChildrenItems();;
 			} else {
-				
-			  
+				suggestions = []	  
 			}
 		}
 	} else {
@@ -457,8 +466,6 @@ connection.onCompletion((params: ls.CompletionParams, cancelToken: ls.Cancellati
 			suggestions = documentCompletions.concat(SelectBuiltinGlobalCompletionItems());			
 			suggestions = suggestions.concat(SelectBuiltinRootCompletionItems());
 		}
-
-
 	}
 
 	return suggestions;
@@ -625,7 +632,7 @@ function SelectCompletionItems(textDocumentPosition: ls.TextDocumentPositionPara
 }
 
 function GetVizSymbolTree(symbols: VizSymbol[]) {
-	// sort by start positition
+	// sort by start position
 	let sortedSymbols: VizSymbol[] = symbols.sort(function (a: VizSymbol, b: VizSymbol) {
 		let diff = a.symbolRange.start.line - b.symbolRange.start.line;
 
@@ -648,7 +655,17 @@ function GetVizSymbolTree(symbols: VizSymbol[]) {
 function GetSymbolsOfScope(symbols: VizSymbol[], position: ls.Position): VizSymbol[] {
 	let symbolTree = GetVizSymbolTree(symbols);
 
-	return symbolTree.FindDirectParent(position).GetAllParentsAndTheirDirectChildren();
+	let result = symbolTree.FindDirectParent(position).GetAllParentsAndTheirDirectChildren();
+
+	let finalresult = [];
+
+	result.forEach(element => {
+		if(element.visibility != "hidden"){
+			finalresult.push(element);
+		}
+	});
+
+	return finalresult;
 }
 
 class VizSymbolTree {
@@ -938,8 +955,8 @@ function FindSymbol(statement: LineStatement, uri: string, symbols: Set<VizSymbo
 		if ((found != null) && ((found.kind == ls.CompletionItemKind.Function) || (found.kind == ls.CompletionItemKind.Method))) {
 			found.noOfOverloads ++;
 			found.hint = found.name + "() (+ " + (found.noOfOverloads) + " overload(s))"
-			found.overloads.push(newSyms[0]);
-			newSyms.shift();
+			found.overloads.push(newSyms[newSyms.length-1]);
+			newSyms[newSyms.length-1].visibility = "hidden";
 		}
 		AddArrayToSet(symbols, newSyms);
 		return;
