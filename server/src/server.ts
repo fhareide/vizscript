@@ -109,6 +109,7 @@ documents.onDidChangeContent((change: ls.TextDocumentChangeEvent<TextDocument>) 
 	//connection.console.log("Document changed. version: " + change.document.version.toString());
 	documentUri = change.document.uri;
 	triggerValidation(change.document);
+	ClearDiagnostics(documentUri);
 });
 
 function getDocumentSettings(resource: string): Thenable<VizScriptSettings> {
@@ -153,6 +154,8 @@ connection.onExecuteCommand((params: ls.ExecuteCommandParams) =>{
 			socket.write('1 MAIN IS_ON_AIR ' + String.fromCharCode(0));
 		});
 
+		let scenename = "";
+
 		socket.on('data', (data) => {
 			let message = data.toString().replace(String.fromCharCode(0), '')
 
@@ -160,22 +163,23 @@ connection.onExecuteCommand((params: ls.ExecuteCommandParams) =>{
 			
 			if(answer[1] == "1" && answer[3] == "1"){
 				//connection.console.log("Viz Engine is OnAir");
-				socket.write('2 RENDERER SET_OBJECT ' + String.fromCharCode(0));
+				
+				socket.write('2 SCENE NEW ' + String.fromCharCode(0));
 			}else if(answer[1] == "1" && answer[3] == "0"){
 				//connection.console.log("Viz Engine is not OnAir");
 				connection.window.showErrorMessage("Viz Engine " + host + ":" + port + " is not OnAir")
 				socket.end();
 			}else if(answer[1] == "2"){
-				//connection.console.log("Script is " + answer[3]);
+				scenename = answer[3].replace("SCENE*", "");
 				let text = "";
 				text = documents.get(documentUri).getText();
-				socket.write('3 MAIN_SCENE*SCRIPT*PLUGIN*SOURCE_CODE SET ' + text + ' ' + String.fromCharCode(0));
+				socket.write('3 '+ scenename +'*SCRIPT*PLUGIN*SOURCE_CODE SET ' + text + ' ' + String.fromCharCode(0));
 			}else if(answer[1] == "3"){
 				//connection.console.log(answer[3]);
-				socket.write('4 MAIN_SCENE*SCRIPT*PLUGIN COMPILE ' + String.fromCharCode(0));
+				socket.write('4 '+ scenename +'*SCRIPT*PLUGIN COMPILE ' + String.fromCharCode(0));
 			}else if(answer[1] == "4"){
 				//connection.console.log(answer[3]);
-				socket.write('5 MAIN_SCENE*SCRIPT*PLUGIN*COMPILE_STATUS GET ' + String.fromCharCode(0));
+				socket.write('5 '+ scenename +'*SCRIPT*PLUGIN*COMPILE_STATUS GET ' + String.fromCharCode(0));
 			}else if(answer[1] == "5"){
 				//connection.console.log(answer[3]);
 
@@ -191,7 +195,7 @@ connection.onExecuteCommand((params: ls.ExecuteCommandParams) =>{
 				}else{
 					connection.window.showInformationMessage("Compilation successful! No errors.")
 				}
-				socket.write('-1 RENDERER SET_OBJECT ' + String.fromCharCode(0));
+
 				socket.end();
 			}
 			
@@ -224,7 +228,6 @@ function triggerValidation(textDocument: ls.TextDocument): void {
 	cleanPendingValidation(textDocument);
 	pendingValidationRequests[textDocument.uri] = setTimeout(() => {
 		delete pendingValidationRequests[textDocument.uri];
-		ClearDiagnostics(textDocument.uri);
 		RefreshDocumentsSymbols(textDocument.uri);
 	}, validationDelayMs);
 }
