@@ -23,6 +23,27 @@
 	],
 	"main": "./client/out/extension",
 	"contributes": {
+		"commands": [
+			{
+				"command": "vizscript.compile",
+				"title": "Viz Script: Compile code"
+			}
+		],
+		"menus": {
+			"commandPalette": [
+				{
+					"command": "vizscript.compile",
+					"when": "editorLangId == viz"
+				}
+			]
+		},
+		"keybindings": [
+			{
+				"command": "vizscript.compile",
+				"key": "ctrl+f5",
+				"when": "editorLangId == viz"
+			}
+		],
 		"languages": [
 			{
 				"id": "viz",
@@ -79,6 +100,18 @@
 					"description": "Enable Jump to Definition for easy navigation",
 					"scope": "resource"
 				},
+				"vizscript.compiler.hostName": {
+					"type": "string",
+					"default": "localhost",
+					"description": "The hostname for connection to Viz Engine",
+					"scope": "resource"
+				},
+				"vizscript.compiler.hostPort": {
+					"type": "number",
+					"default": 6100,
+					"description": "The port number for connection to Viz Engine",
+					"scope": "resource"
+				},
 				"vizscript.trace.server": {
 					"scope": "window",
 					"type": "string",
@@ -110,10 +143,9 @@
 		"merge-options": "^2.0.0",
 		"ts-loader": "^6.2.1",
 		"tslint": "^5.20.1",
-		"typescript": "^3.9.5",
+		"typescript": "^3.9.6",
 		"vscode-test": "1.4.0",
 		"webpack": "^4.43.0",
 		"webpack-cli": "^3.3.12"
-	},
-	"dependencies": {}
+	}
 }
