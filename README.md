@@ -2,7 +2,7 @@
 
 > A complete language extension for Viz Script development in Viz Artist
 
-## New Features
+## New Features - Viz Script 0.2.0
 * Validate your code on a Viz Engine 
     * Ctrl-F5 or "Viz Script: Compile code" on the Command Palette (Ctrl-Shift-P)
     * The line with an error will be highlighted in the editor. 
