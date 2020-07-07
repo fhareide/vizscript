@@ -3,8 +3,8 @@
 > A complete language extension for Viz Script development in Viz Artist
 
 ## New Features - Viz Script 0.2.0
-* Validate your code on a Viz Engine 
-    * Ctrl-F5 or "Viz Script: Compile code" on the Command Palette (Ctrl-Shift-P)
+* Validate your code on a Viz Engine
+    * Shortcut Ctrl-F5 or `Viz Script: Compile code` on Command Palette (Ctrl-Shift-P) 
     * The line with an error will be highlighted in the editor. 
     * The hostname and port can be configured in the extension. 
     * Viz Engine must be OnAir.
@@ -32,6 +32,12 @@
 * Auto-Completion (Ctrl-spacebar to trigger, auto triggers if Quick Suggestions: "Other" is true.)
     * Supports both built-in and document completions)<br>
 	* Includes completions updated to Viz Engine/Artist 3.14
+
+# Features
+
+## Available commands
+
+* `Bookmarks: Toggle` Mark/unmark positions with bookmarks
 
 
 ## Supported filetypes
