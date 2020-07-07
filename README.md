@@ -33,17 +33,14 @@
     * Supports both built-in and document completions)<br>
 	* Includes completions updated to Viz Engine/Artist 3.14
 
-# Features
 
-## Available commands
+## Activation of plugin
+* Activate by triggering `Change Language Mode` on Command Palette and choosing `Viz Script` or opening a supported filetype.
 
-* `Bookmarks: Toggle` Mark/unmark positions with bookmarks
-
-
-## Supported filetypes
-* .vs 
-* .v3script 
-* .viz
+    ### Supported filetypes:
+        .vs 
+        .v3script 
+        .viz
 
 
 ## VS Code Settings
