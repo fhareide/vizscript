@@ -6,6 +6,12 @@
 	"license": "MIT",
 	"version": "0.2.0",
 	"publisher": "fhareide",
+	"keywords": [
+		"Vizrt", 
+		"Viz Artist",
+		"Viz Engine",
+		"Viz Scripting" 
+	],
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/fhareide/vizscript"

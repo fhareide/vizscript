@@ -270,11 +270,11 @@ function getLineAt(str, pos, isSignatureHelp) {
 		for (let i = bracketRanges.length - 1; i >= 0; i--) {
 			const element = bracketRanges[i];
 			if(!PositionInRange(lastRange, element.start)){
-				connection.console.log("Range: " + element.start.character + " " + element.end.character);
+				//connection.console.log("Range: " + element.start.character + " " + element.end.character);
 				var leftstr = line.slice(0,element.start.character+1);
 				var rightstr = line.slice(element.end.character);
 				line = leftstr + rightstr;
-				connection.console.log("Line: " + line);
+				//connection.console.log("Line: " + line);
 				lastRange = element;
 			}	
 		  }		
@@ -305,7 +305,7 @@ function getLineAt(str, pos, isSignatureHelp) {
 
 	let memberStartRegex: RegExp = /([^\.]+)([\.])*/gi; //Split on "."
 
-	connection.console.log("Line: " + line);
+	//connection.console.log("Line: " + line);
 
 	while (matches = memberStartRegex.exec(line)) {
 		dotResult.push(matches);   
@@ -369,7 +369,7 @@ function getLineAt(str, pos, isSignatureHelp) {
 		finalString = regexResult[2]; //  Removing everything before open brackets at the end of a line (abc.fsdfsd[) but not closed brackets(fsd[])
 	}
 
-	connection.console.log("Final: " + finalString);
+	//connection.console.log("Final: " + finalString);
 
     return finalString;
 

@@ -1,6 +1,6 @@
 # Viz Script for Visual Studio Code
 
-> A complete language extension for Viz Script development in Viz Artist
+> A complete language extension for Viz Script development in Visual Studio Code
 
 ## New Features - Viz Script 0.2.0
 * Validate your code on a Viz Engine
