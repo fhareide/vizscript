@@ -4,13 +4,13 @@
 	"description": "Language syntax highlighting, autocomplete, signature help and jump to definition for Viz Script",
 	"author": "Fredrik Hareide",
 	"license": "MIT",
-	"version": "0.2.0",
+	"version": "0.2.1",
 	"publisher": "fhareide",
 	"keywords": [
-		"Vizrt", 
+		"Vizrt",
 		"Viz Artist",
 		"Viz Engine",
-		"Viz Scripting" 
+		"Viz Scripting"
 	],
 	"repository": {
 		"type": "git",
