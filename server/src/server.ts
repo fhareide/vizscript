@@ -202,7 +202,7 @@ connection.onExecuteCommand((params: ls.ExecuteCommandParams) =>{
 		});
 
 		socket.on('error', () => {
-			connection.window.showInformationMessage("Not able to connect to Viz Engine " + host + ":" + port);
+			connection.window.showErrorMessage("Not able to connect to Viz Engine " + host + ":" + port);
 		});
 
 
@@ -262,31 +262,82 @@ function getLineAt(str, pos, isSignatureHelp) {
 	let matches = [];
 	let dotResult = [];
 
-	let result = GetRegexResult(line, /\=((.*)+)$/gi);
+	
+
+	let bracketRanges: ls.Range[] = getBracketRanges(line); //Remove content of closed brackets
+	let lastRange: ls.Range = ls.Range.create(ls.Position.create(-1,-1),ls.Position.create(-1,-1));
+	if(bracketRanges.length != 0){
+		for (let i = bracketRanges.length - 1; i >= 0; i--) {
+			const element = bracketRanges[i];
+			if(!PositionInRange(lastRange, element.start)){
+				connection.console.log("Range: " + element.start.character + " " + element.end.character);
+				var leftstr = line.slice(0,element.start.character+1);
+				var rightstr = line.slice(element.end.character);
+				line = leftstr + rightstr;
+				connection.console.log("Line: " + line);
+				lastRange = element;
+			}	
+		  }		
+	}
+
+	let openBracketPos = getOpenBracketPosition(line); //If inside open bracket we should slice away everything before the bracket
+	if(openBracketPos > 0){
+		if(!isSignatureHelp){
+			line = line.slice(openBracketPos+1);
+		}
+	}
+
+	let result = GetRegexResult(line, /[\=|\>]((.*)+)$/gi); //Split on "=|>"
 
 	if (result != null){
 		if( result[1] != undefined){
 			line = result[1];
 		}
-		
 	}
 
-	let memberStartRegex: RegExp = /([^\.]+)([\.])*/gi;
+	result = GetRegexResult(line, /[\<]((.*)+)$/gi); //Split on "<"
+
+	if (result != null){
+		if( result[1] != undefined){
+			line = result[1];
+		}
+	}
+
+	let memberStartRegex: RegExp = /([^\.]+)([\.])*/gi; //Split on "."
+
+	connection.console.log("Line: " + line);
 
 	while (matches = memberStartRegex.exec(line)) {
 		dotResult.push(matches);   
 	}
 
+	let regexResult = [];
+	let regexString: RegExp ;
+	
 	let cleanString: string = "";
-	dotResult.forEach(result => {
-		let tmpLine =result[1].replace(/[\[].*?[\]]$/gi, '')
-		tmpLine = tmpLine.replace(/[\(].*?[\)]$/gi, '')
-		if (result[2] != undefined){
-			cleanString += tmpLine + result[2];
-		}else{
-			cleanString += tmpLine;
-		}
-	});
+	if(dotResult.length != 0){
+		dotResult.forEach(result => {
+			let tmpLine = result[1];
+			regexString = /(.*)?[\[](.*?)[\]]$/gi;
+			regexResult = regexString.exec(result[1]);
+			if(regexResult != null){
+				tmpLine = regexResult[1] + "[]"; // Keeping square brackets to be able to differ between array and array[type]
+			}
+			regexString = /(.*)?[\(](.*?)[\)]$/gi;
+			regexResult = null;
+			regexResult = regexString.exec(tmpLine);
+			if(regexResult != null){
+				tmpLine = regexResult[1]; // Removing parantheses for now. Do not think we need them
+			}
+			
+			if (result[2] != undefined){
+				cleanString += tmpLine + result[2];
+			}else{
+				cleanString += tmpLine;
+			}
+		});
+	}
+	
 
 	
     // Search for the sentence beginning and end.
@@ -301,17 +352,103 @@ function getLineAt(str, pos, isSignatureHelp) {
 	  finalString = cleanString.slice(left, right + pos);
 	}
 
-	if(!isSignatureHelp){
-		finalString = finalString.replace(/^.*\(/g, '');
+	if(!isSignatureHelp){ //Only do this if it is not a Signature Help
+		regexResult = null;	
+		regexString = /(.*\()([^\)]*)$/gi;
+		regexResult = regexString.exec(finalString);
+		if(regexResult != null){
+			finalString = regexResult[2]; //  Removing everything before open parantheses at the end of a line (abc.fsdfsd() but not closed parantheses(fsd())
+		}
 	}
-	finalString = finalString.replace(/^.*\[/g, '');
 
-	//connection.console.log("Final: " + finalString);
+	regexResult = null;	
+	regexString = /(.*\[)([^\]]*)$/gi;
+	regexResult = regexString.exec(finalString);
 
-    // Return the word, using the located bounds to extract it from the string.
+	if(regexResult != null){
+		finalString = regexResult[2]; //  Removing everything before open brackets at the end of a line (abc.fsdfsd[) but not closed brackets(fsd[])
+	}
+
+	connection.console.log("Final: " + finalString);
+
     return finalString;
 
+
+	
 }
+
+function getOpenBracketPosition(mystring) {
+	let stack = [];
+	let bracketpos = [];
+    let map = {
+        '(': ')',
+        '[': ']',
+        '{': '}'
+    }
+
+    for (let i = 0; i < mystring.length; i++) {
+
+        // If character is an opening brace add it to a stack
+        if (mystring[i] === '(' || mystring[i] === '{' || mystring[i] === '[' ) {
+			stack.push(mystring[i]);
+			bracketpos.push(i);
+        }
+        //  If that character is a closing brace, pop from the stack, which will also reduce the length of the stack each time a closing bracket is encountered.
+        else if (mystring[i] === ')' || mystring[i] === '}' || mystring[i] === ']' ) {
+			let last = stack.pop();
+			bracketpos.pop();
+
+            //If the popped element from the stack, which is the last opening brace doesn’t match the corresponding closing brace in the map, then return false
+            if (mystring[i] !== map[last]) {
+				return -1};
+        }
+    }
+    // By the completion of the for loop after checking all the brackets of the str, at the end, if the stack is not empty then return last open bracket pos
+        if (stack.length !== 0) {
+			//connection.console.log("Open bracket pos: " + bracketpos[stack.length-1]);
+			return bracketpos[stack.length-1]
+		};
+
+    return -1;
+}
+
+function getBracketRanges(mystring) {
+	let stack = [];
+	let bracketpos = [];
+	let bracketRanges = [];
+    let map = {
+        '(': ')',
+        '[': ']',
+        '{': '}'
+    }
+
+    for (let i = 0; i < mystring.length; i++) {
+
+        // If character is an opening brace add it to a stack
+        if (mystring[i] === '(' || mystring[i] === '{' || mystring[i] === '[' ) {
+			stack.push(mystring[i]);
+			bracketpos.push(i);
+        }
+        //  If that character is a closing brace, pop from the stack, which will also reduce the length of the stack each time a closing bracket is encountered.
+        else if (mystring[i] === ')' || mystring[i] === '}' || mystring[i] === ']' ) {
+			let last = stack.pop();
+			let lastpos = bracketpos.pop();
+
+            //If the popped element from the stack, matches the corresponding closing brace in the map, then add range to array
+            if (mystring[i] === map[last]) {
+				bracketRanges.push(ls.Range.create(
+					ls.Position.create(0, lastpos),
+					ls.Position.create(0, i))
+				);
+			}
+		}
+    }
+
+    return bracketRanges;
+}
+
+
+
 
 connection.onSignatureHelp((params: ls.SignatureHelpParams,cancelToken: ls.CancellationToken) : ls.SignatureHelp => {
 	if(settings != null){ if (!settings.enableSignatureHelp) return;}
@@ -371,8 +508,10 @@ connection.onSignatureHelp((params: ls.SignatureHelpParams,cancelToken: ls.Cance
 	signHelp.signatures = [];
 
 	let signature = item.signatureInfo;
-	if ((signature.documentation != "") || (signature.parameters.length != 0) || (item.overloads != [])) {
-		signHelp.signatures.push(signature);
+	if(signature != null){
+		if ((signature.documentation != "") || (signature.parameters.length != 0) || (item.overloads != [])) {
+			signHelp.signatures.push(signature);
+		}
 	}
 
 	if(item.overloads != []){
@@ -518,7 +657,7 @@ connection.onCompletion((params: ls.CompletionParams, cancelToken: ls.Cancellati
 
 	if (noOfMatches != 0) {
 		if (regexResult != null && regexResult.length > 0) {
-			let item = GetItemType(regexResult[noOfMatches-1],noOfMatches,regexResult,params.position);
+			let item = GetItemType(noOfMatches,regexResult,params.position);
 			if (item != null) {
 				suggestions = [];
 				suggestions = item.GetLsChildrenItems();;
@@ -555,12 +694,12 @@ connection.onCompletion((params: ls.CompletionParams, cancelToken: ls.Cancellati
 
 });
 
-function GetItemType(name: string, currentIdx: number,regexResult: any[],position: ls.Position): VizSymbol {
+function GetItemType(currentIdx: number,regexResult: any[],position: ls.Position): VizSymbol {
 	let children: VizSymbol[] = null;
 	let item: VizSymbol = null;
 	for (var i = 0; i < currentIdx; i++) {
 		if(children == null){
-			item = GetSymbolByName(regexResult[i], position);
+			item = GetSymbolByName(regexResult[i], position);// Need to add check for Array or Array[Type]
 			if(item != null){
 				children = item.children;
 				if(children.length < 1){
@@ -573,18 +712,21 @@ function GetItemType(name: string, currentIdx: number,regexResult: any[],positio
 			}
 			
 		}else{
-			let outerItem = GetSymbolInScope(regexResult[i],children);
-			if(outerItem != null){		
-				item = GetSymbolByName(outerItem.type, position);
+			let outerType = GetSymbolTypeInChildren(regexResult[i],children);
+			//let outerItem = GetSymbolInChildren(regexResult[i],children);
+			if(outerType != ""){		
+				item = GetSymbolByName(outerType, position);
 				if(item != null){	
 					children = item.children;	
 				}else{
 					children = null;
 				}
+			} else{
+				item = null;
 			}
-			
+	
 		}
-		
+	
 	}
 
 	return item;	
@@ -609,8 +751,9 @@ function GetItemForSignature(name: string, currentIdx: number,regexResult: any[]
 			}
 			
 		}else{
-			let outerItem = GetSymbolInScope(regexResult[i],children);
-			if(outerItem != null){		
+			//let outerType = GetSymbolTypeInChildren(regexResult[i],children);
+			let outerItem = GetSymbolInChildren(regexResult[i],children);
+			if(outerItem != null){
 				item = GetSymbolByName(outerItem.type, position);
 				if(item != null){	
 					children = item.children;	
@@ -637,15 +780,25 @@ function GetSymbolsOfDocument(uri: string): ls.SymbolInformation[] {
 	return VizSymbol.GetLanguageServerSymbols(symbolCache[uri]);
 }
 
+
 function GetSymbolByName(name: string, position: ls.Position): VizSymbol {
 	if(name == undefined) return null;
 	let regexResult;
-	let memberStartRegex: RegExp =/array[\ ]*\[(.*?)\]/gi; // Remove array[]
+	let memberStartRegex: RegExp =/^array[\ ]*\[(.*?)\]/gi; // Remove array[]
+	let isArrayType: Boolean = false;
+	let type: string = "";
 	memberStartRegex.lastIndex = 0;
 	regexResult = memberStartRegex.exec(name);
 	if(regexResult != null){
 		name = regexResult[1];
 	}
+
+	if(name.endsWith("[]")){
+		name = name.replace("[]", "");
+		isArrayType = true;
+		//connection.console.log("Type is array in GetSymbolByName! " + name);
+	}
+
 	regexResult = null;
 	memberStartRegex =/([^.]*)\[(.*?)\]/gi; // Remove [] from arrays
 	memberStartRegex.lastIndex = 0;
@@ -653,6 +806,17 @@ function GetSymbolByName(name: string, position: ls.Position): VizSymbol {
 	if(regexResult != null){
 		name = regexResult[1];
 	}
+
+	//if(item.type.toLowerCase().startsWith("array")){
+	//	if(regexResult[i].endsWith("]")){
+	//		let tmpType = GetRegexResult(item.type, /\[(.*?)\]/gi)
+	//		innerItem = GetSymbolByName(tmpType[1], position);
+	//	}else{
+	//		innerItem = GetSymbolByName("Array", position);
+	//	}
+	//} else{
+
+	//Need to remove brackets on types but still get Array to work. Workaround by removing [] in Array completion
 
 	let symbols = symbolCache["builtin"];
 	let rootsymbols = symbolCache["builtin_root"];
@@ -685,13 +849,34 @@ function GetSymbolByName(name: string, position: ls.Position): VizSymbol {
 			}
 		});
 	}
+
+
+	if(result != null){
+		if(result.type.toLowerCase().startsWith("array[")){
+			if(isArrayType){
+				let tmpType = GetRegexResult(result.type, /\[(.*?)\]/gi)
+				result = GetSymbolByName(tmpType[1],position);
+			}else{
+				result = GetSymbolByName("Array",position);
+			}
+		}
+	}
+
 	
 	return result;
 }
 
-function GetSymbolInScope(name: string, items: VizSymbol[] ): VizSymbol {
+function GetSymbolInChildren(name: string, items: VizSymbol[] ): VizSymbol {
 	let symbols = items;
 	let result: VizSymbol = null;
+	let isArrayType: boolean = false;
+
+	if(name.endsWith("[]")){
+		name = name.replace("[]", "");
+		isArrayType = true;
+		//connection.console.log("Type is array! " + name);
+	}
+
 	symbols.forEach(item => {
 		if (item.name == name) {
 			result = item;
@@ -699,6 +884,39 @@ function GetSymbolInScope(name: string, items: VizSymbol[] ): VizSymbol {
 	});
 
 	return result;
+}
+
+function GetSymbolTypeInChildren(name: string, items: VizSymbol[] ): string {
+	let symbols = items;
+	let result: VizSymbol = null;
+	let type: string = "";
+	let isArrayType: boolean = false;
+
+	if(name.endsWith("[]")){
+		name = name.replace("[]", "");
+		isArrayType = true;
+		//connection.console.log("Type is array! " + name);
+	}
+
+	symbols.forEach(item => {
+		if (item.name == name) {
+			result = item;
+		}
+	});
+	if(result != null){
+		if(result.type.toLowerCase().startsWith("array")){
+			if(isArrayType){
+				let tmpType = GetRegexResult(result.type, /\[(.*?)\]/gi)
+				type = tmpType[1];
+			}else{
+				type = "Array";
+			}
+		} else{
+			type = result.type;
+		}
+	}
+
+	return type;
 }
 
 function SelectCompletionItems(textDocumentPosition: ls.TextDocumentPositionParams): ls.CompletionItem[] {
@@ -1325,7 +1543,7 @@ function GetVariableSymbol(statement: LineStatement, uri: string): VizSymbol[] {
 	let line: string = statement.line;
 
 	let variableSymbols: VizSymbol[] = [];
-	let memberStartRegex: RegExp = /^[ \t]*dim[ \t]+([a-zA-Z0-9\-\_\,]+)[ \t]+as[ \t]+([a-zA-Z0-9\-\_\,\[\]]+).*$/gi;
+	let memberStartRegex: RegExp = /^[ \t]*dim[ \t]+([a-zA-Z0-9\-\_\,\s]+)[ \t]+as[ \t]+([a-zA-Z0-9\-\_\,\[\]\s]+)[']?.*$/gi;
 
 	let regexResult = memberStartRegex.exec(line);
 
@@ -1338,7 +1556,7 @@ function GetVariableSymbol(statement: LineStatement, uri: string): VizSymbol[] {
 	let nameStartIndex = line.indexOf(line);
 	let parentName: string = "root";
 
-	let type: string = regexResult[2]
+	let type: string = regexResult[2].trim();
 
 
 	if (openStructureName != null)

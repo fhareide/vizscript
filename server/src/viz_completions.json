@@ -122,7 +122,7 @@
         ]
       },
       {
-        "name": "Array[Type]",
+        "name": "Array",
         "descripton": "A dynamic, one-dimensional array. The element type must be specified in brackets. Use the index operator [] to access individual elements. Negative indices refer to elements at the end of the array.",
         "properties": [
           {
