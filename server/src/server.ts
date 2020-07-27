@@ -541,7 +541,9 @@ function GenerateSignatureHelp(hint: string, documentation: string): ls.Signatur
 	if(hint == "")return null;
 	regexResult3 = memberStartRegex2.exec(hint);
 	//connection.console.info("Hint length: " + regexResult3.length);
+	if( regexResult3 == null) return null;
 	if (regexResult3.length < 4) return null;
+	
 
 	//connection.console.info("Hint: " + regexResult3[1]);
 	
@@ -1057,6 +1059,7 @@ function CollectSymbols(document: ls.TextDocument): VizSymbol[] {
 
 	for (var i = 0; i < lines.length; i++) {
 		let line = lines[i];
+		let originalLine = line;
 
 		let containsComment = line.indexOf("'");
 		//Removes comments from symbol lines
@@ -1071,6 +1074,7 @@ function CollectSymbols(document: ls.TextDocument): VizSymbol[] {
 		statement.startLine = i;
 		statement.line = line;
 		statement.startCharacter = 0;
+		statement.originalLine = originalLine;
 
 
 		//connection.console.info("Line " + i.toString() + " is " + statement.line);
@@ -1085,6 +1089,7 @@ class LineStatement {
 	startCharacter: number = 0;
 	startLine: number = -1;
 	line: string = "";
+	originalLine: string = "";
 
 	public GetStatement(): string {
 		return this.line;
@@ -1241,6 +1246,7 @@ function SelectBuiltinEventCompletionItems(): ls.CompletionItem[] {
 
 let pendingChildren: VizSymbol[] = [];
 
+
 function FindSymbol(statement: LineStatement, uri: string, symbols: Set<VizSymbol>): void {
 	let newSym: VizSymbol;
 	let newSyms: VizSymbol[] = null;
@@ -1325,6 +1331,25 @@ function GetMethodStart(statement: LineStatement, uri: string): boolean {
 			preLength += resElement.length;
 	}
 
+	
+	let lines = documents.get(documentUri).getText().split(/\r?\n/g);
+	let descriptionLines = [];
+	let description = "";
+	let offset = 1;
+	if (lines.length != 0){
+		while ((statement.startLine-offset >= 0) && (lines[statement.startLine- offset].trim().startsWith("'"))) {
+			connection.console.log(lines[statement.startLine-offset]);
+			descriptionLines.push(lines[statement.startLine-offset]);
+			offset ++;
+		}
+	
+		if (descriptionLines.length != 0){
+			for (let i = descriptionLines.length - 1; i >= 0; i--) {
+				description += descriptionLines[i].replace("'", "") + "\n";
+			}
+		}
+	} 
+	
 	//connection.console.log("Opening bracket at: " + (preLength+1).toString());
 
 	openMethod = {
@@ -1332,7 +1357,7 @@ function GetMethodStart(statement: LineStatement, uri: string): boolean {
 		name: regexResult[2],
 		argsIndex: preLength + 1, // opening bracket
 		args: regexResult[4],
-		hint: line,
+		hint: description,
 		startPosition: statement.GetPostitionByCharacter(leadingSpaces),
 		nameLocation: ls.Location.create(uri, ls.Range.create(
 			statement.GetPostitionByCharacter(line.indexOf(regexResult[2])),
@@ -1402,12 +1427,12 @@ function GetMethodSymbol(statement: LineStatement, uri: string): VizSymbol[] {
 	if(type == "sub")symbol.kind = ls.CompletionItemKind.Method;
 	symbol.type = openMethod.type;
 	symbol.name = openMethod.name;
-	symbol.hint = openMethod.hint;
+	symbol.hint = openMethod.statement.line;
 	symbol.insertText = openMethod.name;
-	symbol.args = openMethod.args;
+	symbol.args = openMethod.hint;
 	symbol.nameLocation = openMethod.nameLocation;
 	symbol.parentName = openMethod.name;
-	symbol.signatureInfo = GenerateSignatureHelp(symbol.hint, "");
+	symbol.signatureInfo = GenerateSignatureHelp(symbol.hint, symbol.args);
 	symbol.commitCharacters = [""];
 	symbol.symbolRange = range;
 
@@ -1540,10 +1565,10 @@ function GetVariableNamesFromList(vars: string): string[] {
 }
 
 function GetVariableSymbol(statement: LineStatement, uri: string): VizSymbol[] {
-	let line: string = statement.line;
+	let line: string = statement.originalLine;
 
 	let variableSymbols: VizSymbol[] = [];
-	let memberStartRegex: RegExp = /^[ \t]*dim[ \t]+([a-zA-Z0-9\-\_\,\s]+)[ \t]+as[ \t]+([a-zA-Z0-9\-\_\,\[\]\s]+)[']?.*$/gi;
+	let memberStartRegex: RegExp = /^[ \t]*dim[ \t]+([a-zA-Z0-9\-\_\,\s]+)[ \t]+as[ \t]+([a-zA-Z0-9\-\_\,\[\]\s]+)[^\']*([\']?.*)$/gi;
 
 	let regexResult = memberStartRegex.exec(line);
 
@@ -1574,8 +1599,8 @@ function GetVariableSymbol(statement: LineStatement, uri: string): VizSymbol[] {
 		symbol.type = type;
 		symbol.name = varName;
 		symbol.insertText = varName;
-		symbol.type = type;
-		symbol.args = "";
+		symbol.args = regexResult[3].replace("'", "");
+		symbol.hint = varName + " as " + type;
 		symbol.kind = ls.CompletionItemKind.Variable;
 		symbol.nameLocation = ls.Location.create(uri,
 			GetNameRange(statement, varName)
