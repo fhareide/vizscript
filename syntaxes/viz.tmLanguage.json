@@ -3,7 +3,9 @@
 	"fileTypes": [
 		"vs",
 		"viz",
-		"v3script"
+		"v3script",
+		"vsc",
+		"vizc"
 	  ],
 	"foldingStartMarker": "^(?i:(sub\\s+|function\\s+).*$)\\n?",
 	"foldingStopMarker": "(?i:(end\\s+)).*$\\n?",

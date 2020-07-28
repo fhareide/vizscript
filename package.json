@@ -25,6 +25,7 @@
 		"vscode": "^1.26.0"
 	},
 	"activationEvents": [
+		"onLanguage:viz-con",
 		"onLanguage:viz"
 	],
 	"main": "./client/out/extension",
@@ -39,7 +40,7 @@
 			"commandPalette": [
 				{
 					"command": "vizscript.compile",
-					"when": "editorLangId == viz"
+					"when": "editorLangId == viz || editorLangId == viz-con"
 				}
 			]
 		},
@@ -47,20 +48,30 @@
 			{
 				"command": "vizscript.compile",
 				"key": "ctrl+f5",
-				"when": "editorLangId == viz"
+				"when": "editorLangId == viz || editorLangId == viz-con"
 			}
 		],
 		"languages": [
 			{
 				"id": "viz",
 				"aliases": [
-					"VizScript",
-					"viz"
+					"VizSceneScript"
 				],
 				"extensions": [
 					".vs",
-					".v3script",
-					".viz"
+					".viz",
+					".v3script"
+				],
+				"configuration": "./syntaxes/language-configuration.json"
+			},
+			{
+				"id": "viz-con",
+				"aliases": [
+					"VizContainerScript"
+				],
+				"extensions": [
+					".vsc",
+					".vizc"
 				],
 				"configuration": "./syntaxes/language-configuration.json"
 			}
@@ -68,6 +79,11 @@
 		"grammars": [
 			{
 				"language": "viz",
+				"scopeName": "source.viz",
+				"path": "./syntaxes/viz.tmLanguage.json"
+			},
+			{
+				"language": "viz-con",
 				"scopeName": "source.viz",
 				"path": "./syntaxes/viz.tmLanguage.json"
 			}

@@ -40,6 +40,7 @@ connection.onInitialize((params): ls.InitializeResult => {
 	if (symbolCache["builtin"] == null) GetBuiltinSymbols();
 	if (symbolCache["builtin_events"] == null) GetVizEvents();
 	
+	
 
 	return {
 		capabilities: {
@@ -93,6 +94,7 @@ connection.onDidChangeConfiguration(change => {
 		// Reset all cached document settings
 		documentSettings.clear();
 	}
+	
 
 	// Revalidate all open text documents
 	documents.all().forEach(cacheConfiguration);
@@ -102,6 +104,7 @@ const pendingValidationRequests: { [uri: string]: NodeJS.Timer } = {};
 const validationDelayMs = 500;
 
 let documentUri: string;
+let scriptType: string = "";
 
 // The content of a text document has changed. This event is emitted
 // when the text document first opened or when its content has changed.
@@ -126,6 +129,7 @@ function getDocumentSettings(resource: string): Thenable<VizScriptSettings> {
 
 let settings: VizScriptSettings;
 
+
 async function cacheConfiguration(textDocument: TextDocument): Promise<void> {
 	settings = await getDocumentSettings(textDocument.uri);
 }
@@ -142,6 +146,10 @@ documents.onDidClose(event => {
 	documentSettings.delete(event.document.uri);
 });
 
+let sceneId = "";
+let containerId = "";
+let scriptId = "";
+
 connection.onExecuteCommand((params: ls.ExecuteCommandParams) =>{
 	if(params.command == "vizscript.compile"){
 		let port = settings.compiler.hostPort;
@@ -154,8 +162,12 @@ connection.onExecuteCommand((params: ls.ExecuteCommandParams) =>{
 			socket.write('1 MAIN IS_ON_AIR ' + String.fromCharCode(0));
 		});
 
-		let scenename = "";
+		let text = "";
+		text = documents.get(documentUri).getText();
 
+		
+		//connection.console.log('Script type is: ' + scriptType);
+		
 		socket.on('data', (data) => {
 			let message = data.toString().replace(String.fromCharCode(0), '')
 
@@ -163,23 +175,25 @@ connection.onExecuteCommand((params: ls.ExecuteCommandParams) =>{
 			
 			if(answer[1] == "1" && answer[3] == "1"){
 				//connection.console.log("Viz Engine is OnAir");
+				if(sceneId == ""){
+					socket.write('2 SCENE NEW ' + String.fromCharCode(0));
+				} else {
+					socket.write('6 '+ sceneId +'*UUID GET ' + String.fromCharCode(0));
+				}
 				
-				socket.write('2 SCENE NEW ' + String.fromCharCode(0));
 			}else if(answer[1] == "1" && answer[3] == "0"){
 				//connection.console.log("Viz Engine is not OnAir");
 				connection.window.showErrorMessage("Viz Engine " + host + ":" + port + " is not OnAir")
 				socket.end();
 			}else if(answer[1] == "2"){
-				scenename = answer[3].replace("SCENE*", "");
-				let text = "";
-				text = documents.get(documentUri).getText();
-				socket.write('3 '+ scenename +'*SCRIPT*PLUGIN*SOURCE_CODE SET ' + text + ' ' + String.fromCharCode(0));
+				sceneId = answer[3].replace("SCENE*", "");
+				socket.write('7 '+ sceneId +'*TREE ADD TOP ' + String.fromCharCode(0));
 			}else if(answer[1] == "3"){
 				//connection.console.log(answer[3]);
-				socket.write('4 '+ scenename +'*SCRIPT*PLUGIN COMPILE ' + String.fromCharCode(0));
+				socket.write('4 '+ scriptId +'*SCRIPT*PLUGIN COMPILE ' + String.fromCharCode(0));
 			}else if(answer[1] == "4"){
 				//connection.console.log(answer[3]);
-				socket.write('5 '+ scenename +'*SCRIPT*PLUGIN*COMPILE_STATUS GET ' + String.fromCharCode(0));
+				socket.write('5 '+ scriptId +'*SCRIPT*PLUGIN*COMPILE_STATUS GET ' + String.fromCharCode(0));
 			}else if(answer[1] == "5"){
 				//connection.console.log(answer[3]);
 
@@ -191,22 +205,59 @@ connection.onExecuteCommand((params: ls.ExecuteCommandParams) =>{
 					let range = ls.Range.create(line-1, char-1, line-1, char);
 
 					DisplayDiagnostics(documentUri,range,error[1]);
-					connection.window.showErrorMessage("Compilation failed: " + error[1])
+					connection.window.showErrorMessage(scriptType + " script: Compilation failed: " + error[1])
 				}else{
-					connection.window.showInformationMessage("Compilation successful! No errors.")
+					connection.window.showInformationMessage(scriptType + " script: Compilation successful! No errors.")
 				}
 
 				socket.end();
+			}else if(answer[1] == "6"){
+				if(answer[3] == "<00000000-0000-0000-0000000000000000>"){
+					if(containerId != ""){
+						socket.write('9 '+ containerId +'*SCRIPT*STATUS GET ' + String.fromCharCode(0));
+					}else{
+						socket.write('7 '+ sceneId +'*TREE ADD TOP ' + String.fromCharCode(0));
+					}
+				} else {
+					socket.write('2 SCENE NEW ' + String.fromCharCode(0));
+				}
+				
+			}else if(answer[1] == "7"){
+				//connection.window.showInformationMessage("Answer: " + answer[3])
+				if(answer[3] == "1"){
+					socket.write('8 '+ sceneId +'*TREE*/1*OBJECT_ID GET ' + String.fromCharCode(0));
+				}
+			}else if(answer[1] == "8"){
+				if(answer[3].startsWith("#")){
+					containerId = answer[3];
+				} else{
+					connection.window.showErrorMessage("No container found")
+					return;
+				}
+				socket.write('-1 '+ containerId +'*SCRIPT SET SCRIPT*Script ' + String.fromCharCode(0));
+				socket.write('9 '+ containerId +'*SCRIPT*STATUS GET ' + String.fromCharCode(0));
+
+			}else if(answer[1] == "9"){
+				if(scriptType == "Scene"){
+					scriptId = sceneId;
+				}else if(scriptType = "Container"){
+					scriptId = containerId;
+				}
+				socket.write('3 '+ scriptId +'*SCRIPT*PLUGIN*SOURCE_CODE SET ' + text + ' ' + String.fromCharCode(0));
+
 			}
 			
 		});
 
 		socket.on('error', () => {
 			connection.window.showErrorMessage("Not able to connect to Viz Engine " + host + ":" + port);
+			sceneId = "";
+			containerId = "";
 		});
 
 
 		socket.on('end', () => {
+			
 			//connection.console.log('Disconnected Viz Engine');
 			//connection.window.showInformationMessage("Disconnected from Viz Engine");
 		});
@@ -229,6 +280,7 @@ function triggerValidation(textDocument: ls.TextDocument): void {
 	pendingValidationRequests[textDocument.uri] = setTimeout(() => {
 		delete pendingValidationRequests[textDocument.uri];
 		RefreshDocumentsSymbols(textDocument.uri);
+		SetScriptType(textDocument.languageId);
 	}, validationDelayMs);
 }
 
@@ -633,7 +685,11 @@ connection.onCompletion((params: ls.CompletionParams, cancelToken: ls.Cancellati
 	if (GetRegexResult(line, /^[ \t]*dim[ \t]+([a-zA-Z0-9\-\_\,]+)[ \t]*([as]+)?$/gi) != null) return;// No sugggestions when declaring variables
 	if (GetRegexResult(line, /^[ \t]*function[ \t]+([a-zA-Z0-9\-\_\,]+)$/gi) != null) return;// No suggestions when declaring functions
 	if (GetRegexResult(line, /^[ \t]*end[ \t]+([a-zA-Z0-9\-\_\,]*)$/gi) != null) return;// No suggestions for ending sub or function
-	if (GetRegexResult(line, /^[ \t]*sub[ \t]+?$/gi) != null) return SelectBuiltinEventCompletionItems();// Only event suggestions when declaring submethod
+	if(scriptType == "Scene"){
+		if (GetRegexResult(line, /^[ \t]*sub[ \t]+?$/gi) != null) return SelectBuiltinEventCompletionItems();// Only event suggestions when declaring submethod
+	} else {
+		if (GetRegexResult(line, /^[ \t]*sub[ \t]+?$/gi) != null) return;// No builtins for container script
+	}
 	if (GetRegexResult(line, /\=[\s]*([^\=\.\)]+)$/gi) != null) // Suggestions after "="
 	{
 		documentCompletions = SelectCompletionItems(params);
@@ -685,10 +741,12 @@ connection.onCompletion((params: ls.CompletionParams, cancelToken: ls.Cancellati
 			}
 			suggestions = documentCompletions.concat(SelectBuiltinCompletionItems());
 			suggestions = suggestions.concat(SelectBuiltinRootCompletionItems());
+			suggestions = suggestions.concat(SelectBuiltinRootThisCompletionItems());
 		} else {
 			documentCompletions = SelectCompletionItems(params);
 			suggestions = documentCompletions.concat(SelectBuiltinGlobalCompletionItems());			
 			suggestions = suggestions.concat(SelectBuiltinRootCompletionItems());
+			suggestions = suggestions.concat(SelectBuiltinRootThisCompletionItems());
 		}
 	}
 
@@ -809,22 +867,15 @@ function GetSymbolByName(name: string, position: ls.Position): VizSymbol {
 		name = regexResult[1];
 	}
 
-	//if(item.type.toLowerCase().startsWith("array")){
-	//	if(regexResult[i].endsWith("]")){
-	//		let tmpType = GetRegexResult(item.type, /\[(.*?)\]/gi)
-	//		innerItem = GetSymbolByName(tmpType[1], position);
-	//	}else{
-	//		innerItem = GetSymbolByName("Array", position);
-	//	}
-	//} else{
-
 	//Need to remove brackets on types but still get Array to work. Workaround by removing [] in Array completion
 
 	let symbols = symbolCache["builtin"];
 	let rootsymbols = symbolCache["builtin_root"];
+	let rootthissymbols = symbolCache["builtin_root_this"];
 	let globalsymbols = symbolCache["builtin_global"];
 	let globalevents = symbolCache["builtin_events"];
 	symbols = symbols.concat(rootsymbols);
+	symbols = symbols.concat(rootthissymbols);
 	symbols = symbols.concat(globalsymbols);
 	symbols = symbols.concat(globalevents);
 	let result: VizSymbol = null;
@@ -839,27 +890,29 @@ function GetSymbolByName(name: string, position: ls.Position): VizSymbol {
 		});
 	}
 
-	symbols = symbolCache[documentUri];
-	symbols = GetSymbolsOfScope(symbols, position);
-	//connection.console.log("Symbols " + symbols.length)
-	if (symbols != []){
-		symbols.forEach(item => {
-			if (item != null){
-				if (item.name.toLowerCase() == name.toLowerCase()) {
-					result = item;
+	if(result == null){
+		symbols = symbolCache[documentUri];
+		symbols = GetSymbolsOfScope(symbols, position);
+		//connection.console.log("Symbols " + symbols.length)
+		if (symbols != []){
+			symbols.forEach(item => {
+				if (item != null){
+					if (item.name.toLowerCase() == name.toLowerCase()) {
+						result = item;
+					}
 				}
-			}
-		});
-	}
+			});
+		}
 
 
-	if(result != null){
-		if(result.type.toLowerCase().startsWith("array[")){
-			if(isArrayType){
-				let tmpType = GetRegexResult(result.type, /\[(.*?)\]/gi)
-				result = GetSymbolByName(tmpType[1],position);
-			}else{
-				result = GetSymbolByName("Array",position);
+		if(result != null){
+			if(result.type.toLowerCase().startsWith("array[")){
+				if(isArrayType){
+					let tmpType = GetRegexResult(result.type, /\[(.*?)\]/gi)
+					result = GetSymbolByName(tmpType[1],position);
+				}else{
+					result = GetSymbolByName("Array",position);
+				}
 			}
 		}
 	}
@@ -1197,10 +1250,41 @@ function GetBuiltinSymbols() {
 		}
 	});
 
+
 	symbolCache["builtin"] = symbols;
 	symbolCache["builtin_root"] = rootsymbols;
 	symbolCache["builtin_global"] = globalsymbols;
 	//connection.console.info("Found " + symbols.length + " builtin symbols in " + (Date.now() - startTime) + " ms");
+}
+
+function SetScriptType(languageId: string){
+	let lScriptType = "";
+	if(languageId == "viz"){
+		lScriptType = "Scene";
+	}else if(languageId == "viz-con"){
+		lScriptType = "Container";
+	} else{
+		symbolCache["builtin_root_this"] = [];
+		return;
+	}
+	if(scriptType == lScriptType) return;
+
+	let symbol: VizSymbol = GetSymbolByName(lScriptType,ls.Position.create(0,0));
+	let symbols: VizSymbol[] = [];
+	if(symbol == null) {symbolCache["builtin_root_this"] = []; return false};
+	let newsymbol: VizSymbol = new VizSymbol();
+	newsymbol.kind = symbol.kind;
+	newsymbol.type = symbol.type;
+	newsymbol.name = "This";
+	newsymbol.insertText = newsymbol.name;
+	newsymbol.hint = symbol.hint;
+	newsymbol.args = symbol.args;
+	newsymbol.parentName = symbol.parentName;
+	newsymbol.commitCharacters = symbol.commitCharacters;
+	newsymbol.children = symbol.children;
+	symbols.push(newsymbol);
+	symbolCache["builtin_root_this"] = symbols;
+	scriptType = lScriptType;
 }
 
 function GetVizEvents() {
@@ -1234,6 +1318,11 @@ function SelectBuiltinCompletionItems(): ls.CompletionItem[] {
 
 function SelectBuiltinRootCompletionItems(): ls.CompletionItem[] {
 	return VizSymbol.GetLanguageServerCompletionItems(symbolCache["builtin_root"]);
+}
+
+function SelectBuiltinRootThisCompletionItems(): ls.CompletionItem[] {
+	if(symbolCache["builtin_root_this"] == undefined) return [];
+	return VizSymbol.GetLanguageServerCompletionItems(symbolCache["builtin_root_this"]);
 }
 
 function SelectBuiltinGlobalCompletionItems(): ls.CompletionItem[] {
@@ -1338,7 +1427,7 @@ function GetMethodStart(statement: LineStatement, uri: string): boolean {
 	let offset = 1;
 	if (lines.length != 0){
 		while ((statement.startLine-offset >= 0) && (lines[statement.startLine- offset].trim().startsWith("'"))) {
-			connection.console.log(lines[statement.startLine-offset]);
+			//connection.console.log(lines[statement.startLine-offset]);
 			descriptionLines.push(lines[statement.startLine-offset]);
 			offset ++;
 		}
@@ -1622,6 +1711,7 @@ function GetVariableSymbol(statement: LineStatement, uri: string): VizSymbol[] {
 
 	return variableSymbols;
 }
+
 
 
 function GetNameRange(statement: LineStatement, name: string): ls.Range {
