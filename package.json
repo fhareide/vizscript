@@ -1,7 +1,7 @@
 {
 	"name": "vizscript",
 	"displayName": "Viz Script",
-	"description": "Language syntax highlighting, autocomplete, signature help and jump to definition for Viz Script",
+	"description": "A complete language extension for Viz Script. Auto complete, syntax checking, syntax highlighting, signature help and jump to definition and more.",
 	"author": "Fredrik Hareide",
 	"license": "MIT",
 	"version": "0.2.2",

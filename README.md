@@ -2,6 +2,30 @@
 
 > A complete language extension for Viz Script development in Visual Studio Code
 
+## New Features - Viz Script 0.2.3
+* Now supports both Scene and Container scripts
+    * The extension now contributes two languages
+        * VizSceneScript
+        * VizContainerScript
+    * Validation works for both variants
+    * "This" keyword enables context sensitive completions based on the language selected
+    * The correct script type will automatically be selected when a file is opened based on the extension
+        * Scene scripts:
+            * .vs 
+            * .viz
+            * .v3script (legacy, might be removed)
+        * Container scripts:
+            * .vsc 
+            * .vizc
+
+* Added support for descriptions on document completions
+    * A comment directly above a function or sub will be used as description.
+    
+    !["Function description"](images/function_description.png)
+     * A comment directly after a variable declaration will be used as description.
+    
+    !["Variable description"](images/variable_description.png)
+
 ## New Features - Viz Script 0.2.0
 * Validate your code on a Viz Engine
     * Shortcut Ctrl-F5 or `Viz Script: Compile code` on Command Palette (Ctrl-Shift-P) 
@@ -35,12 +59,16 @@
 
 
 ## Activation of plugin
-* Activate by triggering `Change Language Mode` on Command Palette and choosing `Viz Script` or opening a supported filetype.
+* Activate by triggering `Change Language Mode` on Command Palette and choosing `VizSceneScript` / `VizContainerScript` or by opening a supported filetype.
 
-    ### Supported filetypes:
+    ### Supported filetypes Scene script:
         .vs 
-        .v3script 
         .viz
+        .v3script (legacy, might be removed) 
+    
+    ### Supported filetypes Container script:
+        .vsc 
+        .vizc
 
 
 ## VS Code Settings
