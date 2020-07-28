@@ -657,6 +657,8 @@ function GenerateSnippetString(hint: string, documentation: string): string {
 	//connection.console.info("Hint: " + regexResult3[1]);
 	
 	let snippetString = "";
+
+	if(regexResult3[3] == "") return "";
 	
 	var paramStrings = regexResult3[3].split(',');
 	if(paramStrings == null) return "";

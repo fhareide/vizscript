@@ -98,8 +98,11 @@ export class VizSymbol {
 		symbols.forEach(symbol => {
 			if(symbol.visibility != "hidden"){
 				let lsItem = symbol.GetLsCompletionItem();
-				lsItem.insertText = symbol.insertSnippet;
-				lsItem.insertTextFormat = ls.InsertTextFormat.Snippet;
+				if(symbol.insertSnippet != "" && symbol.overloads.length == 0){
+					lsItem.insertText = symbol.insertSnippet;
+					lsItem.insertTextFormat = ls.InsertTextFormat.Snippet;
+				}
+				
 			    completionItems.push(lsItem);
 			}
 		});
