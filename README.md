@@ -2,6 +2,13 @@
 
 > A complete language extension for Viz Script development in Visual Studio Code
 
+## New Features - Viz Script 0.2.4
+* Initial support for snippet completions on Global Procedures (disabled by default)
+    * To enable change following setting to true:
+        * Enable Global Procedure Snippets: Enable snippet completions for Global Procedures. This will autofill placeholder values in the parameters and 'tab' will jump to the next parameter.
+
+         !["Snippet completions"](images/snippet_completions.png)
+
 ## New Features - Viz Script 0.2.3
 * Now supports both Scene and Container scripts
     * The extension now contributes two languages

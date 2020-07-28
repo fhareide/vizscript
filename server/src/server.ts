@@ -77,6 +77,7 @@ interface VizScriptSettings {
 	enableAutoComplete: boolean;
 	enableSignatureHelp: boolean;
 	enableDefinition: boolean;
+	enableGlobalProcedureSnippets: boolean;
 	compiler: VizScriptCompilerSettings;
 }
 
@@ -98,6 +99,7 @@ connection.onDidChangeConfiguration(change => {
 
 	// Revalidate all open text documents
 	documents.all().forEach(cacheConfiguration);
+	GetBuiltinSymbols();
 });
 
 const pendingValidationRequests: { [uri: string]: NodeJS.Timer } = {};
@@ -640,6 +642,48 @@ function GenerateSignatureHelp(hint: string, documentation: string): ls.Signatur
 	return signature;
 }
 
+function GenerateSnippetString(hint: string, documentation: string): string {
+	let regexResult3 = [];
+
+	let memberStartRegex2: RegExp = /^[ \t]*(function|sub)?[ \t]*([^.]*)\((.*?)\)([^.]*)$/gi;
+	
+	if(hint == "")return null;
+	regexResult3 = memberStartRegex2.exec(hint);
+	//connection.console.info("Hint length: " + regexResult3.length);
+	if( regexResult3 == null) return null;
+	if (regexResult3.length < 4) return null;
+	
+
+	//connection.console.info("Hint: " + regexResult3[1]);
+	
+	let snippetString = "";
+	
+	var paramStrings = regexResult3[3].split(',');
+	if(paramStrings == null) return "";
+	snippetString += regexResult3[2] +"(";
+	if (paramStrings != ""){
+		for (var i = 0; i < paramStrings.length; i++) {
+			let label: string = paramStrings[i].trim();
+
+			var paramParts = label.toLowerCase().split('as');
+			if(paramParts == null) return "";
+			if(paramParts[1].trim() == "string"){
+				snippetString += "\"${" + (i+1) + ":" + label + "}\"";
+			}else{
+				snippetString += "${" + (i+1) + ":" + label + "}";
+			}
+	
+			if (i < paramStrings.length - 1) {
+				snippetString += ",";
+			}
+		}
+	}
+
+	snippetString += ")"
+
+	return snippetString;
+}
+
 connection.onDefinition((params: ls.TextDocumentPositionParams, cancelToken: ls.CancellationToken): ls.Definition => {
 	if(settings != null){ if (!settings.enableDefinition) return;}
 	let line: string = documents.get(params.textDocument.uri).getText(ls.Range.create(
@@ -685,11 +729,8 @@ connection.onCompletion((params: ls.CompletionParams, cancelToken: ls.Cancellati
 	if (GetRegexResult(line, /^[ \t]*dim[ \t]+([a-zA-Z0-9\-\_\,]+)[ \t]*([as]+)?$/gi) != null) return;// No sugggestions when declaring variables
 	if (GetRegexResult(line, /^[ \t]*function[ \t]+([a-zA-Z0-9\-\_\,]+)$/gi) != null) return;// No suggestions when declaring functions
 	if (GetRegexResult(line, /^[ \t]*end[ \t]+([a-zA-Z0-9\-\_\,]*)$/gi) != null) return;// No suggestions for ending sub or function
-	if(scriptType == "Scene"){
-		if (GetRegexResult(line, /^[ \t]*sub[ \t]+?$/gi) != null) return SelectBuiltinEventCompletionItems();// Only event suggestions when declaring submethod
-	} else {
-		if (GetRegexResult(line, /^[ \t]*sub[ \t]+?$/gi) != null) return;// No builtins for container script
-	}
+	if (GetRegexResult(line, /^[ \t]*sub[ \t]+On?$/gi) != null) return SelectBuiltinEventCompletionItems();// Only event suggestions when declaring submethod
+
 	if (GetRegexResult(line, /\=[\s]*([^\=\.\)]+)$/gi) != null) // Suggestions after "="
 	{
 		documentCompletions = SelectCompletionItems(params);
@@ -1109,6 +1150,7 @@ connection.onDocumentSymbol((docParams: ls.DocumentSymbolParams): ls.SymbolInfor
 function CollectSymbols(document: ls.TextDocument): VizSymbol[] {
 	let symbols: Set<VizSymbol> = new Set<VizSymbol>();
 	let lines = document.getText().split(/\r?\n/g);
+	GetVizEvents();
 
 	for (var i = 0; i < lines.length; i++) {
 		let line = lines[i];
@@ -1176,7 +1218,6 @@ function GetBuiltinSymbols() {
 	let symbols: VizSymbol[] = [];
 	let rootsymbols: VizSymbol[] = [];
 	let globalsymbols: VizSymbol[] = [];
-	let startTime: number = Date.now();
 
 	data.intellisense.completions.forEach(element => {
 		if (element.name == "Global Procedures") {
@@ -1187,9 +1228,10 @@ function GetBuiltinSymbols() {
 				if (submethod.name.startsWith("\"Function")) symbol.kind = ls.CompletionItemKind.Function;
 				else if (submethod.name.startsWith("\"Sub")) symbol.kind = ls.CompletionItemKind.Method;
 				symbol.type = submethod.return_value;
-				symbol.insertText = submethod.name;
 				symbol.hint = submethod.code_hint;
 				symbol.args = submethod.description;
+				symbol.insertSnippet = GenerateSnippetString(symbol.hint, symbol.args);
+				symbol.insertText = submethod.name;
 				symbol.parentName = "global";
 				symbol.signatureInfo = GenerateSignatureHelp(symbol.hint, symbol.args);
 				symbol.commitCharacters = [""];
@@ -1290,7 +1332,6 @@ function SetScriptType(languageId: string){
 function GetVizEvents() {
 
 	let symbols: VizSymbol[] = [];
-	let startTime: number = Date.now();
 
 	vizevent.events.forEach(event => {
 		let symbol: VizSymbol = new VizSymbol();
@@ -1304,6 +1345,7 @@ function GetVizEvents() {
 		symbol.kind = ls.CompletionItemKind.Variable;
 		symbol.signatureInfo = GenerateSignatureHelp(symbol.hint, symbol.args);
 		symbol.parentName = "event";
+		symbol.visibility = "";
 		symbol.commitCharacters = [""];
 		symbols.push(symbol);
 	});
@@ -1326,7 +1368,15 @@ function SelectBuiltinRootThisCompletionItems(): ls.CompletionItem[] {
 }
 
 function SelectBuiltinGlobalCompletionItems(): ls.CompletionItem[] {
-	return VizSymbol.GetLanguageServerCompletionItems(symbolCache["builtin_global"]);
+	if(settings != null){
+		if(settings.enableGlobalProcedureSnippets){
+			return VizSymbol.GetLanguageServerSnippetCompletionItems(symbolCache["builtin_global"]);
+		}else{
+			return VizSymbol.GetLanguageServerCompletionItems(symbolCache["builtin_global"]);
+		}
+	} else {
+		return VizSymbol.GetLanguageServerCompletionItems(symbolCache["builtin_global"]);
+	}
 }
 
 function SelectBuiltinEventCompletionItems(): ls.CompletionItem[] {
@@ -1496,6 +1546,7 @@ function GetMethodSymbol(statement: LineStatement, uri: string): VizSymbol[] {
 		globalevents.forEach(item => {		
 			if (item != null){
 				if (item.name.toLowerCase() == openMethod.name.toLowerCase()) {
+					item.visibility = "hidden";
 					result = item;
 				}
 			}

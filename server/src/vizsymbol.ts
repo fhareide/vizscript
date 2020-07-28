@@ -7,6 +7,8 @@ export class VizSymbol {
 	public args: string = "";
 	public hint: string = "";
 	public insertText: string = "";
+	public insertSnippet: string = "";
+	public insertTextFormat: ls.InsertTextFormat = ls.InsertTextFormat.PlainText;
 	public symbolRange: ls.Range = null;
 	public nameLocation: ls.Location = null;
 	public noOfOverloads: number = 0;
@@ -24,6 +26,9 @@ export class VizSymbol {
 
 	public GetLsChildrenItems(): ls.CompletionItem[] {
 		let symbols: ls.CompletionItem[] = [];
+
+		if(this.children == undefined) return [];
+
 		this.children.forEach(symbol => {
 			let item = ls.CompletionItem.create(symbol.name);
 			item.filterText = symbol.name;
@@ -54,6 +59,8 @@ export class VizSymbol {
 	public static GetLanguageServerSymbols(symbols: VizSymbol[]): ls.SymbolInformation[] {
 		let lsSymbols: ls.SymbolInformation[] = [];
 
+		if(symbols == undefined) return [];
+
 		symbols.forEach(symbol => {
 			let lsSymbol: ls.SymbolInformation = ls.SymbolInformation.create(
 				symbol.name,
@@ -71,9 +78,28 @@ export class VizSymbol {
 	public static GetLanguageServerCompletionItems(symbols: VizSymbol[]): ls.CompletionItem[] {
 		let completionItems: ls.CompletionItem[] = [];
 
+		if(symbols == undefined) return [];
+
 		symbols.forEach(symbol => {
 			if(symbol.visibility != "hidden"){
 				let lsItem = symbol.GetLsCompletionItem();
+			    completionItems.push(lsItem);
+			}
+		});
+
+		return completionItems;
+	}
+
+	public static GetLanguageServerSnippetCompletionItems(symbols: VizSymbol[]): ls.CompletionItem[] {
+		let completionItems: ls.CompletionItem[] = [];
+
+		if(symbols == undefined) return [];
+
+		symbols.forEach(symbol => {
+			if(symbol.visibility != "hidden"){
+				let lsItem = symbol.GetLsCompletionItem();
+				lsItem.insertText = symbol.insertSnippet;
+				lsItem.insertTextFormat = ls.InsertTextFormat.Snippet;
 			    completionItems.push(lsItem);
 			}
 		});
