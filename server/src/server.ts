@@ -138,6 +138,7 @@ async function cacheConfiguration(textDocument: TextDocument): Promise<void> {
 
 // a document has opened: cache configuration
 documents.onDidOpen(event => {
+	documentUri = event.document.uri;
 	cacheConfiguration(event.document);
 });
 
@@ -309,6 +310,7 @@ function getLineAt(str, pos, isSignatureHelp) {
 
     // Perform type conversions.
 	str = String(str);
+	if(str == "")return "";
 	str = str.trim();
 
 	var line = str.slice(0, pos + 1);
@@ -621,7 +623,7 @@ function GenerateSignatureHelp(hint: string, documentation: string): ls.Signatur
 	var paramStrings = regexResult3[2].split(',');
 
 	signature.label += regexResult3[1] +"(";
-	if (paramStrings != ""){
+	if (paramStrings.length != 0){
 		for (var i = 0; i < paramStrings.length; i++) {
 			let label = paramStrings[i].trim();
 	
@@ -661,14 +663,14 @@ function GenerateSnippetString(hint: string, documentation: string): string {
 	if(regexResult3[3] == "") return "";
 	
 	var paramStrings = regexResult3[3].split(',');
-	if(paramStrings == null) return "";
+	if(paramStrings.length == 0) return "";
 	snippetString += regexResult3[2] +"(";
-	if (paramStrings != ""){
+	if (paramStrings.length != 0){
 		for (var i = 0; i < paramStrings.length; i++) {
 			let label: string = paramStrings[i].trim();
 
 			var paramParts = label.toLowerCase().split('as');
-			if(paramParts == null) return "";
+			if(paramParts.length == 0) return "";
 			if(paramParts[1].trim() == "string"){
 				snippetString += "\"${" + (i+1) + ":" + label + "}\"";
 			}else{
@@ -1032,6 +1034,7 @@ function SelectCompletionItems(textDocumentPosition: ls.TextDocumentPositionPara
 
 function GetVizSymbolTree(symbols: VizSymbol[]) {
 	// sort by start position
+	if(symbols == undefined) return null;
 	let sortedSymbols: VizSymbol[] = symbols.sort(function (a: VizSymbol, b: VizSymbol) {
 		let diff = a.symbolRange.start.line - b.symbolRange.start.line;
 
@@ -1053,6 +1056,8 @@ function GetVizSymbolTree(symbols: VizSymbol[]) {
 
 function GetSymbolsOfScope(symbols: VizSymbol[], position: ls.Position): VizSymbol[] {
 	let symbolTree = GetVizSymbolTree(symbols);
+
+	if(symbolTree == null)return [];
 
 	let result = symbolTree.FindDirectParent(position).GetAllParentsAndTheirDirectChildren();
 
@@ -1146,13 +1151,14 @@ function RefreshDocumentsSymbols(uri: string) {
 }
 
 connection.onDocumentSymbol((docParams: ls.DocumentSymbolParams): ls.SymbolInformation[] => {
+	documentUri = docParams.textDocument.uri;
 	return GetSymbolsOfDocument(docParams.textDocument.uri);
 });
 
 function CollectSymbols(document: ls.TextDocument): VizSymbol[] {
 	let symbols: Set<VizSymbol> = new Set<VizSymbol>();
 	let lines = document.getText().split(/\r?\n/g);
-	GetVizEvents();
+	//GetVizEvents();
 
 	for (var i = 0; i < lines.length; i++) {
 		let line = lines[i];
