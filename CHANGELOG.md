@@ -1,3 +1,8 @@
+### 0.2.7
+- **Fix**: Fixed another bug that could sometimes result in the extension crashing
+
+---
+
 ### 0.2.6
 - **Fix**: Fixed bug were reopening VS Code would sometimes result in the extension crashing
 

@@ -1483,19 +1483,35 @@ function GetMethodStart(statement: LineStatement, uri: string): boolean {
 	let descriptionLines = [];
 	let description = "";
 	let offset = 1;
-	if (lines.length != 0){
-		while ((statement.startLine-offset >= 0) && (lines[statement.startLine- offset].trim().startsWith("'"))) {
-			//connection.console.log(lines[statement.startLine-offset]);
-			descriptionLines.push(lines[statement.startLine-offset]);
-			offset ++;
-		}
-	
-		if (descriptionLines.length != 0){
-			for (let i = descriptionLines.length - 1; i >= 0; i--) {
-				description += descriptionLines[i].replace("'", "") + "\n";
+	let stop = false;
+	if(lines != undefined){
+		if ((lines.length != 0) ){
+			while ((statement.startLine-offset >= 0) && (!stop)) {
+				let line = lines[statement.startLine- offset];
+				if(line != undefined){
+					if(line.trim().startsWith("'")){
+						descriptionLines.push(lines[statement.startLine-offset]);
+						offset ++;
+					}else{
+						stop = true;
+					}
+				} else{
+					stop = true;
+				}
+				
+				//connection.console.log(lines[statement.startLine-offset]);
 			}
-		}
-	} 
+		
+			if (descriptionLines.length != 0){
+				for (let i = descriptionLines.length - 1; i >= 0; i--) {
+					description += descriptionLines[i].replace("'", "") + "\n";
+				}
+			}
+		} 
+	}
+	
+	
+	
 	
 	//connection.console.log("Opening bracket at: " + (preLength+1).toString());
 
