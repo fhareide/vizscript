@@ -1,5 +1,5 @@
 ### 0.2.8
-- **Fix**: Fixed bug were variables inside built-in events available in all scopes
+- **Fix**: Fixed bug were variables inside built-in events were available in all scopes
 - **Fix**: Fixed bug were built-in events were allowed multiple times
 - **New**: Added initial support for "live coding" by setting the scene script in the currently open scene directly while OffAir (<kbd>ctrl</kbd>-<kbd>shift</kbd>-<kbd>F5</kbd>)
 - **Change**: Removed "OnAir check" for (<kbd>ctrl</kbd>-<kbd>F5</kbd>) to be able to validate code without being OnAir
