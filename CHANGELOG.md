@@ -1,3 +1,12 @@
+### 0.2.8
+- **Fix**: Fixed bug were variables inside built-in events available in all scopes
+- **Fix**: Fixed bug were built-in events were allowed multiple times
+- **New**: Added initial support for "live coding" by setting the scene script in the currently open scene directly while OffAir (<kbd>ctrl</kbd>-<kbd>shift</kbd>-<kbd>F5</kbd>)
+- **Change**: Removed "OnAir check" for (<kbd>ctrl</kbd>-<kbd>F5</kbd>) to be able to validate code without being OnAir
+- **Change**: Option `vizscript.compiler.hostPort` - Default port changed to 6998 to be able to work OffAir
+
+---
+
 ### 0.2.7
 - **Fix**: Fixed another bug that could sometimes result in the extension crashing
 
@@ -25,8 +34,8 @@
 - **New**: The extension now contributes two languages `VizSceneScript` and `VizContainerScript`
 - **New**: "This" keyword enables context sensitive completions based on the language selected
 - **New**: Script type will automatically be selected when a file is opened based on the file extension
-  	- Scene scripts: `.vs .viz .v3script `
-    - Container scripts: `.vsc .vizc`
+  - Scene scripts: `.vs .viz .v3script `
+  - Container scripts: `.vsc .vizc`
 
 ---
 
@@ -42,12 +51,13 @@
 ---
 
 ### 0.2.1
-- **Fix**: Rewrote line logic to support nested brackets and parantheses. Also added a better support for Arrays.
+- **Fix**: Rewrote line logic to support nested brackets and parantheses
+- **Change**: Improved support for Arrays
 
 ---
 
 ### 0.2.0
-- **Change**: Updated readme and documentation to reflect the new changes.
+- **Change**: Updated readme and documentation to reflect the new changes
 - 
 ---
 

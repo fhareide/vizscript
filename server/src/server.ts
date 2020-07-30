@@ -56,11 +56,16 @@ connection.onInitialize((params): ls.InitializeResult => {
 				triggerCharacters: ['.']
 			},
 			executeCommandProvider: {
-				commands: ['vizscript.compile']
+				commands: [
+					'vizscript.compile',
+					'vizscript.compile.setcurrentscene'
+				]
 			}
 		}
 	}
 });
+
+
 
 connection.onInitialized(() => {
 	if (hasConfigurationCapability) {
@@ -176,7 +181,7 @@ connection.onExecuteCommand((params: ls.ExecuteCommandParams) =>{
 
 			let answer = GetRegexResult(message, /^([^\s]+)(\s?)(.*)/gi)
 			
-			if(answer[1] == "1" && answer[3] == "1"){
+			if(answer[1] == "1"){
 				//connection.console.log("Viz Engine is OnAir");
 				if(sceneId == ""){
 					socket.write('2 SCENE NEW ' + String.fromCharCode(0));
@@ -264,9 +269,69 @@ connection.onExecuteCommand((params: ls.ExecuteCommandParams) =>{
 			//connection.console.log('Disconnected Viz Engine');
 			//connection.window.showInformationMessage("Disconnected from Viz Engine");
 		});
-	}
-	
+	} else if(params.command == "vizscript.compile.setcurrentscene"){
+		let port = settings.compiler.hostPort;
+		let host = settings.compiler.hostName;
 
+		const socket = net.createConnection({ port: port, host: host}, () => {
+			// 'connect' listener.
+			//connection.console.log('Connected to Viz Engine!');
+			//connection.window.showInformationMessage("Connected to Viz Engine on " + host + ":" + port );
+			socket.write('1 MAIN IS_ON_AIR ' + String.fromCharCode(0));
+		});
+
+		let text = "";
+		text = documents.get(documentUri).getText();
+
+		socket.on('data', (data) => {
+			let message = data.toString().replace(String.fromCharCode(0), '')
+
+			let answer = GetRegexResult(message, /^([^\s]+)(\s?)(.*)/gi)
+			
+			if(answer[1] == "1"){
+				//connection.console.log("Viz Engine is OnAir");
+				socket.write('3 MAIN_SCENE*SCRIPT*PLUGIN*SOURCE_CODE SET ' + text + ' ' + String.fromCharCode(0));
+				
+			}else if(answer[1] == "3"){
+				//connection.console.log(answer[3]);
+				socket.write('4 MAIN_SCENE*SCRIPT*PLUGIN COMPILE ' + String.fromCharCode(0));
+			}else if(answer[1] == "4"){
+				//connection.console.log(answer[3]);
+				socket.write('5 MAIN_SCENE*SCRIPT*PLUGIN*COMPILE_STATUS GET ' + String.fromCharCode(0));
+			}else if(answer[1] == "5"){
+				//connection.console.log(answer[3]);
+
+				let error = GetRegexResult(answer[3], /\{(.*?)(\((.*)\))\}/gi)
+				if(error != undefined){
+					let rangesplit = error[3].split("/");
+					let line = parseInt(rangesplit[0]);
+					let char = parseInt(rangesplit[1]);
+					let range = ls.Range.create(line-1, char-1, line-1, char);
+
+					DisplayDiagnostics(documentUri,range,error[1]);
+					connection.window.showErrorMessage(scriptType + " script: Compilation failed: " + error[1])
+				}else{
+					connection.window.showInformationMessage(scriptType + " script: Compilation successful! No errors.")
+				}
+
+				socket.end();
+			}
+			
+		});
+
+		socket.on('error', () => {
+			connection.window.showErrorMessage("Not able to connect to Viz Engine " + host + ":" + port);
+			sceneId = "";
+			containerId = "";
+		});
+
+
+		socket.on('end', () => {
+			
+			//connection.console.log('Disconnected Viz Engine');
+			//connection.window.showInformationMessage("Disconnected from Viz Engine");
+		});
+	}
 	
 });
 
@@ -1158,7 +1223,7 @@ connection.onDocumentSymbol((docParams: ls.DocumentSymbolParams): ls.SymbolInfor
 function CollectSymbols(document: ls.TextDocument): VizSymbol[] {
 	let symbols: Set<VizSymbol> = new Set<VizSymbol>();
 	let lines = document.getText().split(/\r?\n/g);
-	//GetVizEvents();
+	GetVizEvents();
 
 	for (var i = 0; i < lines.length; i++) {
 		let line = lines[i];
@@ -1579,11 +1644,12 @@ function GetMethodSymbol(statement: LineStatement, uri: string): VizSymbol[] {
 	}
 
 	if(result != null){
+		result.nameLocation = openMethod.nameLocation;
 		result.symbolRange = range;
 		let parametersSymbol = [];
 		parametersSymbol = GetParameterSymbols(result.name, openMethod.args, openMethod.argsIndex, openMethod.statement, uri);
 		openMethod = null;
-		return parametersSymbol;
+		return parametersSymbol.concat(result);
 	}
 
 	let symbol: VizSymbol = new VizSymbol();

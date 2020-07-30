@@ -17,9 +17,7 @@ let client: LanguageClient;
 
 export function activate(context: ExtensionContext) {
 	// The server is implemented in node
-	let serverModule = context.asAbsolutePath(
-		path.join('server', 'out', 'server.js')
-	);
+	let serverModule = context.asAbsolutePath(path.join('server', 'out', 'server.js'));
 
 	// The debug options for the server
 	// --inspect=6009: runs the server in Node's Inspector mode so VS Code can attach to the server for debugging
@@ -29,11 +27,7 @@ export function activate(context: ExtensionContext) {
 	// Otherwise the run options are used
 	let serverOptions: ServerOptions = {
 		run: { module: serverModule, transport: TransportKind.ipc },
-		debug: {
-			module: serverModule,
-			transport: TransportKind.ipc,
-			options: debugOptions
-		}
+		debug: { module: serverModule, transport: TransportKind.ipc, options: debugOptions }
 	};
 
 
@@ -41,6 +35,7 @@ export function activate(context: ExtensionContext) {
 	let clientOptions: LanguageClientOptions = {
 		// Register the server for viz documents
 		documentSelector: ['viz', 'viz-con'],
+		
 		synchronize: {
 			// Notify the server about file changes to '.clientrc files contained in the workspace
 			fileEvents: workspace.createFileSystemWatcher('**/.clientrc')

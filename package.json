@@ -34,12 +34,20 @@
 			{
 				"command": "vizscript.compile",
 				"title": "Viz Script: Compile code"
+			},
+			{
+				"command": "vizscript.compile.setcurrentscene",
+				"title": "Viz Script: Set scene script in current scene"
 			}
 		],
 		"menus": {
 			"commandPalette": [
 				{
 					"command": "vizscript.compile",
+					"when": "editorLangId == viz || editorLangId == viz-con"
+				},
+				{
+					"command": "vizscript.compile.setcurrentscene",
 					"when": "editorLangId == viz || editorLangId == viz-con"
 				}
 			]
@@ -48,6 +56,11 @@
 			{
 				"command": "vizscript.compile",
 				"key": "ctrl+f5",
+				"when": "editorLangId == viz || editorLangId == viz-con"
+			},
+			{
+				"command": "vizscript.compile.setcurrentscene",
+				"key": "ctrl+shift+f5",
 				"when": "editorLangId == viz || editorLangId == viz-con"
 			}
 		],
@@ -136,7 +149,7 @@
 				},
 				"vizscript.compiler.hostPort": {
 					"type": "number",
-					"default": 6100,
+					"default": 6998,
 					"description": "The port number for connection to Viz Engine",
 					"scope": "resource"
 				},
