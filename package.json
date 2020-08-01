@@ -26,7 +26,8 @@
 	},
 	"activationEvents": [
 		"onLanguage:viz-con",
-		"onLanguage:viz"
+		"onLanguage:viz",
+		"onCommand:vizscript.openfile"
 	],
 	"main": "./client/out/extension",
 	"contributes": {
@@ -38,6 +39,14 @@
 			{
 				"command": "vizscript.compile.setcurrentscene",
 				"title": "Viz Script: Set scene script in current scene"
+			},
+			{
+				"command": "vizscript.test",
+				"title": "Viz Script: Test command"
+			},
+			{
+				"command": "vizscript.openfile",
+				"title": "Viz Script: Get scripts from Viz"
 			}
 		],
 		"menus": {
@@ -48,6 +57,10 @@
 				},
 				{
 					"command": "vizscript.compile.setcurrentscene",
+					"when": "editorLangId == viz || editorLangId == viz-con"
+				},
+				{
+					"command": "vizscript.openfile",
 					"when": "editorLangId == viz || editorLangId == viz-con"
 				}
 			]

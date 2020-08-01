@@ -1,13 +1,4 @@
 {
-	"name": "viz-language-server",
-	"description": "Implementation of viz language server.",
-	"version": "0.1.0",
-	"author": "Fredrik Hareide",
-	"license": "MIT",
-	"publisher": "fhareide",
-	"engines": {
-		"node": "*"
-	},
 	"dependencies": {
 		"vscode-languageserver": "^6.1.1",
 		"vscode-languageserver-textdocument": "1.0.1"

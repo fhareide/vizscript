@@ -12,6 +12,7 @@ import * as vizevent from './vizevent_completions.json';
 import * as net from 'net'
 
 
+
 // Create a connection for the server. The connection uses Node's IPC as a transport
 let connection: ls.IConnection = ls.createConnection(new ls.IPCMessageReader(process), new ls.IPCMessageWriter(process));
 
@@ -34,7 +35,8 @@ connection.onInitialize((params): ls.InitializeResult => {
 	// Does the client support the `workspace/configuration` request?
 	// If not, we will fall back using global settings
 	hasConfigurationCapability = !!(capabilities.workspace && !!capabilities.workspace.configuration);
-	
+
+
 	workspaceRoot = params.rootPath;
 	//Initialize built in symbols
 	if (symbolCache["builtin"] == null) GetBuiltinSymbols();
@@ -58,13 +60,15 @@ connection.onInitialize((params): ls.InitializeResult => {
 			executeCommandProvider: {
 				commands: [
 					'vizscript.compile',
-					'vizscript.compile.setcurrentscene'
+					'vizscript.compile.setcurrentscene',
+					'vizscript.test'
 				]
-			}
+			},
+
 		}
+	
 	}
 });
-
 
 
 connection.onInitialized(() => {
@@ -158,7 +162,8 @@ let sceneId = "";
 let containerId = "";
 let scriptId = "";
 
-connection.onExecuteCommand((params: ls.ExecuteCommandParams) =>{
+connection.onExecuteCommand(async (params) => {
+
 	if(params.command == "vizscript.compile"){
 		let port = settings.compiler.hostPort;
 		let host = settings.compiler.hostName;
@@ -331,6 +336,18 @@ connection.onExecuteCommand((params: ls.ExecuteCommandParams) =>{
 			//connection.console.log('Disconnected Viz Engine');
 			//connection.window.showInformationMessage("Disconnected from Viz Engine");
 		});
+	} else if(params.command == "vizscript.openfile"){
+
+		connection.window.showInformationMessage("Text: " + params.arguments[0])
+		const fileName = 'untitled-1.vsc';
+
+		let CreateOptions: ls.CreateFileOptions  = {
+			overwrite: false,
+			ignoreIfExists: true
+		};
+
+		let Test = ls.CreateFile.create(fileName, CreateOptions)
+
 	}
 	
 });
@@ -1965,6 +1982,25 @@ function ClearDiagnostics(uri: string) {
 	let diagnostics: ls.Diagnostic[] = [];
 	connection.sendDiagnostics({ uri, diagnostics });
 }
+
+connection.onRequest('getVizFiles', (code: string) => {
+	return "Hallo";
+  });
+
+  let test = [];
+  test.push("#1234");
+  test.push("#4321");
+
+connection.onRequest('getVizScripts', (code: string) => {
+	return test;
+});
+
+connection.onRequest('getVizConnectionInfo', () => {
+	let connectionInfo = [settings.compiler.hostName, settings.compiler.hostPort, scriptType];
+	return connectionInfo;
+});
+  
+  
 
 // Listen on the connection
 connection.listen();

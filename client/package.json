@@ -1,14 +1,4 @@
 {
-	"name": "viz-language-client",
-	"description": "VSCode implementation of Viz language server",
-	"author": "Fredrik Hareide",
-	"license": "MIT",
-	"version": "0.1.0",
-	"publisher": "fhareide",
-	"engines": {
-		"vscode": "^1.26.0"
-	},
-	"scripts": {},
 	"dependencies": {
 		"vscode-languageclient": "^6.1.3"
 	},

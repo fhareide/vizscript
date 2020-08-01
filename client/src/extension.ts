@@ -3,8 +3,9 @@
  * Licensed under the MIT License. See License.txt in the project root for license information.
  * ------------------------------------------------------------------------------------------ */
 
+import * as Commands from './commands';
 import * as path from 'path';
-import { workspace, ExtensionContext } from 'vscode';
+import { workspace, ExtensionContext, window, Uri, commands } from 'vscode';
 
 import {
 	LanguageClient,
@@ -14,6 +15,15 @@ import {
 } from 'vscode-languageclient';
 
 let client: LanguageClient;
+
+function registerCommands(client: LanguageClient, context: ExtensionContext) {
+	context.subscriptions.push(
+	  commands.registerTextEditorCommand('vizscript.openfile', Commands.fetchScriptContent.bind(this, context, client)),
+	  //commands.registerCommand('apiElements.apiary.fetchApi', Commands.fetchApi.bind(this, context)),
+	);
+  }
+
+
 
 export function activate(context: ExtensionContext) {
 	// The server is implemented in node
@@ -30,11 +40,37 @@ export function activate(context: ExtensionContext) {
 		debug: { module: serverModule, transport: TransportKind.ipc, options: debugOptions }
 	};
 
+	// Add client side commands
+	//const command = 'vizscript.test';
+
+  //const commandHandler = (name: string = 'world') => {
+  //  window.showInformationMessage(`Hello ${name}!!!`);
+  //};
+
+  //context.subscriptions.push(commands.registerCommand(command, commandHandler));
+
 
 	// Options to control the language client
 	let clientOptions: LanguageClientOptions = {
 		// Register the server for viz documents
 		documentSelector: ['viz', 'viz-con'],
+		middleware: {
+			executeCommand: async (command, args, next) => {
+				if(command == 'vizscript.test'){
+					const selected = await window.showQuickPick(['Visual Studio', 'Visual Studio Code']);
+					
+					
+					if (selected === undefined) {
+						return next(command, args);
+					}
+					args = args.slice(0);
+					args.push(selected);	
+					return next('vizscript.openfile', args);
+				}
+			}
+		},
+
+		
 		
 		synchronize: {
 			// Notify the server about file changes to '.clientrc files contained in the workspace
@@ -43,15 +79,15 @@ export function activate(context: ExtensionContext) {
 	};
 
 	// Create the language client and start the client.
-	client = new LanguageClient(
-		'vizscript',
-		'VizScript',
-		serverOptions,
-		clientOptions
-	);
+	client = new LanguageClient('vizscript','VizScript',serverOptions,clientOptions);
 
+	
+	client.onReady().then(() => {
+		registerCommands(client, context);
+	  });
 	// Start the client. This will also launch the server
-	client.start();
+
+client.start();
 }
 
 export function deactivate(): Thenable<void> | undefined {
