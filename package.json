@@ -162,8 +162,14 @@
 				},
 				"vizscript.compiler.hostPort": {
 					"type": "number",
-					"default": 6998,
+					"default": 6100,
 					"description": "The port number for connection to Viz Engine",
+					"scope": "resource"
+				},
+				"vizscript.compiler.liveSyntaxChecking": {
+					"type": "boolean",
+					"default": false,
+					"description": "Check syntax on Viz Engine while you write code",
 					"scope": "resource"
 				},
 				"vizscript.trace.server": {

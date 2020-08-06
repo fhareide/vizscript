@@ -36,7 +36,7 @@
 			"patterns": [
 				{
 				  "name": "support.type.viz",
-				  "match": "(?i:\\s*\\b(Alpha|Array|AVChannel|Base|BezierHandle|Boolean|Camera|Center|ClipChannel|Color|Container|DateTime|Director|Double|Eventpool|Expert|Geometry|Gesture|GestureRecognizer|GfxChannel|Glow|Grid|HDR|Image|ImageChannel|InfoText|Integer|Key|Keyframe|Light|LiveChannel|Material|Matrix|PluginInstance|Position|ProxyChannel|Rotation|Scaling|Scene|Script|ScriptSettings|SharedMemory|Stage|String|StringMap|SuperChannel|System|Texture|Timecode|Touch|Trace|Uuid|Variant|Vertex|VizCommunication)\\b)"
+				  "match": "(?i:\\s*\\b(Alpha|Array|AVChannel|Base|BezierHandle|Boolean|Camera|Center|ClipChannel|Color|Container|DateTime|Director|Double|Eventpool|Expert|Geometry|Gesture|GestureRecognizer|GfxChannel|Glow|Grid|HDR|Image|ImageChannel|InfoText|Integer|Key|Keyframe|Light|LiveChannel|Material|Matrix|PluginInstance|Position|ProxyChannel|Rotation|Scaling|Scene|Script|ScriptSettings|SharedMemory|Stage|String|StringMap|SuperChannel|System|Texture|This|Timecode|Touch|Trace|Uuid|Variant|Vertex|VizCommunication)\\b)"
 				},
 				{
 				  "name": "keyword.control.viz",
@@ -95,11 +95,11 @@
 		"name": "storage.type"
 	  },
 	  {
-		"match": "(?!^)(?i:\\s*\\b(Alpha|Array|AVChannel|Base|BezierHandle|Boolean|Camera|Center|ClipChannel|Color|Container|DateTime|Director|Double|Eventpool|Expert|Geometry|Gesture|GestureRecognizer|GfxChannel|Glow|Grid|HDR|Image|ImageChannel|InfoText|Integer|Key|Keyframe|Light|LiveChannel|Material|Matrix|PluginInstance|Position|ProxyChannel|Rotation|Scaling|Script|ScriptSettings|SharedMemory|String|StringMap|SuperChannel|Texture|Timecode|Touch|Trace|Uuid|Variant|Vertex|VizCommunication)\\b\\s*)",
+		"match": "(?!^)(?i:\\s*\\b(Alpha|Array|AVChannel|Base|BezierHandle|Boolean|Camera|Center|ClipChannel|Color|Container|DateTime|Director|Double|Eventpool|Expert|Geometry|Gesture|GestureRecognizer|GfxChannel|Glow|Grid|HDR|Image|ImageChannel|InfoText|Integer|Key|Keyframe|Light|LiveChannel|Material|Matrix|PluginInstance|Position|ProxyChannel|Rotation|Scaling|Script|ScriptSettings|SharedMemory|String|StringMap|SuperChannel|Texture|This|Timecode|Touch|Trace|Uuid|Variant|Vertex|VizCommunication)\\b\\s*)",
 		"name": "support.type.viz"
 	  },
 	  {
-		"match": "(?i:\\s*\\b(Scene|Stage|System)\\b\\s*)",
+		"match": "(?i:\\s*\\b(Scene|Stage|System|This)\\b\\s*)",
 		"name": "support.type.global.viz"
 	  },
 	  {
