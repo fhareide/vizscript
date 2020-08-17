@@ -1,9 +1,9 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { Position, Uri, ViewColumn, WorkspaceEdit, window, workspace, Range } from 'vscode';
+import { Position, Uri, ViewColumn, WorkspaceEdit, window, workspace, Range, ExtensionContext } from 'vscode';
 
-export function showUntitledWindow(fileExtension: string, content: string, fallbackPath: string) {
-  const uri = Uri.parse(`untitled:Untitled-1${fileExtension}`);
+export function showUntitledWindow(id: string, fileExtension: string, content: string, context: ExtensionContext) {
+  const uri = Uri.parse(`untitled:Untitled${id}${fileExtension}`);
 
   return workspace.openTextDocument(uri)
     .then((textDocument) => {
@@ -15,6 +15,8 @@ export function showUntitledWindow(fileExtension: string, content: string, fallb
       return Promise.all([<any>textDocument, workspace.applyEdit(edit)]);
     })
     .then(([textDocument]) => {
-      return window.showTextDocument(<any>textDocument, ViewColumn.One, false);
-    });
+	
+			return window.showTextDocument(<any>textDocument, ViewColumn.One, false);
+		})
+		.then(result =>{context.globalState.update(result.document.uri.toString(), id)});
 }

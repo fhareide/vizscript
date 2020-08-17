@@ -1,3 +1,10 @@
+### 0.2.9
+- **Fix**: Fixed bug were "then" keyword at the end of if sentence would sometimes be replaced by a completion 
+- **Change**: Renamed command "Compile code" to "Syntax check"
+- **New**: Added initial support for getting scripts from Viz and linking it to a container or the scene script. (Command: Get scripts from Viz)
+
+---
+
 ### 0.2.8
 - **Fix**: Fixed bug were variables inside built-in events were available in all scopes
 - **Fix**: Fixed bug were built-in events were allowed multiple times

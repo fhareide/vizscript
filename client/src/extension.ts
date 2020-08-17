@@ -18,8 +18,9 @@ let client: LanguageClient;
 
 function registerCommands(client: LanguageClient, context: ExtensionContext) {
 	context.subscriptions.push(
-		commands.registerTextEditorCommand('vizscript.openfile', Commands.displayScriptSelector.bind(this, context, client)),
-		commands.registerTextEditorCommand('vizscript.compile', Commands.compileCurrentScript.bind(this, context, client)),
+		commands.registerTextEditorCommand('vizscript.getscripts', Commands.displayScriptSelector.bind(this, context, client)),
+		commands.registerTextEditorCommand('vizscript.compile', Commands.syntaxCheckCurrentScript.bind(this, context, client)),
+		commands.registerTextEditorCommand('vizscript.compile.currentscript' , Commands.compileCurrentScript.bind(this, context, client)),
 		//workspace.onDidChangeTextDocument(() => commands.executeCommand('vizscript.compile'))
 		
 	  //commands.registerCommand('apiElements.apiary.fetchApi', Commands.fetchApi.bind(this, context)),
@@ -74,6 +75,7 @@ export function activate(context: ExtensionContext) {
 	client.onReady().then(() => {
 		registerCommands(client, context);
 		registerNotifications(client);
+		
 	  });
 	// Start the client. This will also launch the server
 

@@ -26,26 +26,21 @@
 	},
 	"activationEvents": [
 		"onLanguage:viz-con",
-		"onLanguage:viz",
-		"onCommand:vizscript.openfile"
+		"onLanguage:viz"
 	],
 	"main": "./client/out/extension",
 	"contributes": {
 		"commands": [
 			{
 				"command": "vizscript.compile",
-				"title": "Viz Script: Compile code"
+				"title": "Viz Script: Syntax check"
 			},
 			{
-				"command": "vizscript.compile.setcurrentscene",
-				"title": "Viz Script: Set scene script in current scene"
+				"command": "vizscript.compile.currentscript",
+				"title": "Viz Script: Set current script in Viz"
 			},
 			{
-				"command": "vizscript.test",
-				"title": "Viz Script: Test command"
-			},
-			{
-				"command": "vizscript.openfile",
+				"command": "vizscript.getscripts",
 				"title": "Viz Script: Get scripts from Viz"
 			}
 		],
@@ -56,11 +51,11 @@
 					"when": "editorLangId == viz || editorLangId == viz-con"
 				},
 				{
-					"command": "vizscript.compile.setcurrentscene",
+					"command": "vizscript.compile.currentscript",
 					"when": "editorLangId == viz || editorLangId == viz-con"
 				},
 				{
-					"command": "vizscript.openfile",
+					"command": "vizscript.getscripts",
 					"when": "editorLangId == viz || editorLangId == viz-con"
 				}
 			]
@@ -72,7 +67,7 @@
 				"when": "editorLangId == viz || editorLangId == viz-con"
 			},
 			{
-				"command": "vizscript.compile.setcurrentscene",
+				"command": "vizscript.compile.currentscript",
 				"key": "ctrl+shift+f5",
 				"when": "editorLangId == viz || editorLangId == viz-con"
 			}

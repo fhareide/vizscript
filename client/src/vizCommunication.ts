@@ -14,6 +14,7 @@ export function getVizScripts(host: string, port: number, scriptType: string): P
 	return new Promise((resolve, reject) => {
 		let scripts = [];
 
+		let currentObjectId = "";
 		thisHost = host;
 		thisPort = port;
 		let scriptObjects: Map<string, VizScriptObject> = new Map()
@@ -39,9 +40,9 @@ export function getVizScripts(host: string, port: number, scriptType: string): P
 					socket.write('2 MAIN_SCENE*OBJECT_ID GET ' + String.fromCharCode(0));
 			
 			}else if(answer[1] == "2"){
-					sceneId = answer[3];
+					currentObjectId = answer[3];
 					let result = new Promise((resolve) => {
-						Promise.all([getVizScriptContent(sceneId), sceneId])
+						Promise.all([getVizScriptContent(currentObjectId), currentObjectId])
 						.then(([result, vizId]) => {
 							let vizObject = new VizScriptObject()
 							vizObject.vizId = vizId;
@@ -52,7 +53,7 @@ export function getVizScripts(host: string, port: number, scriptType: string): P
 							scriptObjects.set(vizId , vizObject);
 							resolve(message)
 						})
-						.then(message => socket.write('3 '+ sceneId +'*TREE SEARCH_FOR_CONTAINER_WITH_PROPERTY SCRIPT ' + String.fromCharCode(0)))
+						.then(message => socket.write('3 '+ currentObjectId +'*TREE SEARCH_FOR_CONTAINER_WITH_PROPERTY SCRIPT ' + String.fromCharCode(0)))
 						.catch((message) => window.showErrorMessage("Failed " + message))
 					})
 					//socket.write('7 '+ sceneId +'*TREE ADD TOP ' + String.fromCharCode(0));
@@ -82,8 +83,7 @@ export function getVizScripts(host: string, port: number, scriptType: string): P
 		});
 
 		socket.on('error', () => {
-			sceneId = "";
-			containerId = "";
+			currentObjectId = "";
 			reject("Not able to connect to Viz Engine " + host + ":" + port);
 		});
 
@@ -142,8 +142,6 @@ function getVizScriptContent(vizId: string): Promise<string[]>{
 		});
 
 		socket.on('error', () => {
-			sceneId = "";
-			containerId = "";
 			reject("Not able to connect to Viz Engine " + thisHost + ":" + thisPort);
 		});
 		
@@ -165,7 +163,6 @@ export function compileScript(content: string, host: string, port: number, scrip
 		let text = content;
 		let isReceivingData = false
 		let replyCode = "-1"
-		
 		//connection.console.log('Script type is: ' + scriptType);
 		
 		socket.on('data', (data) => {
@@ -241,6 +238,54 @@ export function compileScript(content: string, host: string, port: number, scrip
 			reject("Not able to connect to Viz Engine " + host + ":" + port);
 			sceneId = "";
 			containerId = "";
+		});
+
+		socket.on('end', () => {
+			
+			//connection.console.log('Disconnected Viz Engine');
+			//connection.window.showInformationMessage("Disconnected from Viz Engine");
+		});
+	});
+}
+
+export function compileScriptId(content: string, host: string, port: number, scriptType: string, scriptId: string){
+	return new Promise((resolve, reject) => {
+		if(scriptId == undefined){
+			reject("No viz script associated with this script");
+		}
+		const socket = net.createConnection({ port: port, host: host}, () => {
+
+			socket.write('1 MAIN*CONFIGURATION*COMMUNICATION*PROCESS_COMMANDS_ALWAYS GET ' + String.fromCharCode(0));
+		});
+
+		let text = content;
+		let isReceivingData = false
+		let replyCode = "-1"
+		//connection.console.log('Script type is: ' + scriptType);
+		
+		socket.on('data', (data) => {
+			let message = data.toString()
+
+			if(!isReceivingData){
+				replyCode = GetRegexResult(message, /^([^\s]+)(\s?)/gim)[1]
+				message = message.slice(2)
+				message = message.replace(String.fromCharCode(0), '')
+			}
+			
+			if(replyCode == "1"){
+				socket.write('3 #' + scriptId +'*SCRIPT*PLUGIN*SOURCE_CODE SET ' + text + ' ' + String.fromCharCode(0));
+			}else if(replyCode == "3"){
+				socket.write('4 #' + scriptId +'*SCRIPT*PLUGIN COMPILE ' + String.fromCharCode(0));
+			}else if(replyCode == "4"){
+				socket.write('5 #' + scriptId +'*SCRIPT*PLUGIN*COMPILE_STATUS GET ' + String.fromCharCode(0));
+			}else if(replyCode == "5"){
+				resolve(message)
+				socket.end();
+			}
+		});
+
+		socket.on('error', () => {
+			reject("Not able to connect to Viz Engine " + host + ":" + port);
 		});
 
 		socket.on('end', () => {
