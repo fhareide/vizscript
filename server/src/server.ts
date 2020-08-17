@@ -1865,14 +1865,6 @@ function ClearDiagnostics(uri: string) {
 	connection.sendDiagnostics({ uri, diagnostics });
 }
 
-connection.onRequest('getVizFiles', (code: string) => {
-	return "Hallo";
-  });
-
-  let test = [];
-  test.push("#1234");
-  test.push("#4321");
-
 connection.onRequest('getVizScripts', (code: string) => {
 	return test;
 });

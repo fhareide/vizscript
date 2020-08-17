@@ -2,16 +2,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { Position, Uri, ViewColumn, WorkspaceEdit, window, workspace, Range } from 'vscode';
 
-export function showUntitledWindow(fileName: string, content: string, fallbackPath: string) {
-  const filePath = path.join(workspace.rootPath || fallbackPath, fileName);
-  const uri = Uri.parse(`untitled:${filePath}`);
-
-  try {
-    fs.accessSync(filePath, fs.constants.F_OK);
-    fs.unlinkSync(filePath);
-  } catch (err) {
-    ;
-  }
+export function showUntitledWindow(fileExtension: string, content: string, fallbackPath: string) {
+  const uri = Uri.parse(`untitled:Untitled-1${fileExtension}`);
 
   return workspace.openTextDocument(uri)
     .then((textDocument) => {

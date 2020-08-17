@@ -29,7 +29,7 @@ function registerCommands(client: LanguageClient, context: ExtensionContext) {
 function registerNotifications(client: LanguageClient) {
   client.onNotification("requestCompile", () =>
     commands.executeCommand("vizscript.compile")
-  );
+	);
 }
 
 export function activate(context: ExtensionContext) {
