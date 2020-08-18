@@ -9,7 +9,7 @@ import {getVizScripts, compileScript, compileScriptId} from './vizCommunication'
 let scriptObjects: Map<string, VizScriptObject> = new Map()
 	
 export function displayScriptSelector(context: ExtensionContext, client: LanguageClient, editor: TextEditor) {
-  window.setStatusBarMessage('Fetching script list from Viz...',
+  window.setStatusBarMessage('Fetching script list from Viz...',5000)
 		requestAllScripts(client)
       .then((selectedScript) => {
         if (selectedScript === undefined) {
@@ -61,7 +61,6 @@ export function displayScriptSelector(context: ExtensionContext, client: Languag
 			//	return commands.executeCommand('vscode.diff', editor.document.uri , (<TextEditor>file).document.uri)
 			//})
       .then(undefined, showMessage)
-  );
 }
 
 export function requestAllScripts(client: LanguageClient) {
@@ -75,7 +74,7 @@ export function requestAllScripts(client: LanguageClient) {
 					let elements = [];
 					reply.forEach(element =>{
 						let quickPickItem: QuickPickItem = {
-							description: element.type + " " + element.name,
+							description: ((element.children.length <= 0) ?element.type + " " + element.name : element.type + " " + element.name + " (+" + element.children.length + " cons)"),
 							label: element.vizId,
 							detail: element.code.substr(0, 100)
 						}
@@ -94,7 +93,8 @@ export function requestAllScripts(client: LanguageClient) {
 export function compileCurrentScript(context: ExtensionContext, client: LanguageClient, editor: TextEditor){
 	client.sendRequest('getVizConnectionInfo')
 	.then(result => {
-		compileScriptId(window.activeTextEditor.document.getText() ,result[0], Number(result[1]), result[2], context.workspaceState.get(window.activeTextEditor.document.uri.toString()))
+		let linkedId: string = context.workspaceState.get(window.activeTextEditor.document.uri.toString());
+		compileScriptId(window.activeTextEditor.document.getText() ,result[0], Number(result[1]), result[2], linkedId, scriptObjects.get("#" + linkedId).children)
 	})
 	.then((message) => client.sendRequest('showDiagnostics', message))
 	.then((answer) => {

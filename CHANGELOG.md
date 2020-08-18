@@ -1,3 +1,9 @@
+### 0.2.10
+- **Fix**: Fixed bug were Viz would sometimes crash when applying a script from the editor
+- **Change**: Rewrote the container script logic to gather all similar scripts and set them all at the same time
+
+---
+
 ### 0.2.9
 - **Fix**: Fixed bug were "then" keyword at the end of if sentence would sometimes be replaced by a completion 
 - **Change**: Renamed command "Compile code" to "Syntax check"

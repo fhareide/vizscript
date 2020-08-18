@@ -53,16 +53,16 @@ export function getVizScripts(host: string, port: number, scriptType: string): P
 							scriptObjects.set(vizId , vizObject);
 							resolve(message)
 						})
-						.then(message => socket.write('3 '+ currentObjectId +'*TREE SEARCH_FOR_CONTAINER_WITH_PROPERTY SCRIPT ' + String.fromCharCode(0)))
+						.then(() => socket.write('3 '+ currentObjectId +'*TREE SEARCH_FOR_CONTAINER_WITH_PROPERTY SCRIPT ' + String.fromCharCode(0)))
 						.catch((message) => window.showErrorMessage("Failed " + message))
 					})
 					//socket.write('7 '+ sceneId +'*TREE ADD TOP ' + String.fromCharCode(0));
 			}else if(answer[1] == "3"){
 				//connection.console.log(answer[3]);
-				if(answer[3] === "") reject("No container scripts in scene") 
+				if(answer[3] === "") socket.end(); 
 				scripts = answer[3].split(" ");
 				let results = scripts.map((item) => {
-					return new Promise((resolve) => {
+					return new Promise<VizScriptObject>((resolve) => {
 						Promise.all([getVizScriptContent(item), item])
 						.then(([result, vizId]) => {
 							let vizObject = new VizScriptObject()
@@ -71,14 +71,30 @@ export function getVizScripts(host: string, port: number, scriptType: string): P
 							vizObject.extension = ".vsc"
 							vizObject.name = result[1];
 							vizObject.code = result[0];
-							scriptObjects.set(vizId , vizObject);
-							resolve("Success")
+							
+							resolve(vizObject)
 						})
 						.catch((message) => window.showErrorMessage("Failed " + message))
 					})
 				})
 
-				Promise.all(results).then(() => socket.end())
+				Promise.all(results).then((results) => {
+					results.forEach(element => {
+						let isDuplicate = false;
+						for (let object of scriptObjects.values()) {
+							if(object.code == element.code){
+								object.children.push(element);
+								isDuplicate = true;
+								break;
+							}
+						}
+						if( !isDuplicate){
+							scriptObjects.set(element.vizId , element);
+						}
+						
+					});
+					
+					socket.end()})
 			}
 		});
 
@@ -228,6 +244,7 @@ export function compileScript(content: string, host: string, port: number, scrip
 				}else if(scriptType = "Container"){
 					scriptId = containerId;
 				}
+				socket.write('-1 ' + scriptId +'*SCRIPT*PLUGIN STOP ' + String.fromCharCode(0));
 				socket.write('3 '+ scriptId +'*SCRIPT*PLUGIN*SOURCE_CODE SET ' + text + ' ' + String.fromCharCode(0));
 
 			}
@@ -248,7 +265,7 @@ export function compileScript(content: string, host: string, port: number, scrip
 	});
 }
 
-export function compileScriptId(content: string, host: string, port: number, scriptType: string, scriptId: string){
+export function compileScriptId(content: string, host: string, port: number, scriptType: string, scriptId: string, children: VizScriptObject[]){
 	return new Promise((resolve, reject) => {
 		if(scriptId == undefined){
 			reject("No viz script associated with this script");
@@ -273,7 +290,13 @@ export function compileScriptId(content: string, host: string, port: number, scr
 			}
 			
 			if(replyCode == "1"){
+				socket.write('-1 #' + scriptId +'*SCRIPT*PLUGIN STOP ' + String.fromCharCode(0));
 				socket.write('3 #' + scriptId +'*SCRIPT*PLUGIN*SOURCE_CODE SET ' + text + ' ' + String.fromCharCode(0));
+				children.forEach(element => {
+					socket.write('-1 ' + element.vizId + '*SCRIPT*PLUGIN STOP ' + String.fromCharCode(0));
+					socket.write('-1 ' + element.vizId + '*SCRIPT*PLUGIN*SOURCE_CODE SET ' + text + ' ' + String.fromCharCode(0));
+					socket.write('-1 ' + element.vizId + '*SCRIPT*PLUGIN COMPILE ' + String.fromCharCode(0));
+				});
 			}else if(replyCode == "3"){
 				socket.write('4 #' + scriptId +'*SCRIPT*PLUGIN COMPILE ' + String.fromCharCode(0));
 			}else if(replyCode == "4"){
