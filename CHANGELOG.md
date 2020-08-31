@@ -1,3 +1,6 @@
+### 0.2.11
+- **Fix**: Fixed bug were "else" keyword would sometimes be replaced by a completion 
+
 ### 0.2.10
 - **Fix**: Fixed bug were Viz would sometimes crash when applying a script from the editor
 - **Change**: Rewrote the container script logic to gather all similar scripts and set them all at the same time

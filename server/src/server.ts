@@ -622,7 +622,8 @@ connection.onCompletion((params: ls.CompletionParams, cancelToken: ls.Cancellati
 	if (GetRegexResult(line, /^[ \t]*function[ \t]+([a-zA-Z0-9\-\_\,]+)$/gi) != null) return;// No suggestions when declaring functions
 	if (GetRegexResult(line, /^[ \t]*end[ \t]+([a-zA-Z0-9\-\_\,]*)$/gi) != null) return;// No suggestions for ending sub or function
 	if (GetRegexResult(line, /^[if|elseif]*(.*)[ \t]+[then]+$/gi) != null) return;// No suggestions at end of if sentence
-	
+	if (GetRegexResult(line, /^[ \t]*[else]+$/gi) != null) return;// No suggestions for else keyword
+
 	if (GetRegexResult(line, /^[ \t]*sub[ \t]+On?$/gi) != null) return SelectBuiltinEventCompletionItems();// Only event suggestions when declaring submethod
 
 	if (GetRegexResult(line, /\=[\s]*([^\=\.\)]+)$/gi) != null) // Suggestions after "="
