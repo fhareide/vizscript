@@ -25,6 +25,14 @@
         ["(", ")"],
         ["\"", "\""],
         ["'", "'"]
-    ],
+		],
+
+		"folding": {
+			"markers": {
+				"start": "^sub\\b|^function\\b|^structure\\b",
+				"end": "^end sub\\b|^end function\\b|^end structure\\b"
+			},
+
+		},
 
 }
