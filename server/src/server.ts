@@ -153,7 +153,7 @@ let containerId = "";
 let scriptId = "";
 
 
-function cleanPendingValidation(textDocument: ls.TextDocument): void {
+function cleanPendingValidation(textDocument: TextDocument): void {
 	const request = pendingValidationRequests[textDocument.uri];
 	if (request) {
 		clearTimeout(request);
@@ -161,7 +161,7 @@ function cleanPendingValidation(textDocument: ls.TextDocument): void {
 	}
 }
 
-function triggerValidation(textDocument: ls.TextDocument): void {
+function triggerValidation(textDocument: TextDocument): void {
 	cleanPendingValidation(textDocument);
 	pendingValidationRequests[textDocument.uri] = setTimeout(() => {
 		delete pendingValidationRequests[textDocument.uri];
@@ -621,6 +621,7 @@ connection.onCompletion((params: ls.CompletionParams, cancelToken: ls.Cancellati
 	if (GetRegexResult(line, /^[ \t]*dim[ \t]+([a-zA-Z0-9\-\_\,]+)[ \t]*([as]+)?$/gi) != null) return;// No sugggestions when declaring variables
 	if (GetRegexResult(line, /^[ \t]*function[ \t]+([a-zA-Z0-9\-\_\,]+)$/gi) != null) return;// No suggestions when declaring functions
 	if (GetRegexResult(line, /^[ \t]*end[ \t]+([a-zA-Z0-9\-\_\,]*)$/gi) != null) return;// No suggestions for ending sub or function
+	if (GetRegexResult(line, /^[ \t]*exit[ \t]+([a-zA-Z0-9\-\_\,]*)$/gi) != null) return;// No suggestions for exit sub or function
 	if (GetRegexResult(line, /^[if|elseif]*(.*)[ \t]+[then]+$/gi) != null) return;// No suggestions at end of if sentence
 	if (GetRegexResult(line, /^[ \t]*[else]+$/gi) != null) return;// No suggestions for else keyword
 
@@ -1142,6 +1143,18 @@ function GetBuiltinSymbols() {
 				}else{
 					globalsymbols.push(symbol);
 				}
+			});
+			element.properties.forEach(properties => {
+				let symbol: VizSymbol = new VizSymbol();
+				symbol.type = properties.return_value;
+				symbol.name = properties.name;
+				symbol.insertText = properties.name;
+				symbol.hint = properties.code_hint;
+				symbol.args = properties.description;
+				symbol.kind = ls.CompletionItemKind.Variable;
+				symbol.parentName = "global";
+				symbol.commitCharacters = [""];
+				globalsymbols.push(symbol);
 			});
 		}
 		else {

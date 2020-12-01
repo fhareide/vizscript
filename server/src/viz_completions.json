@@ -10861,7 +10861,22 @@
       {
         "name": "Global Procedures",
         "descripton":"",
-        "properties":[],
+        "properties":[
+					{
+            "name": "True",
+            "code_hint": "",
+            "description": "",
+            "return_value": "Boolean",
+            "deprecated": "false"
+					},
+					{
+            "name": "False",
+            "code_hint": "",
+            "description": "",
+            "return_value": "Boolean",
+            "deprecated": "false"
+          }
+				],
         "methods": [
           {
             "name": "Abs",
@@ -11710,7 +11725,7 @@
             "return_value": "String",
             "deprecated": "true"
           }
-        ]        
+        ]
       }
     ]
   }

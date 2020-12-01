@@ -1,3 +1,8 @@
+### 0.2.12
+- **Fix**: Fixed bug were "exit function" or "exit sub" would sometimes be replaced by a completion
+- **Fix**: Added custom folding for sub, function and structure to avoid incorrect folding
+- **New**: Added "True" and "False" to completions for convenience
+
 ### 0.2.11
 - **Fix**: Fixed bug were "else" keyword would sometimes be replaced by a completion 
 
