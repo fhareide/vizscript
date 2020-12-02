@@ -1,5 +1,8 @@
-import * as fs from 'fs';
-import * as path from 'path';
+/* --------------------------------------------------------------------------------------------
+ * Copyright (c) Fredrik Hareide. All rights reserved.
+ * Licensed under the MIT License.
+ * ------------------------------------------------------------------------------------------ */
+
 import { Position, Uri, ViewColumn, WorkspaceEdit, window, workspace, Range, ExtensionContext } from 'vscode';
 
 export function showUntitledWindow(id: string, fileExtension: string, content: string, context: ExtensionContext) {
@@ -15,7 +18,7 @@ export function showUntitledWindow(id: string, fileExtension: string, content: s
       return Promise.all([<any>textDocument, workspace.applyEdit(edit)]);
     })
     .then(([textDocument]) => {
-	
+
 			return window.showTextDocument(<any>textDocument, ViewColumn.One, false);
 		})
 		.then(result =>{context.globalState.update(result.document.uri.toString(), id)});

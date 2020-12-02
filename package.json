@@ -131,6 +131,12 @@
 					"description": "Enable Auto Complete functionality",
 					"scope": "resource"
 				},
+				"vizscript.showThisCompletionsOnRoot": {
+					"type": "boolean",
+					"default": true,
+					"description": "Show completions for Container/Scene on root",
+					"scope": "resource"
+				},
 				"vizscript.enableSignatureHelp": {
 					"type": "boolean",
 					"default": true,

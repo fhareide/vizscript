@@ -1,3 +1,8 @@
+/* --------------------------------------------------------------------------------------------
+ * Copyright (c) Fredrik Hareide. All rights reserved.
+ * Licensed under the MIT License.
+ * ------------------------------------------------------------------------------------------ */
+
 import * as ls from 'vscode-languageserver';
 
 export class VizSymbol {
@@ -17,7 +22,7 @@ export class VizSymbol {
 	public kind: ls.CompletionItemKind;
 	public signatureInfo: ls.SignatureInformation;
 	public commitCharacters: string[] = [""];
-	
+
 	public parentName: string = "";
 
 	public GetLsName(): string {
@@ -55,7 +60,7 @@ export class VizSymbol {
 		item.commitCharacters = this.commitCharacters;
 		return item;
 	}
-	
+
 	public static GetLanguageServerSymbols(symbols: VizSymbol[]): ls.SymbolInformation[] {
 		let lsSymbols: ls.SymbolInformation[] = [];
 
@@ -102,7 +107,7 @@ export class VizSymbol {
 					lsItem.insertText = symbol.insertSnippet;
 					lsItem.insertTextFormat = ls.InsertTextFormat.Snippet;
 				}
-				
+
 			    completionItems.push(lsItem);
 			}
 		});

@@ -1,6 +1,6 @@
 /* --------------------------------------------------------------------------------------------
- * Copyright (c) Microsoft Corporation. All rights reserved.
- * Licensed under the MIT License. See License.txt in the project root for license information.
+ * Copyright (c) Fredrik Hareide. All rights reserved.
+ * Licensed under the MIT License.
  * ------------------------------------------------------------------------------------------ */
 
 import * as Commands from './commands';
@@ -22,7 +22,7 @@ function registerCommands(client: LanguageClient, context: ExtensionContext) {
 		commands.registerTextEditorCommand('vizscript.compile', Commands.syntaxCheckCurrentScript.bind(this, context, client)),
 		commands.registerTextEditorCommand('vizscript.compile.currentscript' , Commands.compileCurrentScript.bind(this, context, client)),
 		//workspace.onDidChangeTextDocument(() => commands.executeCommand('vizscript.compile'))
-		
+
 	  //commands.registerCommand('apiElements.apiary.fetchApi', Commands.fetchApi.bind(this, context)),
 	);
 }
@@ -62,7 +62,7 @@ export function activate(context: ExtensionContext) {
 	let clientOptions: LanguageClientOptions = {
 		// Register the server for viz documents
 		documentSelector: ['viz', 'viz-con'],
-		
+
 		synchronize: {
 			// Notify the server about file changes to '.clientrc files contained in the workspace
 			fileEvents: workspace.createFileSystemWatcher('**/.clientrc')
@@ -75,7 +75,7 @@ export function activate(context: ExtensionContext) {
 	client.onReady().then(() => {
 		registerCommands(client, context);
 		registerNotifications(client);
-		
+
 	  });
 	// Start the client. This will also launch the server
 

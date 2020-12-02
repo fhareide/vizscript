@@ -1,10 +1,22 @@
+### 0.2.13
+- **Change**: Changed "Get scripts from Viz" to handle each container individually
+- **Change**: Added "Compile OK" as Status Bar Message for successful compiles
+- **New**: Added completions for Container/Scene to root level. (Can be disabled in settings)
+- **New**: Option `vizscript.showThisCompletionsOnRoot` - Show completions for Container/Scene on root
+
+---
+
 ### 0.2.12
 - **Fix**: Fixed bug were "exit function" or "exit sub" would sometimes be replaced by a completion
 - **Fix**: Added custom folding for sub, function and structure to avoid incorrect folding
 - **New**: Added "True" and "False" to completions for convenience
 
+---
+
 ### 0.2.11
-- **Fix**: Fixed bug were "else" keyword would sometimes be replaced by a completion 
+- **Fix**: Fixed bug were "else" keyword would sometimes be replaced by a completion
+
+---
 
 ### 0.2.10
 - **Fix**: Fixed bug were Viz would sometimes crash when applying a script from the editor
@@ -13,7 +25,7 @@
 ---
 
 ### 0.2.9
-- **Fix**: Fixed bug were "then" keyword at the end of if sentence would sometimes be replaced by a completion 
+- **Fix**: Fixed bug were "then" keyword at the end of if sentence would sometimes be replaced by a completion
 - **Change**: Renamed command "Compile code" to "Syntax check"
 - **New**: Added initial support for getting scripts from Viz and linking it to a container or the scene script. (Command: Get scripts from Viz)
 
@@ -63,10 +75,10 @@
 ### 0.2.2
 - **New**: Added documentation support for document completions. Functions, subs and variables supported for now.
 	- A comment directly above a function or sub will be used as description.
-  	
+
 		!["Function description"](images/function_description.png)
   - A comment directly after a variable declaration will be used as description.
-    
+
     !["Variable description"](images/variable_description.png)
 
 ---
@@ -79,7 +91,7 @@
 
 ### 0.2.0
 - **Change**: Updated readme and documentation to reflect the new changes
-- 
+-
 ---
 
 ### 0.1.14
@@ -102,10 +114,10 @@
 ### 0.1.11
 
 - **Fix**: Further improvements on completions. Fixed bug with overloading for document symbols. Now has full overload support for all procedures.
-- **Fix**: Added extra check to remove leading "(" on completion strings 
+- **Fix**: Added extra check to remove leading "(" on completion strings
 
 ### 0.1.10
-- **Change**: Major improvements on Completion suggestions. Now supports nesting, parantheses and brackets. 
+- **Change**: Major improvements on Completion suggestions. Now supports nesting, parantheses and brackets.
 - **Change**: Small adjustments to Syntax Highlighting to highlight important types in all contexts.
 
 ### 0.1.9

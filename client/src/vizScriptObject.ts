@@ -1,3 +1,8 @@
+/* --------------------------------------------------------------------------------------------
+ * Copyright (c) Fredrik Hareide. All rights reserved.
+ * Licensed under the MIT License.
+ * ------------------------------------------------------------------------------------------ */
+
 export class VizScriptObject {
 	public name: string = "";
 	public type: string = "";

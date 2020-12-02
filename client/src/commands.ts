@@ -1,3 +1,7 @@
+/* --------------------------------------------------------------------------------------------
+ * Copyright (c) Fredrik Hareide. All rights reserved.
+ * Licensed under the MIT License.
+ * ------------------------------------------------------------------------------------------ */
 
 import {showMessage} from './showMessage';
 import {showUntitledWindow} from './showUntitledWindow';
@@ -7,7 +11,7 @@ import {VizScriptObject} from './vizScriptObject'
 import {getVizScripts, compileScript, compileScriptId} from './vizCommunication'
 
 let scriptObjects: Map<string, VizScriptObject> = new Map()
-	
+
 export function displayScriptSelector(context: ExtensionContext, client: LanguageClient, editor: TextEditor) {
   window.setStatusBarMessage('Fetching script list from Viz...',5000)
 		requestAllScripts(client)
@@ -27,7 +31,7 @@ export function displayScriptSelector(context: ExtensionContext, client: Languag
 						detail: ""
 					}
 					elements = [newFileItem, currentFileItem]
-					
+
 					return Promise.all([
 						window.showQuickPick(elements, { matchOnDescription: true, matchOnDetail: false, placeHolder: 'Select your script'}),
 						selectedScript
@@ -53,7 +57,7 @@ export function displayScriptSelector(context: ExtensionContext, client: Languag
 						builder.replace(new Position(0, 0), object.code);
 					});
 				}else if(selection.label === "Open script in new file"){
-					return Promise.resolve(showUntitledWindow( vizId, extension, object.code, context)); 
+					return Promise.resolve(showUntitledWindow( vizId, extension, object.code, context));
 				}
 			})
 			//.then((file) => {
@@ -109,7 +113,7 @@ export function compileCurrentScript(context: ExtensionContext, client: Language
 			editor.selection =  new Selection(range.start, range.end);
 			editor.revealRange(range);
 		}
-		
+
 	})
 }
 
@@ -118,13 +122,17 @@ export function syntaxCheckCurrentScript(context: ExtensionContext, client: Lang
 	.then(result => compileScript(window.activeTextEditor.document.getText() ,result[0], Number(result[1]), result[2]))
 	.then((message) => client.sendRequest('showDiagnostics', message))
 	.then((answer) => {
-		let rangesplit = (<string>answer).split("/");
-		let line = parseInt(rangesplit[0]);
-		let char = parseInt(rangesplit[1]);
-		let range = new Range(line-1, 0, line-1, char);
-		let editor = window.activeTextEditor;
-		editor.selection =  new Selection(range.start, range.end);
-		editor.revealRange(range);
+		if(answer == "OK"){
+			window.setStatusBarMessage('Compile OK', 3000)
+		}else{
+			let rangesplit = (<string>answer).split("/");
+			let line = parseInt(rangesplit[0]);
+			let char = parseInt(rangesplit[1]);
+			let range = new Range(line-1, 0, line-1, char);
+			let editor = window.activeTextEditor;
+			editor.selection =  new Selection(range.start, range.end);
+			editor.revealRange(range);
+		}
 	})
 }
 

@@ -1,3 +1,8 @@
+/* --------------------------------------------------------------------------------------------
+ * Copyright (c) Fredrik Hareide. All rights reserved.
+ * Licensed under the MIT License.
+ * ------------------------------------------------------------------------------------------ */
+
 import * as net from 'net'
 import {window, Range} from 'vscode';
 import {VizScriptObject} from './vizScriptObject'
@@ -27,18 +32,18 @@ export function getVizScripts(host: string, port: number, scriptType: string): P
 			//connection.window.showInformationMessage("Connected to Viz Engine on " + host + ":" + port );
 			socket.write('1 MAIN IS_ON_AIR ' + String.fromCharCode(0));
 		});
-		
+
 		//connection.console.log('Script type is: ' + scriptType);
 
 		socket.on('data', (data) => {
 			let message = data.toString().replace(String.fromCharCode(0), '')
 
 			let answer = GetRegexResult(message, /^([^\s]+)(\s?)(.*)/gi)
-			
+
 			if(answer[1] == "1"){
 				//connection.console.log("Viz Engine is OnAir");
 					socket.write('2 MAIN_SCENE*OBJECT_ID GET ' + String.fromCharCode(0));
-			
+
 			}else if(answer[1] == "2"){
 					currentObjectId = answer[3];
 					let result = new Promise((resolve) => {
@@ -59,7 +64,7 @@ export function getVizScripts(host: string, port: number, scriptType: string): P
 					//socket.write('7 '+ sceneId +'*TREE ADD TOP ' + String.fromCharCode(0));
 			}else if(answer[1] == "3"){
 				//connection.console.log(answer[3]);
-				if(answer[3] === "") socket.end(); 
+				if(answer[3] === "") socket.end();
 				scripts = answer[3].split(" ");
 				let results = scripts.map((item) => {
 					return new Promise<VizScriptObject>((resolve) => {
@@ -71,7 +76,7 @@ export function getVizScripts(host: string, port: number, scriptType: string): P
 							vizObject.extension = ".vsc"
 							vizObject.name = result[1];
 							vizObject.code = result[0];
-							
+
 							resolve(vizObject)
 						})
 						.catch((message) => window.showErrorMessage("Failed " + message))
@@ -80,20 +85,21 @@ export function getVizScripts(host: string, port: number, scriptType: string): P
 
 				Promise.all(results).then((results) => {
 					results.forEach(element => {
-						let isDuplicate = false;
-						for (let object of scriptObjects.values()) {
-							if(object.code == element.code){
-								object.children.push(element);
-								isDuplicate = true;
-								break;
-							}
-						}
-						if( !isDuplicate){
-							scriptObjects.set(element.vizId , element);
-						}
-						
+						scriptObjects.set(element.vizId , element);
+						//let isDuplicate = false;
+						//for (let object of scriptObjects.values()) {
+						//	if(object.code == element.code){
+						//		object.children.push(element);
+						//		isDuplicate = true;
+						//		break;
+						//	}
+						//}
+						//if( !isDuplicate){
+						//	scriptObjects.set(element.vizId , element);
+						//}
+
 					});
-					
+
 					socket.end()})
 			}
 		});
@@ -104,7 +110,7 @@ export function getVizScripts(host: string, port: number, scriptType: string): P
 		});
 
 
-		socket.on('end', () => {	
+		socket.on('end', () => {
 			console.log('Disconnected Viz Engine');
 			resolve(scriptObjects)
 		});
@@ -119,13 +125,13 @@ function getVizScriptContent(vizId: string): Promise<string[]>{
 		const socket = net.createConnection({ port: thisPort, host: thisHost}, () => {
 			socket.write('1 MAIN*CONFIGURATION*COMMUNICATION*PROCESS_COMMANDS_ALWAYS GET ' + String.fromCharCode(0));
 		});
-		
+
 		//connection.console.log('Script type is: ' + scriptType);
 		let isReceivingData = false
 		let replyCode = "-1"
 
 		socket.on('data', (data) => {
-			
+
 			let message = data.toString()
 
 			if(!isReceivingData){
@@ -133,7 +139,7 @@ function getVizScriptContent(vizId: string): Promise<string[]>{
 				message = message.slice(2)
 				message.replace(String.fromCharCode(0), '')
 			}
-			
+
 			if(replyCode == "1"){
 				if(message == "0"){
 					reject("PROCESS_COMMANDS_ALWAYS not set to 1 in configuration")
@@ -141,16 +147,16 @@ function getVizScriptContent(vizId: string): Promise<string[]>{
 				if(vizId != ""){
 					socket.write('2 '+ vizId +'*NAME GET '  + String.fromCharCode(0));
 				}
-				
+
 			}else if(replyCode == "2"){
 				name = message
 				socket.write('3 '+ vizId +'*SCRIPT*PLUGIN*SOURCE_CODE GET '  + String.fromCharCode(0));
 			}else if(replyCode == "3"){
 				isReceivingData = true
-				
+
 				if(message.endsWith(String.fromCharCode(0))){
 					message = message.slice(0, message.length-2)
-					isReceivingData = false					
+					isReceivingData = false
 					socket.end()
 				}
 				code += message;
@@ -160,9 +166,9 @@ function getVizScriptContent(vizId: string): Promise<string[]>{
 		socket.on('error', () => {
 			reject("Not able to connect to Viz Engine " + thisHost + ":" + thisPort);
 		});
-		
 
-		socket.on('end', () => {	
+
+		socket.on('end', () => {
 			console.log('Disconnected Viz Engine');
 			resolve([code,name])
 		});
@@ -180,7 +186,7 @@ export function compileScript(content: string, host: string, port: number, scrip
 		let isReceivingData = false
 		let replyCode = "-1"
 		//connection.console.log('Script type is: ' + scriptType);
-		
+
 		socket.on('data', (data) => {
 			let message = data.toString()
 
@@ -189,7 +195,7 @@ export function compileScript(content: string, host: string, port: number, scrip
 				message = message.slice(2)
 				message = message.replace(String.fromCharCode(0), '')
 			}
-			
+
 			if(replyCode == "1"){
 				//connection.console.log("Viz Engine is OnAir");
 				if(sceneId == ""){
@@ -209,7 +215,7 @@ export function compileScript(content: string, host: string, port: number, scrip
 			}else if(replyCode == "5"){
 				//connection.console.log(message);
 				resolve(message)
-				
+
 
 				socket.end();
 			}else if(replyCode == "6"){
@@ -222,7 +228,7 @@ export function compileScript(content: string, host: string, port: number, scrip
 				} else {
 					socket.write('2 SCENE NEW ' + String.fromCharCode(0));
 				}
-				
+
 			}else if(replyCode == "7"){
 				//connection.window.showInformationMessage("Answer: " + message)
 				if(message == "1"){
@@ -248,7 +254,7 @@ export function compileScript(content: string, host: string, port: number, scrip
 				socket.write('3 '+ scriptId +'*SCRIPT*PLUGIN*SOURCE_CODE SET ' + text + ' ' + String.fromCharCode(0));
 
 			}
-			
+
 		});
 
 		socket.on('error', () => {
@@ -258,7 +264,7 @@ export function compileScript(content: string, host: string, port: number, scrip
 		});
 
 		socket.on('end', () => {
-			
+
 			//connection.console.log('Disconnected Viz Engine');
 			//connection.window.showInformationMessage("Disconnected from Viz Engine");
 		});
@@ -279,7 +285,7 @@ export function compileScriptId(content: string, host: string, port: number, scr
 		let isReceivingData = false
 		let replyCode = "-1"
 		//connection.console.log('Script type is: ' + scriptType);
-		
+
 		socket.on('data', (data) => {
 			let message = data.toString()
 
@@ -288,7 +294,7 @@ export function compileScriptId(content: string, host: string, port: number, scr
 				message = message.slice(2)
 				message = message.replace(String.fromCharCode(0), '')
 			}
-			
+
 			if(replyCode == "1"){
 				socket.write('-1 #' + scriptId +'*SCRIPT*PLUGIN STOP ' + String.fromCharCode(0));
 				socket.write('3 #' + scriptId +'*SCRIPT*PLUGIN*SOURCE_CODE SET ' + text + ' ' + String.fromCharCode(0));
@@ -312,7 +318,7 @@ export function compileScriptId(content: string, host: string, port: number, scr
 		});
 
 		socket.on('end', () => {
-			
+
 			//connection.console.log('Disconnected Viz Engine');
 			//connection.window.showInformationMessage("Disconnected from Viz Engine");
 		});
