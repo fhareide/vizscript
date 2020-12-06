@@ -1,3 +1,10 @@
+### 0.2.14
+- **Fix**: Rewrote Definition provider to support more intricate types. Now supports Arrays, Structs and nesting
+- **Fix**: Fixed issue were sometimes the extension was unable to provide feedback when compiling or setting script in Viz
+- **Change**: "Get scripts from Viz" is now available at all time and will trigger activation of the extension
+
+---
+
 ### 0.2.13
 - **Change**: Changed "Get scripts from Viz" to handle each container individually
 - **Change**: Added "Compile OK" as Status Bar Message for successful compiles

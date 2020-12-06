@@ -26,7 +26,8 @@
 	},
 	"activationEvents": [
 		"onLanguage:viz-con",
-		"onLanguage:viz"
+		"onLanguage:viz",
+		"onCommand:vizscript.getscripts"
 	],
 	"main": "./client/out/extension",
 	"contributes": {
@@ -55,8 +56,7 @@
 					"when": "editorLangId == viz || editorLangId == viz-con"
 				},
 				{
-					"command": "vizscript.getscripts",
-					"when": "editorLangId == viz || editorLangId == viz-con"
+					"command": "vizscript.getscripts"
 				}
 			]
 		},

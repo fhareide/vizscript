@@ -88,7 +88,7 @@ interface VizScriptCompilerSettings {
 
 
 // Cache the settings of all open documents
-let documentSettings: Map<string, Thenable<VizScriptSettings>> = new Map();
+let documentSettings: Map<string, Promise<VizScriptSettings>> = new Map();
 
 connection.onDidChangeConfiguration(change => {
 	if (hasConfigurationCapability) {
@@ -117,7 +117,7 @@ documents.onDidChangeContent((change: ls.TextDocumentChangeEvent<TextDocument>) 
 	ClearDiagnostics(documentUri);
 });
 
-function getDocumentSettings(resource: string): Thenable<VizScriptSettings> {
+function getDocumentSettings(resource: string): Promise<VizScriptSettings> {
 	let result = documentSettings.get(resource);
 	if (!result) {
 		result = connection.workspace.getConfiguration({
@@ -200,9 +200,11 @@ function getLineAt(str, pos, isSignatureHelp) {
     // Perform type conversions.
 	str = String(str);
 	if(str == "")return "";
-	str = str.trim();
+	//str = str.trim();
 
 	var line = str.slice(0, pos + 1);
+
+	line = line.trim();
 
 	let matches = [];
 	let dotResult = [];
@@ -603,9 +605,44 @@ connection.onDefinition((params: ls.TextDocumentPositionParams, cancelToken: ls.
 
 	if (line.length < 2)return;
 
-	let word = getWordAt(line, params.position.character);
+	//Get end of current word
+  let right = line.slice(params.position.character).search(/[\s\.\(\)]/);
 
-	let item = GetSymbolByName(word,params.position);
+	let lineAt = getLineAt(line,right + params.position.character,false);
+
+	if(lineAt.endsWith(".")){
+		lineAt = lineAt.slice(0,lineAt.length-1);
+	}
+
+	let matches = [];
+	let regexResult = [];
+	let noOfMatches = 0;
+	let item:any;
+
+	let memberStartRegex: RegExp = /[\.]?([^\.\ ]+)/gi;
+
+	while (matches = memberStartRegex.exec(lineAt)) {
+		let tmpline = matches[1].replace(/\([^()]*\)/g, '')
+		regexResult.push(tmpline);
+	}
+	noOfMatches = regexResult.length;
+
+	if (noOfMatches > 1) {
+		if (regexResult != null && regexResult.length > 0) {
+			let internalItem = GetDefinitionItem(noOfMatches,regexResult,params.position);
+			if (internalItem != null) {
+				item = internalItem;
+			} else {
+				item = null;
+			}
+		}
+	} else {
+		let word = getWordAt(line, params.position.character);
+		item = GetSymbolForDefinitionByName(word,params.position);
+	}
+
+
+
 	if(item == null)return null;
 	if(item.symbolRange == null)return null;
 	if(PositionInRange(item.symbolRange, params.position))return null;
@@ -758,6 +795,91 @@ function GetItemType(currentIdx: number,regexResult: any[],position: ls.Position
 
 	return item;
 }
+
+function GetDefinitionItem(currentIdx: number,regexResult: any[],position: ls.Position): VizSymbol {
+	let children: VizSymbol[] = null;
+	let item: VizSymbol = null;
+	for (var i = 0; i < currentIdx; i++) {
+		if(children == null){
+			item = GetSymbolForDefinitionByName(regexResult[i], position);// Need to add check for Array or Array[Type]
+			if(item != null){
+				children = item.children;
+				if(children.length < 1){
+					let innerItem = GetSymbolForDefinitionByName(item.type, position);
+					if(innerItem != null){
+						children = innerItem.children;
+						item = innerItem;
+					}else{
+						connection.console.log("Nothing found for " + item.type)
+					}
+				}
+			}
+
+		}else{
+			item = GetSymbolInChildren(regexResult[i],children);//Fix this
+			if((item != null) && (i != currentIdx-1)){
+				children = item.children;
+				if(children.length < 1){
+					let innerItem = GetSymbolForDefinitionByName(item.type, position);
+					if(innerItem != null){
+						children = innerItem.children;
+						item = innerItem;
+					}else{
+						connection.console.log("Nothing found for " + item.type)
+					}
+				}
+			}else{
+				children = null;
+			}
+		}
+	}
+
+	return item;
+}
+
+function GetSymbolForDefinitionByName(name: string, position: ls.Position): VizSymbol {
+	if(name == undefined) return null;
+	let regexResult;
+	let memberStartRegex: RegExp =/^array[\ ]*\[(.*?)\]/gi; // Remove array[]
+	let isArrayType: Boolean = false;
+	let type: string = "";
+	memberStartRegex.lastIndex = 0;
+	regexResult = memberStartRegex.exec(name);
+	if(regexResult != null){
+		name = regexResult[1];
+	}
+
+	if(name.endsWith("[]")){
+		name = name.replace("[]", "");
+	}
+
+	regexResult = null;
+	memberStartRegex =/([^.]*)\[(.*?)\]/gi; // Remove [] from arrays
+	memberStartRegex.lastIndex = 0;
+	regexResult = memberStartRegex.exec(name);
+	if(regexResult != null){
+		name = regexResult[1];
+	}
+
+	//Need to remove brackets on types but still get Array to work. Workaround by removing [] in Array completion
+
+	let symbols = symbolCache[documentUri];
+	symbols = GetSymbolsOfScope(symbols, position);
+	let result: VizSymbol = null;
+
+	if (symbols != []){
+		symbols.forEach(item => {
+			if (item != null){
+				if (item.name.toLowerCase() == name.toLowerCase()) {
+					result = item;
+				}
+			}
+		});
+	}
+
+	return result;
+}
+
 
 function GetItemForSignature(name: string, currentIdx: number,regexResult: any[],position: ls.Position): VizSymbol {
 	let children: VizSymbol[] = null;

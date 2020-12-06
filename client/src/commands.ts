@@ -5,74 +5,76 @@
 
 import {showMessage} from './showMessage';
 import {showUntitledWindow} from './showUntitledWindow';
-import {ExtensionContext, QuickPickItem, TextEditor, window, Diagnostic, DiagnosticSeverity, Range, languages, commands, Uri, Position, Selection} from 'vscode';
+import {ExtensionContext, QuickPickItem, TextEditor, window, Diagnostic, DiagnosticSeverity, Range, languages, commands, Uri, Position, Selection, workspace} from 'vscode';
 import {LanguageClient} from 'vscode-languageclient';
 import {VizScriptObject} from './vizScriptObject'
 import {getVizScripts, compileScript, compileScriptId} from './vizCommunication'
 
 let scriptObjects: Map<string, VizScriptObject> = new Map()
 
-export function displayScriptSelector(context: ExtensionContext, client: LanguageClient, editor: TextEditor) {
-  window.setStatusBarMessage('Fetching script list from Viz...',5000)
-		requestAllScripts(client)
-      .then((selectedScript) => {
-        if (selectedScript === undefined) {
-          throw 0;
+export function displayScriptSelector(context: ExtensionContext) {
+	window.setStatusBarMessage('Fetching script list from Viz...',5000)
+		getConfig()
+		.then((connectionString) => {
+			return requestAllScripts(connectionString)
+		})
+		.then((selectedScript) => {
+			if (selectedScript === undefined) {
+				throw 0;
+			}
+				let elements = [];
+				let currentFileItem: QuickPickItem = {
+					description: "",
+					label: "Add script to current file",
+					detail: ""
 				}
-					let elements = [];
-					let currentFileItem: QuickPickItem = {
-						description: "",
-						label: "Add script to current file",
-						detail: ""
-					}
-					let newFileItem: QuickPickItem = {
-						description: "",
-						label: "Open script in new file",
-						detail: ""
-					}
+				let newFileItem: QuickPickItem = {
+					description: "",
+					label: "Open script in new file",
+					detail: ""
+				}
+				if(window.activeTextEditor == undefined){
+					elements = [newFileItem]
+				}else{
 					elements = [newFileItem, currentFileItem]
+				}
 
-					return Promise.all([
-						window.showQuickPick(elements, { matchOnDescription: true, matchOnDetail: false, placeHolder: 'Select your script'}),
-						selectedScript
-					])
-				})
-			.then(([selection, data]) => {
-				if (selection === undefined) {
-          throw 0;
-				}
-				//window.showInformationMessage(selection.label)
-				let vizId = "";
-				vizId = (<QuickPickItem>data).label;
-				vizId = vizId.replace("#","")
-				return Promise.all([scriptObjects.get((<QuickPickItem>data).label), vizId, scriptObjects.get((<QuickPickItem>data).label).extension, selection]);
+
+				return Promise.all([
+					window.showQuickPick(elements, { matchOnDescription: true, matchOnDetail: false, placeHolder: 'Select your script'}),
+					selectedScript
+				])
 			})
-      .then(([object, vizId, extension, selection]): Thenable<any> => {
-				if(selection.label === "Add script to current file"){
-					context.workspaceState.update(editor.document.uri.toString(), vizId)
-					return window.activeTextEditor.edit((builder) => {
-						const lastLine = window.activeTextEditor.document.lineCount;
-						const lastChar = window.activeTextEditor.document.lineAt(lastLine - 1).range.end.character;
-						builder.delete(new Range(0, 0, lastLine, lastChar));
-						builder.replace(new Position(0, 0), object.code);
-					});
-				}else if(selection.label === "Open script in new file"){
-					return Promise.resolve(showUntitledWindow( vizId, extension, object.code, context));
-				}
-			})
-			//.then((file) => {
-			//	window.showInformationMessage((<TextEditor>file).document.fileName)
-			//	return commands.executeCommand('vscode.diff', editor.document.uri , (<TextEditor>file).document.uri)
-			//})
-      .then(undefined, showMessage)
+		.then(([selection, data]) => {
+			if (selection === undefined) {
+				throw 0;
+			}
+			//window.showInformationMessage(selection.label)
+			let vizId = "";
+			vizId = (<QuickPickItem>data).label;
+			vizId = vizId.replace("#","")
+			return Promise.all([scriptObjects.get((<QuickPickItem>data).label), vizId, scriptObjects.get((<QuickPickItem>data).label).extension, selection]);
+		})
+		.then(([object, vizId, extension, selection]): Thenable<any> => {
+			if(selection.label === "Add script to current file"){
+				context.workspaceState.update(window.activeTextEditor.document.uri.toString(), vizId)
+				return window.activeTextEditor.edit((builder) => {
+					const lastLine = window.activeTextEditor.document.lineCount;
+					const lastChar = window.activeTextEditor.document.lineAt(lastLine - 1).range.end.character;
+					builder.delete(new Range(0, 0, lastLine, lastChar));
+					builder.replace(new Position(0, 0), object.code);
+				});
+			}else if(selection.label === "Open script in new file"){
+				return Promise.resolve(showUntitledWindow( vizId, extension, object.code, context));
+			}
+		})
+		.then(undefined, showMessage)
 }
 
-export function requestAllScripts(client: LanguageClient) {
+export function requestAllScripts(connectionInfo: VizScriptCompilerSettings){
 	return new Promise((resolve, reject) => {
-		window.setStatusBarMessage(
-			'Getting viz scripts...',
-			client.sendRequest('getVizConnectionInfo')
-			.then(result => getVizScripts(result[0], Number(result[1]), result[2]))
+		window.setStatusBarMessage('Getting viz scripts...',
+			getVizScripts(connectionInfo.hostName, Number(connectionInfo.hostPort))
 			.then((reply) => {
 					scriptObjects = reply;
 					let elements = [];
@@ -98,20 +100,22 @@ export function compileCurrentScript(context: ExtensionContext, client: Language
 	client.sendRequest('getVizConnectionInfo')
 	.then(result => {
 		let linkedId: string = context.workspaceState.get(window.activeTextEditor.document.uri.toString());
-		compileScriptId(window.activeTextEditor.document.getText() ,result[0], Number(result[1]), result[2], linkedId, scriptObjects.get("#" + linkedId).children)
+		return compileScriptId(window.activeTextEditor.document.getText() ,result[0], Number(result[1]), result[2], linkedId, null)
 	})
 	.then((message) => client.sendRequest('showDiagnostics', message))
 	.then((answer) => {
-		if( (<string>answer) === "OK"){
-			window.setStatusBarMessage("Compilation successful!")
-		} else{
-			let rangesplit = (<string>answer).split("/");
-			let line = parseInt(rangesplit[0]);
-			let char = parseInt(rangesplit[1]);
-			let range = new Range(line-1, char-1, line-1, char);
-			let editor = window.activeTextEditor;
-			editor.selection =  new Selection(range.start, range.end);
-			editor.revealRange(range);
+		if(answer != null){
+			if( (<string>answer) === "OK"){
+				window.setStatusBarMessage("Script successfully set in Viz. No errors", 5000)
+			} else{
+				let rangesplit = (<string>answer).split("/");
+				let line = parseInt(rangesplit[0]);
+				let char = parseInt(rangesplit[1]);
+				let range = new Range(line-1, char-1, line-1, char);
+				let editor = window.activeTextEditor;
+				editor.selection =  new Selection(range.start, range.end);
+				editor.revealRange(range);
+			}
 		}
 
 	})
@@ -140,4 +144,22 @@ export function syntaxCheckCurrentScript(context: ExtensionContext, client: Lang
 function GetRegexResult(line: string, regex: RegExp): string[] {
 	let RegexString: RegExp = regex;
 	return RegexString.exec(line);
+}
+
+class VizScriptCompilerSettings {
+	hostName: string;
+	hostPort: number;
+}
+
+function getConnectionSettings(): Promise<VizScriptCompilerSettings> {
+	let config = workspace.getConfiguration("vizscript.compiler")
+	let result = new VizScriptCompilerSettings;
+	result.hostName = config.get("hostName");
+	result.hostPort = config.get("hostPort");
+	return Promise.resolve(result)
+}
+
+
+async function getConfig(): Promise<VizScriptCompilerSettings> {
+	return await getConnectionSettings();
 }

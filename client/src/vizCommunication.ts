@@ -15,7 +15,7 @@ let thisHost = "";
 let thisPort: number = -1;
 
 
-export function getVizScripts(host: string, port: number, scriptType: string): Promise<Map<string,VizScriptObject>>{
+export function getVizScripts(host: string, port: number): Promise<Map<string,VizScriptObject>>{
 	return new Promise((resolve, reject) => {
 		let scripts = [];
 
@@ -53,6 +53,7 @@ export function getVizScripts(host: string, port: number, scriptType: string): P
 							vizObject.vizId = vizId;
 							vizObject.type = "Scene";
 							vizObject.extension = ".vs"
+							vizObject.children = []
 							vizObject.name = result[1];
 							vizObject.code = result[0];
 							scriptObjects.set(vizId , vizObject);
@@ -74,6 +75,7 @@ export function getVizScripts(host: string, port: number, scriptType: string): P
 							vizObject.vizId = vizId;
 							vizObject.type = "Container";
 							vizObject.extension = ".vsc"
+							vizObject.children = []
 							vizObject.name = result[1];
 							vizObject.code = result[0];
 
@@ -298,11 +300,6 @@ export function compileScriptId(content: string, host: string, port: number, scr
 			if(replyCode == "1"){
 				socket.write('-1 #' + scriptId +'*SCRIPT*PLUGIN STOP ' + String.fromCharCode(0));
 				socket.write('3 #' + scriptId +'*SCRIPT*PLUGIN*SOURCE_CODE SET ' + text + ' ' + String.fromCharCode(0));
-				children.forEach(element => {
-					socket.write('-1 ' + element.vizId + '*SCRIPT*PLUGIN STOP ' + String.fromCharCode(0));
-					socket.write('-1 ' + element.vizId + '*SCRIPT*PLUGIN*SOURCE_CODE SET ' + text + ' ' + String.fromCharCode(0));
-					socket.write('-1 ' + element.vizId + '*SCRIPT*PLUGIN COMPILE ' + String.fromCharCode(0));
-				});
 			}else if(replyCode == "3"){
 				socket.write('4 #' + scriptId +'*SCRIPT*PLUGIN COMPILE ' + String.fromCharCode(0));
 			}else if(replyCode == "4"){

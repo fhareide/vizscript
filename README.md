@@ -2,6 +2,48 @@
 
 > A complete language extension for Viz Script development in Visual Studio Code
 
+## Features
+* Syntax Highlighting
+* Auto-Completion (Ctrl-spacebar to trigger, auto triggers if Quick Suggestions: "Other" is true.)
+    * Supports both built-in and document completions<br>
+	* Includes completions updated to Viz Engine/Artist 3.14
+* Color Themes
+* Validate your code on a Viz Engine
+* Get and set container and scene scripts in Viz Artist
+* Signature Help (for both built-in and document functions. With support for overloading)
+* Definition Provider(Ctrl-click to jump to definition)
+* Symbol Searching (Ctrl-Shift-O to trigger)
+
+## Activation of plugin
+* Activate by triggering `Change Language Mode` on Command Palette and choosing `VizSceneScript` / `VizContainerScript` or by opening a supported filetype.
+* Can also be triggered by running `Viz Script: Get scripts from Viz`
+
+    ### Supported filetypes Scene script:
+        .vs
+        .viz
+        .v3script (legacy, might be removed)
+
+    ### Supported filetypes Container script:
+        .vsc
+        .vizc
+
+
+----------
+
+## Changes - Viz Script 0.2.14
+* Definition provider now supports more types.
+* `Get scripts from Viz` is now available at all time. Also without any document open.
+
+## New Features - Viz Script 0.2.13
+* Added completions for Container and Scene on root level
+  * This feature can be deactivated in settings `vizscript.showThisCompletionsOnRoot` (Activated by default)
+
+## New Features - Viz Script 0.2.9
+* Early support for communication with Viz Artist
+  * The command `Get scripts from Viz` will list all scene and container script in the currently active scene
+  * The command `Set current script in Viz` or shortcut <kbd>ctrl</kbd>-<kbd>shift</kbd>-<kbd>F5</kbd> will set the fetched script in Viz Artist
+
+
 ## New Features - Viz Script 0.2.4
 * Initial support for snippet completions on Global Procedures (disabled by default)
     * To enable change following setting to true:
@@ -18,26 +60,26 @@
     * "This" keyword enables context sensitive completions based on the language selected
     * The correct script type will automatically be selected when a file is opened based on the extension
         * Scene scripts:
-            * .vs 
+            * .vs
             * .viz
             * .v3script (legacy, might be removed)
         * Container scripts:
-            * .vsc 
+            * .vsc
             * .vizc
 
 * Added support for descriptions on document completions
     * A comment directly above a function or sub will be used as description.
-    
+
     !["Function description"](images/function_description.png)
      * A comment directly after a variable declaration will be used as description.
-    
+
     !["Variable description"](images/variable_description.png)
 
 ## New Features - Viz Script 0.2.0
 * Validate your code on a Viz Engine
-    * Shortcut Ctrl-F5 or `Viz Script: Compile code` on Command Palette (Ctrl-Shift-P) 
-    * The line with an error will be highlighted in the editor. 
-    * The hostname and port can be configured in the extension. 
+    * Shortcut <kbd>ctrl</kbd>-<kbd>F5</kbd> or `Viz Script: Compile code` on Command Palette (Ctrl-Shift-P)
+    * The line with an error will be highlighted in the editor.
+    * The hostname and port can be configured in the extension.
     * Viz Engine must be OnAir.
 * Turn features on and off in the extension configuration.
     * Right click extension and choose "Extension Settings"
@@ -53,30 +95,12 @@
         * Viz Script Classic (Colors based on the original palette from Viz)
         * Viz Script Enhanced (Updated color palette for improved readability)
 
-## Features
-* Syntax Highlighting
-* Color Themes
-* Validate your code on a Viz Engine 
-* Signature Help (for both built-in and document functions. With support for overloading)
-* Definition Provider(Ctrl-click to jump to definition)
-* Symbol Searching (Ctrl-Shift-O to trigger)
-* Auto-Completion (Ctrl-spacebar to trigger, auto triggers if Quick Suggestions: "Other" is true.)
-    * Supports both built-in and document completions)<br>
-	* Includes completions updated to Viz Engine/Artist 3.14
 
+<br>
 
-## Activation of plugin
-* Activate by triggering `Change Language Mode` on Command Palette and choosing `VizSceneScript` / `VizContainerScript` or by opening a supported filetype.
+---
 
-    ### Supported filetypes Scene script:
-        .vs 
-        .viz
-        .v3script (legacy, might be removed) 
-    
-    ### Supported filetypes Container script:
-        .vsc 
-        .vizc
-
+<br>
 
 ## VS Code Settings
 I recommend these settings in VS Code to get the best result with this plugin.
@@ -98,7 +122,7 @@ To open settings.json:
 
 
 ## Disclaimer
-I have no affiliation with Vizrt and this extension is personal work. 
+I have no affiliation with Vizrt and this extension is personal work.
 
 <br>
 

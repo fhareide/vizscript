@@ -18,12 +18,8 @@ let client: LanguageClient;
 
 function registerCommands(client: LanguageClient, context: ExtensionContext) {
 	context.subscriptions.push(
-		commands.registerTextEditorCommand('vizscript.getscripts', Commands.displayScriptSelector.bind(this, context, client)),
 		commands.registerTextEditorCommand('vizscript.compile', Commands.syntaxCheckCurrentScript.bind(this, context, client)),
 		commands.registerTextEditorCommand('vizscript.compile.currentscript' , Commands.compileCurrentScript.bind(this, context, client)),
-		//workspace.onDidChangeTextDocument(() => commands.executeCommand('vizscript.compile'))
-
-	  //commands.registerCommand('apiElements.apiary.fetchApi', Commands.fetchApi.bind(this, context)),
 	);
 }
 
@@ -55,6 +51,8 @@ export function activate(context: ExtensionContext) {
   //  window.showInformationMessage(`Hello ${name}!!!`);
   //};
 
+
+
   //context.subscriptions.push(commands.registerCommand(command, commandHandler));
 
 
@@ -71,6 +69,9 @@ export function activate(context: ExtensionContext) {
 
 	// Create the language client and start the client.
 	client = new LanguageClient('vizscript','VizScript',serverOptions,clientOptions);
+
+	context.subscriptions.push(commands.registerCommand('vizscript.getscripts', Commands.displayScriptSelector.bind(this, context)))
+
 
 	client.onReady().then(() => {
 		registerCommands(client, context);

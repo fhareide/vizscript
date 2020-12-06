@@ -21,7 +21,7 @@
 			"name": "Launch Client For Debug",
 			"runtimeExecutable": "${execPath}",
 			"args": ["--extensionDevelopmentPath=${workspaceRoot}"],
-			"outFiles": ["${workspaceRoot}/client/out/**/*.js"],
+			"outFiles": ["${workspaceRoot}/client/out/**/*.js", "${workspaceRoot}/server/out/**/*.js"],
 			"preLaunchTask": {
 				"type": "npm",
 				"script": "watch"
