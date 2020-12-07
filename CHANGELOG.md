@@ -1,3 +1,8 @@
+### 0.2.15
+- **Fix**: Updated Definition provider to return better hover previews
+
+---
+
 ### 0.2.14
 - **Fix**: Rewrote Definition provider to support more intricate types. Now supports Arrays, Structs and nesting
 - **Fix**: Fixed issue were sometimes the extension was unable to provide feedback when compiling or setting script in Viz
