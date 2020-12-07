@@ -184,7 +184,7 @@ function getWordAt(str, pos) {
 
     // Search for the word's beginning and end.
     var left = str.slice(0, pos + 1).search(/[a-zA-Z0-9\-\_]+$/),
-        right = str.slice(pos).search(/[\s\.\(\)]/);
+        right = str.slice(pos).search(/[\s\.\(\)\[\]]/);
 
     // The last word in the string is a special case.
     if (right < 0) {
@@ -607,7 +607,7 @@ connection.onDefinition((params: ls.TextDocumentPositionParams, cancelToken: ls.
 	if (line.length < 2)return;
 
 	//Get end of current word
-  let right = line.slice(params.position.character).search(/[\s\.\(\)]/);
+	let right = line.slice(params.position.character).search(/[\s\.\(\)]/);
 
 	let lineAt = getLineAt(line,right + params.position.character,false);
 
@@ -1726,6 +1726,8 @@ function GetParameterSymbols(name: string, args: string, argsIndex: number, stat
 
 	let parameters: ls.ParameterInformation[] = [];
 
+	argsIndex += 1;
+
 
 
 	if (args == null || args == "")
@@ -1752,9 +1754,11 @@ function GetParameterSymbols(name: string, args: string, argsIndex: number, stat
 		varSymbol.insertText = varSymbol.name;
 		varSymbol.type = regexResult[4].trim();
 
+		let argTrimmed = arg.trim();
+
 		let range = ls.Range.create(
 			statement.GetPositionByCharacter(argsIndex + arg.indexOf(varSymbol.name)),
-			statement.GetPositionByCharacter(argsIndex + arg.indexOf(varSymbol.name) + varSymbol.name.length)
+			statement.GetPositionByCharacter(argsIndex + arg.indexOf(varSymbol.name) + argTrimmed.length)
 		);
 		varSymbol.nameLocation = ls.Location.create(uri, range);
 		varSymbol.commitCharacters = ["."];
@@ -1808,12 +1812,12 @@ function GetMemberSymbol(statement: LineStatement, uri: string): VizSymbol {
 
 	let name = regexResult[1];
 	let type = regexResult[2];
-	let intendention = GetNumberOfFrontSpaces(line);
+	let indentation = GetNumberOfFrontSpaces(line);
 	let nameStartIndex = line.indexOf(line);
 
 	let range: ls.Range = ls.Range.create(
-		statement.GetPositionByCharacter(intendention),
-		statement.GetPositionByCharacter(intendention + regexResult[0].trim().length)
+		statement.GetPositionByCharacter(indentation),
+		statement.GetPositionByCharacter(indentation + regexResult[0].trim().length)
 	);
 
 	let symbol: VizSymbol = new VizSymbol();
@@ -1852,7 +1856,7 @@ function GetVariableSymbol(statement: LineStatement, uri: string): VizSymbol[] {
 
 	// (dim[ \t]+)
 	let variables = GetVariableNamesFromList(regexResult[1]);
-	let intendention = GetNumberOfFrontSpaces(line);
+	let indentation = GetNumberOfFrontSpaces(line);
 	let nameStartIndex = line.indexOf(line);
 	let parentName: string = "root";
 
@@ -1888,8 +1892,8 @@ function GetVariableSymbol(statement: LineStatement, uri: string): VizSymbol[] {
 		//);
 
 		symbol.symbolRange = ls.Range.create(
-			statement.GetPositionByCharacter(intendention),
-			statement.GetPositionByCharacter(intendention + regexResult[0].trim().length)
+			statement.GetPositionByCharacter(indentation),
+			statement.GetPositionByCharacter(indentation + regexResult[0].trim().length)
 		);
 
 

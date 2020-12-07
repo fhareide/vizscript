@@ -1,3 +1,9 @@
+### 0.2.16
+- **Fix**: Fixed bug were types inside Arrays sometimes gave wrong Definition results
+- **Fix**: Fixed bug were parameters had wrong ranges in Definition results
+
+---
+
 ### 0.2.15
 - **Fix**: Updated Definition provider to return better hover previews
 
