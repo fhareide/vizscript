@@ -1,3 +1,10 @@
+### 0.2.17
+- **Fix**: Fixed bug were switching between tabs would not update extension data correctly
+- **Fix**: Improved Definition results further and changed selection range to follow VS Code standard
+- **Fix**: Added correct return types for document functions to support Code Completion and Definitions
+
+---
+
 ### 0.2.16
 - **Fix**: Fixed bug were types inside Arrays sometimes gave wrong Definition results
 - **Fix**: Fixed bug were parameters had wrong ranges in Definition results

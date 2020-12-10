@@ -72,6 +72,12 @@ export function activate(context: ExtensionContext) {
 
 	context.subscriptions.push(commands.registerCommand('vizscript.getscripts', Commands.displayScriptSelector.bind(this, context)))
 
+	context.subscriptions.push(window.onDidChangeActiveTextEditor((editor) => {
+		if(editor != undefined){
+			client.sendRequest('setDocumentUri', editor.document.uri.toString())
+		}
+	}));
+
 
 	client.onReady().then(() => {
 		registerCommands(client, context);
