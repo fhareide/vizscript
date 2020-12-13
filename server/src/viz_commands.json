@@ -1,0 +1,1622 @@
+{
+  "intellisense": {
+    "completions": [
+      {
+        "name": "CMain", 
+        "description": "OBJECTBASE", 
+        "properties": [
+          {
+            "name": "ARCHIVE", 
+            "code_hint": "PropertyVoid", 
+            "description": "(null)", 
+            "return_value": "CArchive", 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "AUDIO", 
+            "code_hint": "PropertyVoid", 
+            "description": "(null)", 
+            "return_value": "AudioProcessor", 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "AUDIO_CLIP", 
+            "code_hint": "PropertyVoid", 
+            "description": "(null)", 
+            "return_value": "CVAudioClipPool", 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "BACK_SCENE", 
+            "code_hint": "PropertyVoid", 
+            "description": "(null)", 
+            "return_value": "SCENE", 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "BASE_FONT", 
+            "code_hint": "PropertyVoid", 
+            "description": "(null)", 
+            "return_value": "CVbaseFontPool", 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "BUILT_IN", 
+            "code_hint": "PropertyVoid", 
+            "description": "(null)", 
+            "return_value": "CPluginManager", 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "CHAR_STYLE", 
+            "code_hint": "PropertyVoid", 
+            "description": "(null)", 
+            "return_value": "CVcharStylePool", 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "CLOCK", 
+            "code_hint": "PropertyVoid", 
+            "description": "(null)", 
+            "return_value": "CLOCKPOOL", 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "CMD_RECORD", 
+            "code_hint": "PropertyVoid", 
+            "description": "(null)", 
+            "return_value": "CCommandRecorder", 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "CONFIGURATION", 
+            "code_hint": "PropertyVoid", 
+            "description": "(null)", 
+            "return_value": "CCfgData", 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "CONTAINER", 
+            "code_hint": "PropertyVoid", 
+            "description": "(null)", 
+            "return_value": "ContainerPool", 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "DATABASE", 
+            "code_hint": "PropertyVoid", 
+            "description": "(null)", 
+            "return_value": "CVDBInterface", 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "DEBUG_CONTROL", 
+            "code_hint": "PropertyVoid", 
+            "description": "(null)", 
+            "return_value": "CDebugControl", 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "DEVICE", 
+            "code_hint": "PropertyVoid", 
+            "description": "(null)", 
+            "return_value": "CVRenderToDiskManager", 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "EDITOR", 
+            "code_hint": "PropertyVoid", 
+            "description": "(null)", 
+            "return_value": "CEditorPool", 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "EVENT_POOL", 
+            "code_hint": "PropertyVoid", 
+            "description": "(null)", 
+            "return_value": "EventPool", 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "FEEDBACK", 
+            "code_hint": "PropertyVoid", 
+            "description": "(null)", 
+            "return_value": "CommandFeedBack", 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "FEEDBACKUNICAST", 
+            "code_hint": "PropertyVoid", 
+            "description": "(null)", 
+            "return_value": "CVCommandFeedBackUnicast", 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "FONT", 
+            "code_hint": "PropertyVoid", 
+            "description": "(null)", 
+            "return_value": "CFontPool", 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "FRONT_SCENE", 
+            "code_hint": "PropertyVoid", 
+            "description": "(null)", 
+            "return_value": "SCENE", 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "FUNCTION", 
+            "code_hint": "PropertyVoid", 
+            "description": "(null)", 
+            "return_value": "CFunctionManager", 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "GEOM", 
+            "code_hint": "PropertyVoid", 
+            "description": "(null)", 
+            "return_value": "Geompool", 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "GLOBAL", 
+            "code_hint": "PropertyVoid", 
+            "description": "(null)", 
+            "return_value": "CGlobal", 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "IMAGE", 
+            "code_hint": "PropertyVoid", 
+            "description": "(null)", 
+            "return_value": "Imagepool", 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "IMPORTER", 
+            "code_hint": "PropertyVoid", 
+            "description": "(null)", 
+            "return_value": "ImportPool", 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "KEY", 
+            "code_hint": "PropertyVoid", 
+            "description": "(null)", 
+            "return_value": "Old_License", 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "KEY2", 
+            "code_hint": "PropertyVoid", 
+            "description": "(null)", 
+            "return_value": "New_License", 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "LOG", 
+            "code_hint": "PropertyVoid", 
+            "description": "(null)", 
+            "return_value": "CVLog", 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "MAGIC", 
+            "code_hint": "PropertyVoid", 
+            "description": "(null)", 
+            "return_value": "CMagicStuff", 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "MAIN", 
+            "code_hint": "PropertyVoid", 
+            "description": "(null)", 
+            "return_value": "CMain", 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "MAIN_SCENE", 
+            "code_hint": "PropertyVoid", 
+            "description": "(null)", 
+            "return_value": "SCENE", 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "MATERIAL", 
+            "code_hint": "PropertyVoid", 
+            "description": "(null)", 
+            "return_value": "Materialpool", 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "MATERIAL_ADVANCED", 
+            "code_hint": "PropertyVoid", 
+            "description": "(null)", 
+            "return_value": "MaterialAdvancedpool", 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "MEMORY", 
+            "code_hint": "PropertyVoid", 
+            "description": "(null)", 
+            "return_value": "CVHeap", 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "MODIFIER", 
+            "code_hint": "PropertyVoid", 
+            "description": "(null)", 
+            "return_value": "CModifierManager", 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "PLAY", 
+            "code_hint": "PropertyVoid", 
+            "description": "(null)", 
+            "return_value": "CVPlayList", 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "PLUGIN_MANAGER", 
+            "code_hint": "PropertyVoid", 
+            "description": "(null)", 
+            "return_value": "CPluginManager", 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "POSTRENDERER", 
+            "code_hint": "PropertyVoid", 
+            "description": "(null)", 
+            "return_value": "Editor", 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "REND", 
+            "code_hint": "PropertyVoid", 
+            "description": "(null)", 
+            "return_value": "RENDER_EDITOR", 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "RENDER_TO_DISK", 
+            "code_hint": "PropertyVoid", 
+            "description": "(null)", 
+            "return_value": "CVRenderToDiskManager", 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "SCENE", 
+            "code_hint": "PropertyVoid", 
+            "description": "(null)", 
+            "return_value": "Scenepool", 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "SCENE_EDITOR", 
+            "code_hint": "PropertyVoid", 
+            "description": "(null)", 
+            "return_value": "SCENE_EDITOR", 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "SCENE_RENDERER", 
+            "code_hint": "PropertyVoid", 
+            "description": "(null)", 
+            "return_value": "RENDERER_BASE", 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "SHADER", 
+            "code_hint": "PropertyVoid", 
+            "description": "(null)", 
+            "return_value": "CShaderManager", 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "STAGE_EVENTS", 
+            "code_hint": "PropertyVoid", 
+            "description": "Access to the stage events.", 
+            "return_value": "CVStageEvents", 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "SUBSTANCE", 
+            "code_hint": "PropertyVoid", 
+            "description": "(null)", 
+            "return_value": "CVSubstancePool", 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "SUGGESTION", 
+            "code_hint": "PropertyVoid", 
+            "description": "(null)", 
+            "return_value": "CSuggestion", 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "TC", 
+            "code_hint": "PropertyVoid", 
+            "description": "(null)", 
+            "return_value": "CVTimedCommands", 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "TRIO", 
+            "code_hint": "PropertyVoid", 
+            "description": "(null)", 
+            "return_value": "CVTrio", 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "UNDOREDO", 
+            "code_hint": "PropertyVoid", 
+            "description": "(null)", 
+            "return_value": "CUndoRedo", 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "VERSIONS", 
+            "code_hint": "PropertyVoid", 
+            "description": "(null)", 
+            "return_value": "CVVersion", 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "VIDEO_CLIP", 
+            "code_hint": "PropertyVoid", 
+            "description": "(null)", 
+            "return_value": "CVClipPool", 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "VIZONE", 
+            "code_hint": "PropertyVoid", 
+            "description": "(null)", 
+            "return_value": "VizOneServicesManager", 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "VIZ_COMMUNICATION", 
+            "code_hint": "PropertyVoid", 
+            "description": "(null)", 
+            "return_value": "CVVizCommunication", 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "VTS", 
+            "code_hint": "PropertyVoid", 
+            "description": "(null)", 
+            "return_value": "VTSSystem", 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "{id}", 
+            "code_hint": "PropertyUUID", 
+            "description": "(null)", 
+            "return_value": "", 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "{ri}", 
+            "code_hint": "PropertyRESTUUID", 
+            "description": "(null)", 
+            "return_value": "", 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "CLOCK%1", 
+            "code_hint": "PropertyIdxEx", 
+            "description": "(null)", 
+            "return_value": "CLOCK", 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "DISPLAY*%1", 
+            "code_hint": "PropertyIdxEx", 
+            "description": "get display by index", 
+            "return_value": "CDisplay", 
+            "properties": [], 
+            "methods": []
+          }
+        ], 
+        "methods": [
+          {
+            "name": "ABOUT", 
+            "code_hint": "vv", 
+            "description": "(null)", 
+            "return_value": null, 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "ALLOCATE", 
+            "code_hint": "vi", 
+            "description": "allocates memory to test memory issues", 
+            "return_value": null, 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "EXIST", 
+            "code_hint": "vi", 
+            "description": "checks if the passed object ID is assigned to an object", 
+            "return_value": null
+          }, 
+          {
+            "name": "GET_SIZE", 
+            "code_hint": null, 
+            "description": "(null)", 
+            "return_value": null
+          }, 
+          {
+            "name": "REORGANIZE", 
+            "code_hint": null, 
+            "description": "(null)", 
+            "return_value": null
+          }, 
+          {
+            "name": "REORGANIZE", 
+            "code_hint": null, 
+            "description": "(null)", 
+            "return_value": null, 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "GET", 
+            "code_hint": null, 
+            "description": "(null)", 
+            "return_value": null
+          }, 
+          {
+            "name": "GET", 
+            "code_hint": null, 
+            "description": "(null)", 
+            "return_value": null, 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "CLEAR", 
+            "code_hint": null, 
+            "description": "Clear auto-keywords.", 
+            "return_value": null
+          }, 
+          {
+            "name": "GET", 
+            "code_hint": null, 
+            "description": "Retrieve currently set auto-keywords.", 
+            "return_value": null
+          }, 
+          {
+            "name": "SET", 
+            "code_hint": "vs", 
+            "description": "Set auto-keywords. This keywords will be assigned to any file, saved to database.", 
+            "return_value": null
+          }, 
+          {
+            "name": "SET", 
+            "code_hint": "vs", 
+            "description": "Set auto-keywords. This keywords will be assigned to any file, saved to database.", 
+            "return_value": null, 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "GET", 
+            "code_hint": "vs", 
+            "description": "Checks if the object can be loaded in the background", 
+            "return_value": null
+          }, 
+          {
+            "name": "GET_EX", 
+            "code_hint": "vs", 
+            "description": "Checks if the object can be loaded in the background and provides more details", 
+            "return_value": null
+          }, 
+          {
+            "name": "GET_EX", 
+            "code_hint": "vs", 
+            "description": "Checks if the object can be loaded in the background and provides more details", 
+            "return_value": null, 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "SET_VALUES", 
+            "code_hint": "vs", 
+            "description": "Forward clip transfer status to Viz Gui", 
+            "return_value": null
+          }, 
+          {
+            "name": "SET_VALUES", 
+            "code_hint": "vs", 
+            "description": "Forward clip transfer status to Viz Gui", 
+            "return_value": null, 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "SET", 
+            "code_hint": "vb", 
+            "description": "Toggle forwarding of clip transfer status to Viz Gui", 
+            "return_value": null
+          }, 
+          {
+            "name": "SET", 
+            "code_hint": "vb", 
+            "description": "Toggle forwarding of clip transfer status to Viz Gui", 
+            "return_value": null, 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "GET", 
+            "code_hint": null, 
+            "description": "(null)", 
+            "return_value": null
+          }, 
+          {
+            "name": "SET", 
+            "code_hint": "vs", 
+            "description": "(null)", 
+            "return_value": null
+          }, 
+          {
+            "name": "SET", 
+            "code_hint": "vs", 
+            "description": "(null)", 
+            "return_value": null, 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "CLOG", 
+            "code_hint": "vv", 
+            "description": "(null)", 
+            "return_value": null, 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "LOAD", 
+            "code_hint": "vssss", 
+            "description": "Load managed assembly and call the specified method, which MUST have this signature: static int pwzMethodName(String pwzArgument)", 
+            "return_value": null
+          }, 
+          {
+            "name": "LOAD", 
+            "code_hint": "vssss", 
+            "description": "Load managed assembly and call the specified method, which MUST have this signature: static int pwzMethodName(String pwzArgument)", 
+            "return_value": null, 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "FLUSH", 
+            "code_hint": null, 
+            "description": "Force writing the console output, if output is redirected to a file", 
+            "return_value": null
+          }, 
+          {
+            "name": "REDIRECT", 
+            "code_hint": "vs", 
+            "description": "Redirect stdout to file/console", 
+            "return_value": null
+          }, 
+          {
+            "name": "REDIRECT", 
+            "code_hint": "vs", 
+            "description": "Redirect stdout to file/console", 
+            "return_value": null, 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "CONVERT_ANSI_TO_UTF8", 
+            "code_hint": "vs", 
+            "description": "(null)", 
+            "return_value": null, 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "CONVERT_UTF8_TO_ANSI", 
+            "code_hint": "vs", 
+            "description": "(null)", 
+            "return_value": null, 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "CRASH", 
+            "code_hint": "vi", 
+            "description": "(null)", 
+            "return_value": null, 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "SET", 
+            "code_hint": "vb", 
+            "description": "(null)", 
+            "return_value": null
+          }, 
+          {
+            "name": "SET", 
+            "code_hint": "vb", 
+            "description": "(null)", 
+            "return_value": null, 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "DELETE", 
+            "code_hint": "vsi", 
+            "description": "Delete an object or a folder", 
+            "return_value": null, 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "GET", 
+            "code_hint": null, 
+            "description": "(null)", 
+            "return_value": null
+          }, 
+          {
+            "name": "GET", 
+            "code_hint": null, 
+            "description": "(null)", 
+            "return_value": null, 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "RESET", 
+            "code_hint": null, 
+            "description": "(null)", 
+            "return_value": null
+          }, 
+          {
+            "name": "SET", 
+            "code_hint": "vfff", 
+            "description": "(null)", 
+            "return_value": null
+          }, 
+          {
+            "name": "SET", 
+            "code_hint": "vfff", 
+            "description": "(null)", 
+            "return_value": null, 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "EXIT", 
+            "code_hint": "vv", 
+            "description": "(null)", 
+            "return_value": null, 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "EXPORT_OBJECT_XML", 
+            "code_hint": "vssi", 
+            "description": "Export DB object content as XML file", 
+            "return_value": null, 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "GET", 
+            "code_hint": "vs", 
+            "description": "(null)", 
+            "return_value": null
+          }, 
+          {
+            "name": "GET", 
+            "code_hint": "vs", 
+            "description": "(null)", 
+            "return_value": null, 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "FORCE_DELETE", 
+            "code_hint": "vsi", 
+            "description": "Delete a folder even if it is not empty", 
+            "return_value": null, 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "GET_CHANNEL_NUMBER", 
+            "code_hint": "vv", 
+            "description": "(null)", 
+            "return_value": null, 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "GET_HANDLECOUNT", 
+            "code_hint": "vv", 
+            "description": "(null)", 
+            "return_value": null, 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "GET_IMPORTABLE_FILES", 
+            "code_hint": "vsi", 
+            "description": "(null)", 
+            "return_value": null, 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "GET_TICKCOUNT", 
+            "code_hint": "vv", 
+            "description": "(null)", 
+            "return_value": null, 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "SET", 
+            "code_hint": "vi", 
+            "description": "Internal: GUI tells engine its process id for potential restart.", 
+            "return_value": null
+          }, 
+          {
+            "name": "SET", 
+            "code_hint": "vi", 
+            "description": "Internal: GUI tells engine its process id for potential restart.", 
+            "return_value": null, 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "GET", 
+            "code_hint": null, 
+            "description": "(null)", 
+            "return_value": null
+          }, 
+          {
+            "name": "GET", 
+            "code_hint": null, 
+            "description": "(null)", 
+            "return_value": null, 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "GET", 
+            "code_hint": null, 
+            "description": "(null)", 
+            "return_value": null
+          }, 
+          {
+            "name": "GET", 
+            "code_hint": null, 
+            "description": "(null)", 
+            "return_value": null, 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "GET", 
+            "code_hint": null, 
+            "description": "(null)", 
+            "return_value": null
+          }, 
+          {
+            "name": "GET", 
+            "code_hint": null, 
+            "description": "(null)", 
+            "return_value": null, 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "GET", 
+            "code_hint": null, 
+            "description": "(null)", 
+            "return_value": null
+          }, 
+          {
+            "name": "GET", 
+            "code_hint": null, 
+            "description": "(null)", 
+            "return_value": null, 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "GET", 
+            "code_hint": null, 
+            "description": "(null)", 
+            "return_value": null
+          }, 
+          {
+            "name": "GET", 
+            "code_hint": null, 
+            "description": "(null)", 
+            "return_value": null, 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "GET", 
+            "code_hint": null, 
+            "description": "(null)", 
+            "return_value": null
+          }, 
+          {
+            "name": "GET", 
+            "code_hint": null, 
+            "description": "(null)", 
+            "return_value": null, 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "GET", 
+            "code_hint": null, 
+            "description": "(null)", 
+            "return_value": null
+          }, 
+          {
+            "name": "GET", 
+            "code_hint": null, 
+            "description": "(null)", 
+            "return_value": null, 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "GET", 
+            "code_hint": null, 
+            "description": "(null)", 
+            "return_value": null
+          }, 
+          {
+            "name": "GET", 
+            "code_hint": null, 
+            "description": "(null)", 
+            "return_value": null, 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "GET", 
+            "code_hint": null, 
+            "description": "(null)", 
+            "return_value": null
+          }, 
+          {
+            "name": "GET", 
+            "code_hint": null, 
+            "description": "(null)", 
+            "return_value": null, 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "GET", 
+            "code_hint": null, 
+            "description": "(null)", 
+            "return_value": null
+          }, 
+          {
+            "name": "GET", 
+            "code_hint": null, 
+            "description": "(null)", 
+            "return_value": null, 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "GET", 
+            "code_hint": null, 
+            "description": "(null)", 
+            "return_value": null
+          }, 
+          {
+            "name": "GET", 
+            "code_hint": null, 
+            "description": "(null)", 
+            "return_value": null, 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "GET", 
+            "code_hint": null, 
+            "description": "(null)", 
+            "return_value": null
+          }, 
+          {
+            "name": "GET", 
+            "code_hint": null, 
+            "description": "(null)", 
+            "return_value": null, 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "GET", 
+            "code_hint": null, 
+            "description": "(null)", 
+            "return_value": null
+          }, 
+          {
+            "name": "GET_EX", 
+            "code_hint": null, 
+            "description": "(null)", 
+            "return_value": null
+          }, 
+          {
+            "name": "GET_EX", 
+            "code_hint": null, 
+            "description": "(null)", 
+            "return_value": null, 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "ICONIFY", 
+            "code_hint": "vv", 
+            "description": "(null)", 
+            "return_value": null, 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "IS_IMPORTABLE", 
+            "code_hint": "vs", 
+            "description": "returns importable files in 2.x format", 
+            "return_value": null, 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "IS_ON_AIR", 
+            "code_hint": "vv", 
+            "description": "Checks whether viz is on-air mode.", 
+            "return_value": null, 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "IS_RENDERER_READY", 
+            "code_hint": "vv", 
+            "description": "Returns true if render editor exists and has a valid window", 
+            "return_value": null, 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "GET", 
+            "code_hint": null, 
+            "description": "(null)", 
+            "return_value": null
+          }, 
+          {
+            "name": "GET", 
+            "code_hint": null, 
+            "description": "(null)", 
+            "return_value": null, 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "CONVERT", 
+            "code_hint": "vsb", 
+            "description": "returns the shortest possibility for a given location", 
+            "return_value": null
+          }, 
+          {
+            "name": "CONVERT", 
+            "code_hint": "vsb", 
+            "description": "returns the shortest possibility for a given location", 
+            "return_value": null, 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "MAPS", 
+            "code_hint": "vss", 
+            "description": "(null)", 
+            "return_value": null, 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "GET_LAYER_FROM_MAIN_SESSION", 
+            "code_hint": "vi", 
+            "description": "Copy a layer from the main mux-session", 
+            "return_value": null
+          }, 
+          {
+            "name": "GET_LAYER_FROM_MAIN_SESSION", 
+            "code_hint": "vi", 
+            "description": "Copy a layer from the main mux-session", 
+            "return_value": null, 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "GET_CLIENTS", 
+            "code_hint": null, 
+            "description": "(null)", 
+            "return_value": null
+          }, 
+          {
+            "name": "GET_INFO", 
+            "code_hint": null, 
+            "description": "(null)", 
+            "return_value": null
+          }, 
+          {
+            "name": "GET_ONAIR", 
+            "code_hint": null, 
+            "description": "(null)", 
+            "return_value": null
+          }, 
+          {
+            "name": "GET_PEER_INFO", 
+            "code_hint": null, 
+            "description": "returns client information (IP, HOSTNAME, CLIENTPORT and VIZPORT) as string", 
+            "return_value": null
+          }, 
+          {
+            "name": "REGISTER", 
+            "code_hint": null, 
+            "description": "(null)", 
+            "return_value": null
+          }, 
+          {
+            "name": "UNREGISTER", 
+            "code_hint": null, 
+            "description": "(null)", 
+            "return_value": null
+          }, 
+          {
+            "name": "UNREGISTER_ALL", 
+            "code_hint": null, 
+            "description": "(null)", 
+            "return_value": null
+          }, 
+          {
+            "name": "UNREGISTER_ALL", 
+            "code_hint": null, 
+            "description": "(null)", 
+            "return_value": null, 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "ON_AIR", 
+            "code_hint": "vb", 
+            "description": "(null)", 
+            "return_value": null, 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "PERFORMANCE_TEST", 
+            "code_hint": "vi", 
+            "description": "(null)", 
+            "return_value": null, 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "GET", 
+            "code_hint": null, 
+            "description": "(null)", 
+            "return_value": null
+          }, 
+          {
+            "name": "GET", 
+            "code_hint": null, 
+            "description": "(null)", 
+            "return_value": null, 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "CACHE_CLEANUP", 
+            "code_hint": null, 
+            "description": "(null)", 
+            "return_value": null
+          }, 
+          {
+            "name": "CLEANUP", 
+            "code_hint": null, 
+            "description": "(null)", 
+            "return_value": null
+          }, 
+          {
+            "name": "CLEANUP", 
+            "code_hint": null, 
+            "description": "(null)", 
+            "return_value": null, 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "GET", 
+            "code_hint": null, 
+            "description": "Displays memory usage of viz engine process.", 
+            "return_value": null
+          }, 
+          {
+            "name": "GET", 
+            "code_hint": null, 
+            "description": "Displays memory usage of viz engine process.", 
+            "return_value": null, 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "GET", 
+            "code_hint": null, 
+            "description": "(null)", 
+            "return_value": null
+          }, 
+          {
+            "name": "GET", 
+            "code_hint": null, 
+            "description": "(null)", 
+            "return_value": null, 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "REPLY", 
+            "code_hint": "vs", 
+            "description": "(null)", 
+            "return_value": null, 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "RESTART", 
+            "code_hint": "vs", 
+            "description": "exits Viz Engine and restarts in specified mode: No argument - start with current cmd line, CFG - configuration mode, ENG - engine without GUI, ENG_GUI - engine with GUI, ART - artist mode.", 
+            "return_value": null, 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "RESET", 
+            "code_hint": null, 
+            "description": "(null)", 
+            "return_value": null
+          }, 
+          {
+            "name": "SET", 
+            "code_hint": "vfff", 
+            "description": "(null)", 
+            "return_value": null
+          }, 
+          {
+            "name": "SET", 
+            "code_hint": "vfff", 
+            "description": "(null)", 
+            "return_value": null, 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "GET", 
+            "code_hint": null, 
+            "description": "(null)", 
+            "return_value": null
+          }, 
+          {
+            "name": "GET", 
+            "code_hint": null, 
+            "description": "(null)", 
+            "return_value": null, 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "SEND_ANSWER", 
+            "code_hint": "vi", 
+            "description": "(null)", 
+            "return_value": null, 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "SEND_GUI_COMMAND", 
+            "code_hint": "vs", 
+            "description": "sends a command to the VizGui", 
+            "return_value": null, 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "SEND_GUI_COMMAND_PLAIN", 
+            "code_hint": "vis", 
+            "description": "sends a command as it is to the VizGui", 
+            "return_value": null, 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "SHOW_COMMANDS", 
+            "code_hint": "vb", 
+            "description": "(null)", 
+            "return_value": null, 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "GET", 
+            "code_hint": null, 
+            "description": "(null)", 
+            "return_value": null
+          }, 
+          {
+            "name": "GET", 
+            "code_hint": null, 
+            "description": "(null)", 
+            "return_value": null, 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "START_GUI", 
+            "code_hint": "vv", 
+            "description": "start VizGui for current Viz Engine", 
+            "return_value": null, 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "SWITCH_EDIT", 
+            "code_hint": "vi", 
+            "description": "switch to edit mode", 
+            "return_value": null, 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "SWITCH_EXTERNAL", 
+            "code_hint": "vib", 
+            "description": "switch to external control mode", 
+            "return_value": null, 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "SWITCH_POST", 
+            "code_hint": "vv", 
+            "description": "switch to post mode", 
+            "return_value": null, 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "GET", 
+            "code_hint": null, 
+            "description": "(null)", 
+            "return_value": null
+          }, 
+          {
+            "name": "GET", 
+            "code_hint": null, 
+            "description": "(null)", 
+            "return_value": null, 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "GET", 
+            "code_hint": null, 
+            "description": "(null)", 
+            "return_value": null
+          }, 
+          {
+            "name": "GET", 
+            "code_hint": null, 
+            "description": "(null)", 
+            "return_value": null, 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "GET", 
+            "code_hint": null, 
+            "description": "Displays heap memory usage of viz engine process.", 
+            "return_value": null
+          }, 
+          {
+            "name": "GET", 
+            "code_hint": null, 
+            "description": "Displays heap memory usage of viz engine process.", 
+            "return_value": null, 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "GET", 
+            "code_hint": null, 
+            "description": "Displays global system memory usage and limits.", 
+            "return_value": null
+          }, 
+          {
+            "name": "GET", 
+            "code_hint": null, 
+            "description": "Displays global system memory usage and limits.", 
+            "return_value": null, 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "GET", 
+            "code_hint": null, 
+            "description": "(null)", 
+            "return_value": null
+          }, 
+          {
+            "name": "GET", 
+            "code_hint": null, 
+            "description": "(null)", 
+            "return_value": null, 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "GET", 
+            "code_hint": null, 
+            "description": "(null)", 
+            "return_value": null
+          }, 
+          {
+            "name": "GET", 
+            "code_hint": null, 
+            "description": "(null)", 
+            "return_value": null, 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "GET", 
+            "code_hint": null, 
+            "description": "(null)", 
+            "return_value": null
+          }, 
+          {
+            "name": "GET", 
+            "code_hint": null, 
+            "description": "(null)", 
+            "return_value": null, 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "GET", 
+            "code_hint": null, 
+            "description": "(null)", 
+            "return_value": null
+          }, 
+          {
+            "name": "SET", 
+            "code_hint": "vb", 
+            "description": "(null)", 
+            "return_value": null
+          }, 
+          {
+            "name": "SET", 
+            "code_hint": "vb", 
+            "description": "(null)", 
+            "return_value": null, 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "TCP_CONNECT", 
+            "code_hint": "vv", 
+            "description": "(null)", 
+            "return_value": null, 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "ACTIVE", 
+            "code_hint": null, 
+            "description": "start outputting a testsignal on fill/key and audio", 
+            "return_value": null
+          }, 
+          {
+            "name": "INACTIVE", 
+            "code_hint": null, 
+            "description": "stop outputting a testsignal on fill/key and audio", 
+            "return_value": null
+          }, 
+          {
+            "name": "INACTIVE", 
+            "code_hint": null, 
+            "description": "stop outputting a testsignal on fill/key and audio", 
+            "return_value": null, 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "GET", 
+            "code_hint": null, 
+            "description": "Displays texture memory usage of viz engine process.", 
+            "return_value": null
+          }, 
+          {
+            "name": "GET", 
+            "code_hint": null, 
+            "description": "Displays texture memory usage of viz engine process.", 
+            "return_value": null, 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "VERSION", 
+            "code_hint": "vv", 
+            "description": "(null)", 
+            "return_value": null, 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "GET", 
+            "code_hint": null, 
+            "description": "(null)", 
+            "return_value": null
+          }, 
+          {
+            "name": "SET", 
+            "code_hint": "vb", 
+            "description": "(null)", 
+            "return_value": null
+          }, 
+          {
+            "name": "SET", 
+            "code_hint": "vb", 
+            "description": "(null)", 
+            "return_value": null, 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "GET", 
+            "code_hint": null, 
+            "description": "(null)", 
+            "return_value": null
+          }, 
+          {
+            "name": "GET", 
+            "code_hint": null, 
+            "description": "(null)", 
+            "return_value": null, 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "GET", 
+            "code_hint": null, 
+            "description": "(null)", 
+            "return_value": null
+          }, 
+          {
+            "name": "GET", 
+            "code_hint": null, 
+            "description": "(null)", 
+            "return_value": null, 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "WAIT_ON_BGL", 
+            "code_hint": "vv", 
+            "description": "Waits on backgroundloading for one Scene", 
+            "return_value": null, 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "peak_get_icon", 
+            "code_hint": "vs", 
+            "description": "(null)", 
+            "return_value": null, 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "zipped", 
+            "code_hint": "vs", 
+            "description": "prefix to any command, causes the answer to be sent compressed using the ZIP algorithm!", 
+            "return_value": null, 
+            "properties": [], 
+            "methods": []
+          }, 
+          {
+            "name": "GET", 
+            "code_hint": null, 
+            "description": "(null)", 
+            "return_value": null
+          }, 
+          {
+            "name": "GET", 
+            "code_hint": null, 
+            "description": "(null)", 
+            "return_value": null, 
+            "properties": [], 
+            "methods": []
+          }
+        ]
+      }
+    ]
+  }
+}

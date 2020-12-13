@@ -9,6 +9,7 @@ import { TextDocument } from 'vscode-languageserver-textdocument';
 import { VizSymbol } from "./vizsymbol";
 import * as data from './viz_completions.json';
 import * as vizevent from './vizevent_completions.json';
+import * as vizcommands from './viz_commands.json';
 import { DefinitionLink } from 'vscode-languageserver';
 
 
@@ -324,136 +325,131 @@ function getLineAt(str, pos, isSignatureHelp) {
 
 
 
-<<<<<<< Updated upstream
-=======
 }
 
 function getCommandLineAt(str, pos, isSignatureHelp) {
 
-	// Perform type conversions.
-str = String(str);
-if(str == "")return "";
-str = str.trim();
+			// Perform type conversions.
+		str = String(str);
+		if(str == "")return "";
+		str = str.trim();
 
-var line = str.slice(0, pos + 1);
+		var line = str.slice(0, pos + 1);
 
-let matches = [];
-let dotResult = [];
+		let matches = [];
+		let dotResult = [];
 
 
 
-let bracketRanges: ls.Range[] = getBracketRanges(line); //Remove content of closed brackets
-let lastRange: ls.Range = ls.Range.create(ls.Position.create(-1,-1),ls.Position.create(-1,-1));
-if(bracketRanges.length != 0){
-	for (let i = bracketRanges.length - 1; i >= 0; i--) {
-		const element = bracketRanges[i];
-		if(!PositionInRange(lastRange, element.start)){
-			//connection.console.log("Range: " + element.start.character + " " + element.end.character);
-			var leftstr = line.slice(0,element.start.character+1);
-			var rightstr = line.slice(element.end.character);
-			line = leftstr + rightstr;
-			//connection.console.log("Line: " + line);
-			lastRange = element;
+		let bracketRanges: ls.Range[] = getBracketRanges(line); //Remove content of closed brackets
+		let lastRange: ls.Range = ls.Range.create(ls.Position.create(-1,-1),ls.Position.create(-1,-1));
+		if(bracketRanges.length != 0){
+			for (let i = bracketRanges.length - 1; i >= 0; i--) {
+				const element = bracketRanges[i];
+				if(!PositionInRange(lastRange, element.start)){
+					//connection.console.log("Range: " + element.start.character + " " + element.end.character);
+					var leftstr = line.slice(0,element.start.character+1);
+					var rightstr = line.slice(element.end.character);
+					line = leftstr + rightstr;
+					//connection.console.log("Line: " + line);
+					lastRange = element;
+				}
+				}
 		}
+
+		let openBracketPos = getOpenBracketPosition(line); //If inside open bracket we should slice away everything before the bracket
+		if(openBracketPos > 0){
+			if(!isSignatureHelp){
+				line = line.slice(openBracketPos+1);
+			}
 		}
-}
 
-let openBracketPos = getOpenBracketPosition(line); //If inside open bracket we should slice away everything before the bracket
-if(openBracketPos > 0){
-	if(!isSignatureHelp){
-		line = line.slice(openBracketPos+1);
-	}
-}
+		let result = GetRegexResult(line, /[\=|\>]((.*)+)$/gi); //Split on "=|>"
 
-let result = GetRegexResult(line, /[\=|\>]((.*)+)$/gi); //Split on "=|>"
-
-if (result != null){
-	if( result[1] != undefined){
-		line = result[1];
-	}
-}
-
-result = GetRegexResult(line, /[\<]((.*)+)$/gi); //Split on "<"
-
-if (result != null){
-	if( result[1] != undefined){
-		line = result[1];
-	}
-}
-
-let memberStartRegex: RegExp = /([^\*]+)([\*])*/gi; //Split on "*"
-
-//connection.console.log("Line: " + line);
-
-while (matches = memberStartRegex.exec(line)) {
-	dotResult.push(matches);
-}
-
-let regexResult = [];
-let regexString: RegExp ;
-
-let cleanString: string = "";
-if(dotResult.length != 0){
-	dotResult.forEach(result => {
-		let tmpLine = result[1];
-		regexString = /(.*)?[\[](.*?)[\]]$/gi;
-		regexResult = regexString.exec(result[1]);
-		if(regexResult != null){
-			tmpLine = regexResult[1] + "[]"; // Keeping square brackets to be able to differ between array and array[type]
+		if (result != null){
+			if( result[1] != undefined){
+				line = result[1];
+			}
 		}
-		regexString = /(.*)?[\(](.*?)[\)]$/gi;
+
+		result = GetRegexResult(line, /[\<]((.*)+)$/gi); //Split on "<"
+
+		if (result != null){
+			if( result[1] != undefined){
+				line = result[1];
+			}
+		}
+
+		let memberStartRegex: RegExp = /([^\*]+)([\*])*/gi; //Split on "*"
+
+		//connection.console.log("Line: " + line);
+
+		while (matches = memberStartRegex.exec(line)) {
+			dotResult.push(matches);
+		}
+
+		let regexResult = [];
+		let regexString: RegExp ;
+
+		let cleanString: string = "";
+		if(dotResult.length != 0){
+			dotResult.forEach(result => {
+				let tmpLine = result[1];
+				regexString = /(.*)?[\[](.*?)[\]]$/gi;
+				regexResult = regexString.exec(result[1]);
+				if(regexResult != null){
+					tmpLine = regexResult[1] + "[]"; // Keeping square brackets to be able to differ between array and array[type]
+				}
+				regexString = /(.*)?[\(](.*?)[\)]$/gi;
+				regexResult = null;
+				regexResult = regexString.exec(tmpLine);
+				if(regexResult != null){
+					tmpLine = regexResult[1]; // Removing parantheses for now. Do not think we need them
+				}
+
+				if (result[2] != undefined){
+					cleanString += tmpLine + result[2];
+				}else{
+					cleanString += tmpLine;
+				}
+			});
+		}
+
+
+
+			// Search for the sentence beginning and end.
+		var left = cleanString.slice(0, pos + 1).search(/[^\s]+$/)
+			var right = cleanString.slice(pos).search(/[\s\.\(]/);
+
+		// The last word in the string is a special case.
+		let finalString = "";
+			if (right < 0) {
+				finalString =  cleanString.slice(left);
+		} else {
+			finalString = cleanString.slice(left, right + pos);
+		}
+
+		if(!isSignatureHelp){ //Only do this if it is not a Signature Help
+			regexResult = null;
+			regexString = /(.*\()([^\)]*)$/gi;
+			regexResult = regexString.exec(finalString);
+			if(regexResult != null){
+				finalString = regexResult[2]; //  Removing everything before open parantheses at the end of a line (abc.fsdfsd() but not closed parantheses(fsd())
+			}
+		}
+
 		regexResult = null;
-		regexResult = regexString.exec(tmpLine);
+		regexString = /(.*\[)([^\]]*)$/gi;
+		regexResult = regexString.exec(finalString);
+
 		if(regexResult != null){
-			tmpLine = regexResult[1]; // Removing parantheses for now. Do not think we need them
+			finalString = regexResult[2]; //  Removing everything before open brackets at the end of a line (abc.fsdfsd[) but not closed brackets(fsd[])
 		}
 
-		if (result[2] != undefined){
-			cleanString += tmpLine + result[2];
-		}else{
-			cleanString += tmpLine;
-		}
-	});
-}
-
-
-
-	// Search for the sentence beginning and end.
-var left = cleanString.slice(0, pos + 1).search(/[^\s]+$/)
-	var right = cleanString.slice(pos).search(/[\s\.\(]/);
-
-// The last word in the string is a special case.
-let finalString = "";
-	if (right < 0) {
-		finalString =  cleanString.slice(left);
-} else {
-	finalString = cleanString.slice(left, right + pos);
-}
-
-if(!isSignatureHelp){ //Only do this if it is not a Signature Help
-	regexResult = null;
-	regexString = /(.*\()([^\)]*)$/gi;
-	regexResult = regexString.exec(finalString);
-	if(regexResult != null){
-		finalString = regexResult[2]; //  Removing everything before open parantheses at the end of a line (abc.fsdfsd() but not closed parantheses(fsd())
-	}
-}
-
-regexResult = null;
-regexString = /(.*\[)([^\]]*)$/gi;
-regexResult = regexString.exec(finalString);
-
-if(regexResult != null){
-	finalString = regexResult[2]; //  Removing everything before open brackets at the end of a line (abc.fsdfsd[) but not closed brackets(fsd[])
-}
-
-//connection.console.log("Final: " + finalString);
+		//connection.console.log("Final: " + finalString);
 
 	return finalString;
 
-
-
->>>>>>> Stashed changes
 }
 
 function getOpenBracketPosition(mystring) {
@@ -813,9 +809,6 @@ connection.onCompletion((params: ls.CompletionParams, cancelToken: ls.Cancellati
 		ls.Position.create(params.position.line, params.position.character))
 	);
 
-<<<<<<< Updated upstream
-=======
-
 	// Start Command suggestions
 
 	let beforeLine = line.slice(0, getOpenBracketPosition(line));
@@ -866,7 +859,6 @@ connection.onCompletion((params: ls.CompletionParams, cancelToken: ls.Cancellati
 	}
   // End command suggestions
 
->>>>>>> Stashed changes
 	if (GetRegexResult(line, /^[ \t]*dim[ \t]+([a-zA-Z0-9\-\_\,]+)[ \t]*([as]+)?$/gi) != null) return;// No sugggestions when declaring variables
 	if (GetRegexResult(line, /^[ \t]*function[ \t]+([a-zA-Z0-9\-\_\,]+)$/gi) != null) return;// No suggestions when declaring functions
 	if (GetRegexResult(line, /^[ \t]*end[ \t]+([a-zA-Z0-9\-\_\,]*)$/gi) != null) return;// No suggestions for ending sub or function
@@ -887,10 +879,7 @@ connection.onCompletion((params: ls.CompletionParams, cancelToken: ls.Cancellati
 		}
 		return suggestions;
 	}
-<<<<<<< Updated upstream
 
-=======
->>>>>>> Stashed changes
 
 	let lineAt = getLineAt(line, params.position.character,false);
 
@@ -986,7 +975,6 @@ function GetItemType(currentIdx: number,regexResult: any[],position: ls.Position
 
 		}
 
-<<<<<<< Updated upstream
 	}
 
 	return item;
@@ -1070,11 +1058,6 @@ function GetSymbolForDefinitionByName(name: string, position: ls.Position): VizS
 	}
 
 	return result;
-=======
-	}
-
-	return item;
->>>>>>> Stashed changes
 }
 
 function GetCommandItemType(currentIdx: number,regexResult: any[],position: ls.Position): VizSymbol {
@@ -1256,11 +1239,7 @@ function GetSymbolByName(name: string, position: ls.Position): VizSymbol {
 		}
 
 
-<<<<<<< Updated upstream
 		if(result != null && result.type != null){
-=======
-		if(result.type != null){
->>>>>>> Stashed changes
 			if(result.type.toLowerCase().startsWith("array[")){
 				if(isArrayType){
 					let tmpType = GetRegexResult(result.type, /\[(.*?)\]/gi)
@@ -1273,8 +1252,6 @@ function GetSymbolByName(name: string, position: ls.Position): VizSymbol {
 	}
 
 
-<<<<<<< Updated upstream
-=======
 	return result;
 }
 
@@ -1336,7 +1313,6 @@ function GetCommandSymbolByName(name: string, position: ls.Position): VizSymbol 
 	}
 
 
->>>>>>> Stashed changes
 	return result;
 }
 
@@ -1377,11 +1353,8 @@ function GetSymbolTypeInChildren(name: string, items: VizSymbol[] ): string {
 			result = item;
 		}
 	});
-<<<<<<< Updated upstream
+
 	if(result != null && result.type != null){
-=======
-	if(result.type != null){
->>>>>>> Stashed changes
 		if(result.type.toLowerCase().startsWith("array")){
 			if(isArrayType){
 				let tmpType = GetRegexResult(result.type, /\[(.*?)\]/gi)
@@ -2047,11 +2020,6 @@ function GetMethodSymbol(statement: LineStatement, uri: string): VizSymbol[] {
 			//console.error("ERROR - line " + statement.startLine + " at " + statement.startCharacter + ": 'end " + openMethod.type + "' expected!");
 		}
 	}
-<<<<<<< Updated upstream
-=======
-
->>>>>>> Stashed changes
-
 
 	let range: ls.Range = ls.Range.create(openMethod.startPosition, statement.GetPositionByCharacter(GetNumberOfFrontSpaces(line) + regexResult[0].trim().length))
 
@@ -2281,11 +2249,7 @@ function GetVariableSymbol(statement: LineStatement, uri: string): VizSymbol[] {
 			statement.GetPositionByCharacter(indentation + regexResult[0].trim().length)
 		);
 
-<<<<<<< Updated upstream
 		nameStartIndex += variables[i].length;
-=======
-
->>>>>>> Stashed changes
 
 		symbol.parentName = parentName;
 		symbol.commitCharacters = ["."];
@@ -2406,7 +2370,6 @@ connection.onRequest('getVizConnectionInfo', () => {
 
 connection.onRequest('showDiagnostics', (vizReply: string) => {
 	let error = GetRegexResult(vizReply, /\{(.*?)(\((.*)\))?\}/gi)
-<<<<<<< Updated upstream
 	if((error != undefined)){
 		if(error[3] == undefined){
 			return error[1]
@@ -2421,24 +2384,6 @@ connection.onRequest('showDiagnostics', (vizReply: string) => {
 		}
 	}
 })
-=======
-	if((error != undefined) && (error.length > 2)){
-		let rangesplit = error[3].split("/");
-		let line = parseInt(rangesplit[0]);
-		let char = parseInt(rangesplit[1]);
-		let range = ls.Range.create(line-1, char-1, line-1, char);
-		DisplayDiagnostics(documentUri,range,error[1])
-		connection.window.showErrorMessage(error[1])
-		return error[3]
-	} else{
-		return error[1]
-	}
-})
-
-
-
-
->>>>>>> Stashed changes
 
 // Listen on the connection
 connection.listen();
