@@ -814,12 +814,9 @@ connection.onCompletion((params: ls.CompletionParams, cancelToken: ls.Cancellati
 	let beforeLine = line.slice(0, getOpenBracketPosition(line));
 	let isVizCommand = getLineAt(beforeLine, getOpenBracketPosition(line),false);
 
-	connection.console.log(isVizCommand)
-
 	if (isVizCommand == "System.SendCommand" || isVizCommand == "System.SendRemoteCommand" ){
 		let afterLine = line.slice(getOpenBracketPosition(line));
 		let commandLine = getCommandLineAt(afterLine, params.position.character, false)
-		connection.console.log(afterLine + " should be treated as a command")
 		let matches = [];
 		let regexResult = [];
 		let noOfMatches = 0;
@@ -834,7 +831,7 @@ connection.onCompletion((params: ls.CompletionParams, cancelToken: ls.Cancellati
 
 		if (noOfMatches != 0) {
 			if (regexResult != null && regexResult.length > 0) {
-				let item = GetCommandItemType(noOfMatches,regexResult,params.position);
+				let item = GetCommandItemType(noOfMatches,regexResult);
 				if (item != null) {
 					suggestions = [];
 					suggestions = item.GetLsChildrenItems();;
@@ -844,7 +841,6 @@ connection.onCompletion((params: ls.CompletionParams, cancelToken: ls.Cancellati
 			}
 		} else {
 			suggestions = SelectVizRootCommandInterfaceItems();
-			suggestions = suggestions.concat(SelectVizCommandInterfaceItems());
 		}
 
 		//connection.console.log("Number of matches: " + noOfMatches)
@@ -1060,16 +1056,16 @@ function GetSymbolForDefinitionByName(name: string, position: ls.Position): VizS
 	return result;
 }
 
-function GetCommandItemType(currentIdx: number,regexResult: any[],position: ls.Position): VizSymbol {
+function GetCommandItemType(currentIdx: number,regexResult: any[]): VizSymbol {
 	let children: VizSymbol[] = null;
 	let item: VizSymbol = null;
 	for (var i = 0; i < currentIdx; i++) {
 		if(children == null){
-			item = GetCommandSymbolByName(regexResult[i], position);// Need to add check for Array or Array[Type]
+			item = GetCommandSymbolByName(regexResult[i], true);// Need to add check for Array or Array[Type]
 			if(item != null){
 				children = item.children;
 				if(children.length < 1){
-					let innerItem = GetCommandSymbolByName(item.type, position);
+					let innerItem = GetCommandSymbolByName(item.type, false);
 					if(innerItem != null){
 						children = innerItem.children;
 						item = innerItem;
@@ -1081,7 +1077,7 @@ function GetCommandItemType(currentIdx: number,regexResult: any[],position: ls.P
 			let outerType = GetSymbolTypeInChildren(regexResult[i],children);
 			//let outerItem = GetSymbolInChildren(regexResult[i],children);
 			if(outerType != ""){
-				item = GetCommandSymbolByName(outerType, position);
+				item = GetCommandSymbolByName(outerType, false);
 				if(item != null){
 					children = item.children;
 				}else{
@@ -1255,7 +1251,7 @@ function GetSymbolByName(name: string, position: ls.Position): VizSymbol {
 	return result;
 }
 
-function GetCommandSymbolByName(name: string, position: ls.Position): VizSymbol {
+function GetCommandSymbolByName(name: string, includeMain: boolean): VizSymbol {
 	if(name == undefined) return null;
 	let regexResult;
 	let memberStartRegex: RegExp =/^array[\ ]*\[(.*?)\]/gi; // Remove array[]
@@ -1285,10 +1281,9 @@ function GetCommandSymbolByName(name: string, position: ls.Position): VizSymbol 
 
 	let symbols = symbolCache["commands"];
 	let rootsymbols = symbolCache["commands_root"];
-	//let rootthissymbols = symbolCache["builtin_root_this"];
-	//let globalsymbols = symbolCache["builtin_global"];
-	//let globalevents = symbolCache["builtin_events"];
-	symbols = symbols.concat(rootsymbols);
+
+	if(includeMain) symbols = symbols.concat(rootsymbols);
+
 	let result: VizSymbol = null;
 	if(symbols != []){
 		symbols.forEach(item => {
@@ -1300,13 +1295,13 @@ function GetCommandSymbolByName(name: string, position: ls.Position): VizSymbol 
 
 		});
 
-		if(result.type != null){
+		if(result != null && result.type != null){
 			if(result.type.toLowerCase().startsWith("array[")){
 				if(isArrayType){
 					let tmpType = GetRegexResult(result.type, /\[(.*?)\]/gi)
-					result = GetCommandSymbolByName(tmpType[1],position);
+					result = GetCommandSymbolByName(tmpType[1], false);
 				}else{
-					result = GetCommandSymbolByName("Array",position);
+					result = GetCommandSymbolByName("Array", false);
 				}
 			}
 		}
@@ -1699,12 +1694,8 @@ function GetBuiltinCommands() {
 			symbol.args = element.description;
 			symbol.hint = "";
 			symbol.signatureInfo = null;
-			symbol.commitCharacters = ["*"];
-			if((symbol.name == "MAIN")){
-			  rootsymbols.push(symbol);
-			}else{
-			  symbols.push(symbol);
-			}
+			symbol.commitCharacters = [""];
+			symbols.push(symbol);
 
 			element.methods.forEach(submethod => {
 				let subSymbol: VizSymbol = new VizSymbol();
@@ -1731,17 +1722,21 @@ function GetBuiltinCommands() {
 				subSymbol.args = properties.description;
 				subSymbol.kind = ls.CompletionItemKind.Variable;
 				subSymbol.parentName = element.name;
-				subSymbol.commitCharacters = ["*"];
+				subSymbol.commitCharacters = [""];
 				symbol.children.push(subSymbol);
 			});
+
+			if((symbol.name == "CMain")){
+			  rootsymbols = symbol.children;
+			}
 
 	});
 
 
 	symbolCache["commands"] = symbols;
 	symbolCache["commands_root"] = rootsymbols;
-	connection.console.info("Found " + symbols.length + " commands");
-	connection.console.info("Found " + rootsymbols.length + " root commands");
+	//connection.console.info("Found " + symbols.length + " commands");
+	//connection.console.info("Found " + rootsymbols.length + " root commands");
 }
 
 
