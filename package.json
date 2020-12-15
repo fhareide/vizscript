@@ -137,6 +137,12 @@
 					"description": "Show completions for Container/Scene on root",
 					"scope": "resource"
 				},
+				"vizscript.showEventSnippetCompletionsOnRoot": {
+					"type": "boolean",
+					"default": true,
+					"description": "Show Event snippet completions on root",
+					"scope": "resource"
+				},
 				"vizscript.enableSignatureHelp": {
 					"type": "boolean",
 					"default": true,

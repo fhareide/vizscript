@@ -1,3 +1,9 @@
+### 0.2.18
+- **New**: Added option to show Event completion snippets on root level. (e.g. OnInit())
+- **New**: Option `vizscript.showEventSnippetCompletionsOnRoot` - Show Event completions on root
+
+---
+
 ### 0.2.17
 - **Fix**: Fixed bug were switching between tabs would not update extension data correctly
 - **Fix**: Improved Definition results further and changed selection range to follow VS Code standard

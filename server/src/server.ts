@@ -75,6 +75,7 @@ connection.onInitialized(() => {
 interface VizScriptSettings {
 	enableAutoComplete: boolean;
 	showThisCompletionsOnRoot: boolean;
+	showEventSnippetCompletionsOnRoot: boolean;
 	enableSignatureHelp: boolean;
 	enableDefinition: boolean;
 	enableGlobalProcedureSnippets: boolean;
@@ -577,6 +578,26 @@ function GenerateSnippetString(hint: string, documentation: string): string {
 	return snippetString;
 }
 
+function GenerateEventSnippetString(insertText: string): string {
+	let regexResult = [];
+
+	let regexString: RegExp = /^[ \t]*(function|sub)(.*)*/gi;
+
+	regexResult = regexString.exec(insertText);
+
+	if( regexResult == null) return insertText;
+
+	let snippetString = "";
+
+	if(regexResult.length < 2) return insertText;
+
+	snippetString += regexResult[1].toLowerCase() + regexResult[2] + "\n";
+	snippetString += "  ${0}\n"
+	snippetString += "end " + regexResult[1].toLowerCase()
+
+	return snippetString;
+}
+
 function CheckHasParameters(hint: string): boolean {
 	let regexResult3 = [];
 
@@ -755,6 +776,9 @@ connection.onCompletion((params: ls.CompletionParams, cancelToken: ls.Cancellati
 			suggestions = documentCompletions.concat(SelectBuiltinGlobalCompletionItems());
 			suggestions = suggestions.concat(SelectBuiltinRootCompletionItems());
 			suggestions = suggestions.concat(SelectBuiltinRootThisCompletionItems());
+			if((settings != null) && (settings.showEventSnippetCompletionsOnRoot)){
+				suggestions = suggestions.concat(SelectBuiltinEventSnippetCompletionItems());
+			}
 			if((settings != null) && (settings.showThisCompletionsOnRoot)){
 				suggestions = suggestions.concat(SelectBuiltinRootThisChildrenCompletionItems());
 			}
@@ -1448,9 +1472,9 @@ function GetVizEvents() {
 		symbol.name = event.name;
 		symbol.insertText = event.code_hint;
 		symbol.insertText = symbol.insertText.replace("Sub ", "");
+		symbol.insertSnippet = GenerateEventSnippetString(event.code_hint);
 		symbol.hint = event.code_hint;
 		symbol.args = event.description;
-		symbol.kind = ls.CompletionItemKind.Variable;
 		symbol.signatureInfo = GenerateSignatureHelp(symbol.hint, symbol.args);
 		symbol.parentName = "event";
 		symbol.visibility = "";
@@ -1494,6 +1518,10 @@ function SelectBuiltinGlobalCompletionItems(): ls.CompletionItem[] {
 
 function SelectBuiltinEventCompletionItems(): ls.CompletionItem[] {
 	return VizSymbol.GetLanguageServerCompletionItems(symbolCache["builtin_events"]);
+}
+
+function SelectBuiltinEventSnippetCompletionItems(): ls.CompletionItem[] {
+	return VizSymbol.GetLanguageServerSnippetCompletionItems(symbolCache["builtin_events"]);
 }
 
 let pendingChildren: VizSymbol[] = [];
