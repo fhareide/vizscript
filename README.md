@@ -30,6 +30,10 @@
 
 ----------
 
+## New Features - Viz Script 0.2.18
+* Added option to show Event completion snippets on root level. (e.g. OnInit())
+	* This feature can be deactivated in settings `vizscript.showEventSnippetCompletionsOnRoot` (Activated by default)
+
 ## Changes - Viz Script 0.2.14
 * Definition provider now supports more types.
 * `Get scripts from Viz` is now available at all time. Also without any document open.
