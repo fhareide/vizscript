@@ -56,7 +56,7 @@ connection.onInitialize((params): ls.InitializeResult => {
 			definitionProvider: true,
 			completionProvider: {
 				resolveProvider: true,
-				triggerCharacters: ['.', '*'],
+				triggerCharacters: ['.', '*', '\xa0' ]
 			},
 		}
 
@@ -332,53 +332,12 @@ function getCommandLineAt(str, pos, isSignatureHelp) {
 			// Perform type conversions.
 		str = String(str);
 		if(str == "")return "";
-		str = str.trim();
+		//str = str.trim();
 
 		var line = str.slice(0, pos + 1);
 
 		let matches = [];
 		let dotResult = [];
-
-
-
-		let bracketRanges: ls.Range[] = getBracketRanges(line); //Remove content of closed brackets
-		let lastRange: ls.Range = ls.Range.create(ls.Position.create(-1,-1),ls.Position.create(-1,-1));
-		if(bracketRanges.length != 0){
-			for (let i = bracketRanges.length - 1; i >= 0; i--) {
-				const element = bracketRanges[i];
-				if(!PositionInRange(lastRange, element.start)){
-					//connection.console.log("Range: " + element.start.character + " " + element.end.character);
-					var leftstr = line.slice(0,element.start.character+1);
-					var rightstr = line.slice(element.end.character);
-					line = leftstr + rightstr;
-					//connection.console.log("Line: " + line);
-					lastRange = element;
-				}
-				}
-		}
-
-		let openBracketPos = getOpenBracketPosition(line); //If inside open bracket we should slice away everything before the bracket
-		if(openBracketPos > 0){
-			if(!isSignatureHelp){
-				line = line.slice(openBracketPos+1);
-			}
-		}
-
-		let result = GetRegexResult(line, /[\=|\>]((.*)+)$/gi); //Split on "=|>"
-
-		if (result != null){
-			if( result[1] != undefined){
-				line = result[1];
-			}
-		}
-
-		result = GetRegexResult(line, /[\<]((.*)+)$/gi); //Split on "<"
-
-		if (result != null){
-			if( result[1] != undefined){
-				line = result[1];
-			}
-		}
 
 		let memberStartRegex: RegExp = /([^\*]+)([\*])*/gi; //Split on "*"
 
@@ -418,16 +377,16 @@ function getCommandLineAt(str, pos, isSignatureHelp) {
 
 
 			// Search for the sentence beginning and end.
-		var left = cleanString.slice(0, pos + 1).search(/[^\s]+$/)
-			var right = cleanString.slice(pos).search(/[\s\.\(]/);
+		//var left = cleanString.slice(0, pos + 1).search(/[^\s]+$/)
+		//	var right = cleanString.slice(pos).search(/[\s\.\(]/);
 
 		// The last word in the string is a special case.
-		let finalString = "";
-			if (right < 0) {
-				finalString =  cleanString.slice(left);
-		} else {
-			finalString = cleanString.slice(left, right + pos);
-		}
+		let finalString = cleanString;
+		//	if (right < 0) {
+		//		finalString =  cleanString.slice(left);
+		//} else {
+		//	finalString = cleanString.slice(left, right + pos);
+		//}
 
 		if(!isSignatureHelp){ //Only do this if it is not a Signature Help
 			regexResult = null;
@@ -815,11 +774,17 @@ connection.onCompletion((params: ls.CompletionParams, cancelToken: ls.Cancellati
 	let isVizCommand = getLineAt(beforeLine, getOpenBracketPosition(line),false);
 
 	if (isVizCommand == "System.SendCommand" || isVizCommand == "System.SendRemoteCommand" ){
-		let afterLine = line.slice(getOpenBracketPosition(line));
+		let afterLine = line.slice(getOpenBracketPosition(line)+1);
 		let commandLine = getCommandLineAt(afterLine, params.position.character, false)
 		let matches = [];
 		let regexResult = [];
 		let noOfMatches = 0;
+
+		let spaceAtEndRegex: RegExp = /([a-zA-Z0-9\-\_\,]+)[ \t]$/gi;
+		let spaceAtEndRegexResult = [];
+		spaceAtEndRegexResult = spaceAtEndRegex.exec(line)
+
+
 
 		let memberStartRegex: RegExp = /[\*]?([^\*\ ]+)[\*]+/gi;
 
@@ -834,13 +799,23 @@ connection.onCompletion((params: ls.CompletionParams, cancelToken: ls.Cancellati
 				let item = GetCommandItemType(noOfMatches,regexResult);
 				if (item != null) {
 					suggestions = [];
-					suggestions = item.GetLsChildrenItems();;
+					suggestions = item.GetLsChildrenItems();
 				} else {
 					suggestions = []
 				}
 			}
 		} else {
-			suggestions = SelectVizRootCommandInterfaceItems();
+			if(spaceAtEndRegexResult != null){
+				let item = GetCommandItemType(1,spaceAtEndRegexResult[1]);
+				if (item != null) {
+					suggestions = [];
+					suggestions = item.GetLsChildrenItems();
+				} else {
+					suggestions = []
+				}
+			} else{
+				suggestions = SelectVizRootCommandInterfaceItems();
+			}
 		}
 
 		//connection.console.log("Number of matches: " + noOfMatches)
@@ -1075,7 +1050,7 @@ function GetCommandItemType(currentIdx: number,regexResult: any[]): VizSymbol {
 
 		}else{
 			let outerType = GetSymbolTypeInChildren(regexResult[i],children);
-			//let outerItem = GetSymbolInChildren(regexResult[i],children);
+			let outerItem = GetSymbolInChildren(regexResult[i],children);
 			if(outerType != ""){
 				item = GetCommandSymbolByName(outerType, false);
 				if(item != null){
@@ -1084,7 +1059,7 @@ function GetCommandItemType(currentIdx: number,regexResult: any[]): VizSymbol {
 					children = null;
 				}
 			} else{
-				item = null;
+				item = outerItem;
 			}
 
 		}
@@ -1704,6 +1679,7 @@ function GetBuiltinCommands() {
 				subSymbol.insertText = submethod.name;
 				subSymbol.hint = submethod.code_hint;
 				subSymbol.args = submethod.description;
+				subSymbol.kind = ls.CompletionItemKind.Method;
 				//if(submethod.code_hint != ""){
 			  //		if (submethod.code_hint.startsWith("\"Function")) subSymbol.kind = ls.CompletionItemKind.Function;
 				//	else if (submethod.code_hint.startsWith("\"Sub")) subSymbol.kind = ls.CompletionItemKind.Method;
@@ -1723,6 +1699,20 @@ function GetBuiltinCommands() {
 				subSymbol.kind = ls.CompletionItemKind.Variable;
 				subSymbol.parentName = element.name;
 				subSymbol.commitCharacters = [""];
+
+				properties.methods.forEach(submethod => {
+					let subEntrySymbol: VizSymbol = new VizSymbol();
+					subEntrySymbol.type = submethod.return_value;
+					subEntrySymbol.name = submethod.name;
+					subEntrySymbol.insertText = submethod.name;
+					subEntrySymbol.hint = submethod.code_hint;
+					subEntrySymbol.args = submethod.description;
+					subEntrySymbol.kind = ls.CompletionItemKind.Method;
+					subEntrySymbol.parentName = element.name;
+					subEntrySymbol.signatureInfo = GenerateSignatureHelp(subEntrySymbol.hint, subEntrySymbol.args);
+					subEntrySymbol.commitCharacters = [""];
+					subSymbol.children.push(subEntrySymbol);
+				});
 				symbol.children.push(subSymbol);
 			});
 
