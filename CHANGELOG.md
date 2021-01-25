@@ -1,3 +1,9 @@
+### 0.2.19
+- **Fix**: Fixed a bug were SignatureHelp would spam the console if a function was not found.
+- **Fix**: Fixed a bug were "Get scripts from Viz" would fail with undefined VizId when using the new file option
+
+---
+
 ### 0.2.18
 - **New**: Added option to show Event completion snippets on root level. (e.g. OnInit())
 - **New**: Option `vizscript.showEventSnippetCompletionsOnRoot` - Show Event completions on root

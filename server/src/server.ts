@@ -914,8 +914,10 @@ function GetItemForSignature(name: string, currentIdx: number,regexResult: any[]
 	if((settings != null) && (settings.showThisCompletionsOnRoot)){
 		if(regexResult.length == 1){
 			item = GetSymbolByName(regexResult[0], position);
-			if(item.parentName == scriptType){
-				return item;
+			if(item != undefined){
+				if(item.parentName == scriptType){
+					return item;
+				}
 			}
 		}
 	}
