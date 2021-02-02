@@ -2048,18 +2048,20 @@ connection.onRequest('getVizConnectionInfo', () => {
 });
 
 connection.onRequest('showDiagnostics', (vizReply: string) => {
-	let error = GetRegexResult(vizReply, /\{(.*?)(\((.*)\))?\}/gi)
+	let error = GetRegexResult(vizReply, /\{(.*?)\}/gi)
 	if((error != undefined)){
-		if(error[3] == undefined){
+		let errorRange = GetRegexResult(error[1], /\(([^)]*)\)[^(]*$/gi)
+		if(errorRange == undefined){
 			return error[1]
 		}else{
-			let rangesplit = error[3].split("/");
+			
+			let rangesplit = errorRange[1].split("/");
 			let line = parseInt(rangesplit[0]);
 			let char = parseInt(rangesplit[1]);
 			let range = ls.Range.create(line-1, char-1, line-1, char);
 			DisplayDiagnostics(documentUri,range,error[1])
 			connection.window.showErrorMessage(error[1])
-			return error[3]
+			return errorRange[1]
 		}
 	}
 })
