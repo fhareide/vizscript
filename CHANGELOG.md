@@ -1,3 +1,10 @@
+### 0.2.21
+- **Fix**: Fixed bug were nested arrays as return values for functions would lead to "Catastrophic Backtracking" in regex
+- **Fix**: Fixed bug were arrays as return values for functions would destroy Signature Help
+- **Fix**: Added special case for "Println" and "Random" to avoid adding "()" at end of completion
+
+---
+
 ### 0.2.20
 - **Fix**: Fixed bug were error message from Viz would not always parse correctly
 

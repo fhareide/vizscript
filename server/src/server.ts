@@ -913,7 +913,7 @@ function GetItemForSignature(name: string, currentIdx: number,regexResult: any[]
 
 	if((settings != null) && (settings.showThisCompletionsOnRoot)){
 		if(regexResult.length == 1){
-			item = GetSymbolByName(regexResult[0], position);
+			item = GetSignatureSymbolByName(regexResult[0], position);
 			if(item != undefined){
 				if(item.parentName == scriptType){
 					return item;
@@ -926,11 +926,11 @@ function GetItemForSignature(name: string, currentIdx: number,regexResult: any[]
 	for (var i = 0; i < currentIdx; i++) {
 
 		if(children == null){
-			item = GetSymbolByName(regexResult[i], position);
+			item = GetSignatureSymbolByName(regexResult[i], position);
 			if(item != null){
 				children = item.children;
 				if((children.length < 1) && (item.parentName != "global") && (item.parentName != "event")) {
-					let innerItem = GetSymbolByName(item.type, position);
+					let innerItem = GetSignatureSymbolByName(item.type, position);
 					if(innerItem != null){
 						children = innerItem.children;
 						item = innerItem;
@@ -942,7 +942,7 @@ function GetItemForSignature(name: string, currentIdx: number,regexResult: any[]
 			//let outerType = GetSymbolTypeInChildren(regexResult[i],children);
 			let outerItem = GetSymbolInChildren(regexResult[i],children);
 			if(outerItem != null){
-				item = GetSymbolByName(outerItem.type, position);
+				item = GetSignatureSymbolByName(outerItem.type, position);
 				if(item != null){
 					children = item.children;
 				}else{
@@ -969,7 +969,15 @@ function GetSymbolsOfDocument(uri: string): ls.SymbolInformation[] {
 	return VizSymbol.GetLanguageServerSymbols(symbolCache[uri]);
 }
 
+function GetSignatureSymbolByName(name: string, position: ls.Position): VizSymbol {
+	return GetInternalSymbolByName(name, position, true);
+}
+
 function GetSymbolByName(name: string, position: ls.Position): VizSymbol {
+	return GetInternalSymbolByName(name, position, false);
+}
+
+function GetInternalSymbolByName(name: string, position: ls.Position, isSignature: Boolean): VizSymbol {
 	if(name == undefined) return null;
 	let regexResult;
 	let memberStartRegex: RegExp =/^array[\ ]*\[(.*?)\]/gi; // Remove array[]
@@ -1049,7 +1057,7 @@ function GetSymbolByName(name: string, position: ls.Position): VizSymbol {
 		}
 
 
-		if(result != null && result.type != null){
+		if(result != null && result.type != null && !isSignature){
 			if(result.type.toLowerCase().startsWith("array[")){
 				if(isArrayType){
 					let tmpType = GetRegexResult(result.type, /\[(.*?)\]/gi)
@@ -1255,7 +1263,7 @@ connection.onDocumentSymbol((docParams: ls.DocumentSymbolParams): ls.SymbolInfor
 	return GetSymbolsOfDocument(docParams.textDocument.uri);
 });
 
-function CollectSymbols(document: ls.TextDocument): VizSymbol[] {
+function CollectSymbols(document: TextDocument): VizSymbol[] {
 	let symbols: Set<VizSymbol> = new Set<VizSymbol>();
 	let lines = document.getText().split(/\r?\n/g);
 	GetVizEvents();
@@ -1339,7 +1347,7 @@ function GetBuiltinSymbols() {
 				symbol.hint = submethod.code_hint;
 				symbol.args = submethod.description;
 				symbol.insertSnippet = GenerateSnippetString(symbol.hint, symbol.args);
-				if(CheckHasParameters(symbol.hint) == false){
+				if((CheckHasParameters(symbol.hint) == false) && (symbol.name != "Println") && (symbol.name != "Random")){
 					symbol.insertText = submethod.name + "()";
 				} else {
 					symbol.insertText = submethod.name;
@@ -1597,7 +1605,7 @@ let openMethod: OpenMethod = null;
 function GetMethodStart(statement: LineStatement, uri: string): boolean {
 	let line = statement.line;
 
-	let rex: RegExp = /^[ \t]*(function|sub)+[ \t]+([a-zA-Z0-9\-\_]+)+[ \t]*(\(([a-zA-Z0-9\[\]\_\-, \t(\(\))]*)\))+[ \t]*(as)?[ \t]*([a-zA-Z0-9\-\_]*)?[ \t]*$/gi;
+	let rex: RegExp = /^[ \t]*(function|sub)+[ \t]+([a-zA-Z0-9\-\_]+)+[ \t]*(\(([a-zA-Z0-9\[\]\_\-, \t(\(\))]*)\))+[ \t]*(as)?[ \t]*([a-zA-Z0-9\-\_\[\]]*)?[ \t]*$/gi;
 
 	let regexResult = rex.exec(line);
 
