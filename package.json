@@ -22,7 +22,7 @@
 	],
 	"icon": "images/vizicon.png",
 	"engines": {
-		"vscode": "^1.26.0"
+		"vscode": "^1.53.0"
 	},
 	"activationEvents": [
 		"onLanguage:viz-con",
