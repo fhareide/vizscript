@@ -4,7 +4,7 @@
 	"description": "A complete language extension for Viz Script. Auto complete, syntax checking, syntax highlighting, signature help, jump to definition and more.",
 	"author": "Fredrik Hareide",
 	"license": "MIT",
-	"version": "0.2.21",
+	"version": "0.2.22",
 	"publisher": "fhareide",
 	"keywords": [
 		"Vizrt",
