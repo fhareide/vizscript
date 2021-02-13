@@ -4,6 +4,8 @@
 - **Change**: Updated versions of all dependencies 
 - **Change**: Utilized the new status bar background color to move syntax check error messages to status bar
 - **New**: Added `"statusBarItem.errorBackground"` to color themes
+- **New**: Added keywords to completions
+- **New**: Option `vizscript.keywordLowercase` - Makes all keywords(if,else etc.) lowercase
 
 ---
 

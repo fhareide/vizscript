@@ -77,6 +77,7 @@ interface VizScriptSettings {
 	enableAutoComplete: boolean;
 	showThisCompletionsOnRoot: boolean;
 	showEventSnippetCompletionsOnRoot: boolean;
+	keywordLowercase: boolean;
 	enableSignatureHelp: boolean;
 	enableDefinition: boolean;
 	enableGlobalProcedureSnippets: boolean;
@@ -764,12 +765,7 @@ connection.onCompletion((params: ls.CompletionParams, cancelToken: ls.Cancellati
 	);
 
 	if (GetRegexResult(line, /^[ \t]*dim[ \t]+([a-zA-Z0-9\-\_\,]+)[ \t]*([as]+)?$/gi) != null) return;// No sugggestions when declaring variables
-	if (GetRegexResult(line, /^[ \t]*function[ \t]+([a-zA-Z0-9\-\_\,]+)$/gi) != null) return;// No suggestions when declaring functions
-	if (GetRegexResult(line, /^[ \t]*end[ \t]+([a-zA-Z0-9\-\_\,]*)$/gi) != null) return;// No suggestions for ending sub or function
-	if (GetRegexResult(line, /^[ \t]*exit[ \t]+([a-zA-Z0-9\-\_\,]*)$/gi) != null) return;// No suggestions for exit sub or function
-	if (GetRegexResult(line, /^[if|elseif]*(.*)[ \t]+[then]+$/gi) != null) return;// No suggestions at end of if sentence
-	if (GetRegexResult(line, /^[ \t]*[else]+$/gi) != null) return;// No suggestions for else keyword
-
+	if (GetRegexResult(line, /^[ \t]*(function|structure)+[ \t]+([a-zA-Z0-9\-\_\,]+)$/gi) != null) return;// No suggestions when declaring functions or structure
 	if (GetRegexResult(line, /^[ \t]*sub[ \t]+On?$/gi) != null) return SelectBuiltinEventCompletionItems();// Only event suggestions when declaring submethod
 
 	if (GetRegexResult(line, /\=[\s]*([^\=\.\)]+)$/gi) != null) // Suggestions after "="
@@ -778,6 +774,7 @@ connection.onCompletion((params: ls.CompletionParams, cancelToken: ls.Cancellati
 		suggestions = documentCompletions.concat(SelectBuiltinGlobalCompletionItems());
 		suggestions = suggestions.concat(SelectBuiltinRootCompletionItems());
 		suggestions = suggestions.concat(SelectBuiltinRootThisCompletionItems());
+		suggestions = suggestions.concat(SelectBuiltinKeywordCompletionItems());
 		if((settings != null) && (settings.showThisCompletionsOnRoot)){
 			suggestions = suggestions.concat(SelectBuiltinRootThisChildrenCompletionItems());
 		}
@@ -827,6 +824,7 @@ connection.onCompletion((params: ls.CompletionParams, cancelToken: ls.Cancellati
 			}
 			suggestions = documentCompletions.concat(SelectBuiltinCompletionItems());
 			suggestions = suggestions.concat(SelectBuiltinRootCompletionItems());
+			suggestions = suggestions.concat(SelectBuiltinKeywordCompletionItems());
 			suggestions = suggestions.concat(SelectBuiltinRootThisCompletionItems());
 			if((settings != null) && (settings.showThisCompletionsOnRoot)){
 				suggestions = suggestions.concat(SelectBuiltinRootThisChildrenCompletionItems());
@@ -835,6 +833,7 @@ connection.onCompletion((params: ls.CompletionParams, cancelToken: ls.Cancellati
 			documentCompletions = SelectCompletionItems(params);
 			suggestions = documentCompletions.concat(SelectBuiltinGlobalCompletionItems());
 			suggestions = suggestions.concat(SelectBuiltinRootCompletionItems());
+			suggestions = suggestions.concat(SelectBuiltinKeywordCompletionItems());
 			suggestions = suggestions.concat(SelectBuiltinRootThisCompletionItems());
 			if((settings != null) && (settings.showEventSnippetCompletionsOnRoot)){
 				suggestions = suggestions.concat(SelectBuiltinEventSnippetCompletionItems());
@@ -1394,6 +1393,7 @@ function GetBuiltinSymbols() {
 	let symbols: VizSymbol[] = [];
 	let rootsymbols: VizSymbol[] = [];
 	let globalsymbols: VizSymbol[] = [];
+	let globalkeywords: VizSymbol[] = [];
 
 	data.intellisense.completions.forEach(element => {
 		if (element.name == "Global Procedures") {
@@ -1426,15 +1426,15 @@ function GetBuiltinSymbols() {
 			});
 			element.properties.forEach(properties => {
 				let symbol: VizSymbol = new VizSymbol();
-				symbol.type = properties.return_value;
+				symbol.type = "Keyword";
 				symbol.name = properties.name;
 				symbol.insertText = properties.name;
 				symbol.hint = properties.code_hint;
 				symbol.args = properties.description;
-				symbol.kind = ls.CompletionItemKind.Variable;
+				symbol.kind = ls.CompletionItemKind.Keyword;
 				symbol.parentName = "global";
 				symbol.commitCharacters = [""];
-				globalsymbols.push(symbol);
+				globalkeywords.push(symbol);
 			});
 		}
 		else {
@@ -1492,6 +1492,7 @@ function GetBuiltinSymbols() {
 	symbolCache["builtin"] = symbols;
 	symbolCache["builtin_root"] = rootsymbols;
 	symbolCache["builtin_global"] = globalsymbols;
+	symbolCache["builtin_keywords"] = globalkeywords;
 	//connection.console.info("Found " + symbols.length + " builtin symbols in " + (Date.now() - startTime) + " ms");
 }
 
@@ -1586,6 +1587,19 @@ function SelectBuiltinGlobalCompletionItems(): ls.CompletionItem[] {
 	}
 }
 
+function SelectBuiltinKeywordCompletionItems(): ls.CompletionItem[] {
+	if((settings != null) && (settings.keywordLowercase)){
+		let symbols = VizSymbol.GetLanguageServerCompletionItems(symbolCache["builtin_keywords"]);
+		symbols.forEach(symbol => {
+			symbol.insertText = symbol.insertText.toLowerCase();
+			symbol.label = symbol.label.toLowerCase();
+		});
+		return symbols;
+	}else{
+		return VizSymbol.GetLanguageServerCompletionItems(symbolCache["builtin_keywords"]);
+	}
+}
+
 function SelectBuiltinEventCompletionItems(): ls.CompletionItem[] {
 	return VizSymbol.GetLanguageServerCompletionItems(symbolCache["builtin_events"]);
 }
@@ -1646,7 +1660,7 @@ function FindSymbol(statement: LineStatement, uri: string, symbols: Set<VizSymbo
 
 let openStructureName: string = null;
 let openStructureNameLocation: ls.Location;
-let openStructureStart: ls.Position = ls.Position.create(-1, -1);
+let openStructureStart: ls.Position = ls.Position.create(0, 0);
 
 class OpenMethod {
 	methodType: string;
@@ -2073,7 +2087,7 @@ function GetStructureSymbol(statement: LineStatement, uri: string, children: Viz
 	//let symbol: ls.SymbolInformation = ls.SymbolInformation.create(openClassName, ls.SymbolKind.Class, range, uri);
 
 	openStructureName = null;
-	openStructureStart = ls.Position.create(-1, -1);
+	openStructureStart = ls.Position.create(0, 0);
 
 	return symbol;
 }

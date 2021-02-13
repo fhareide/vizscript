@@ -143,6 +143,12 @@
 					"description": "Show Event snippet completions on root",
 					"scope": "resource"
 				},
+				"vizscript.keywordLowercase": {
+					"type": "boolean",
+					"default": true,
+					"description": "Makes all keywords(if,else etc.) lowercase",
+					"scope": "resource"
+				},
 				"vizscript.enableSignatureHelp": {
 					"type": "boolean",
 					"default": true,
