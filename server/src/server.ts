@@ -4,22 +4,23 @@
  * ------------------------------------------------------------------------------------------ */
 'use strict';
 
-import * as ls from 'vscode-languageserver';
+import * as ls from 'vscode-languageserver/node';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { VizSymbol } from "./vizsymbol";
 import * as data from './viz_completions.json';
 import * as vizevent from './vizevent_completions.json';
 import { DefinitionLink } from 'vscode-languageserver';
+import { open } from 'fs';
 
 
 
-// Create a connection for the server. The connection uses Node's IPC as a transport
-let connection: ls.IConnection = ls.createConnection(new ls.IPCMessageReader(process), new ls.IPCMessageWriter(process));
+// Create a connection for the server, using Node's IPC as a transport.
+// Also include all preview / proposed LSP features.
+let connection = ls.createConnection(ls.ProposedFeatures.all);
 
-// Create a simple text document manager. The text document manager
-// supports full document sync only
+// Create a simple text document manager.
+let documents: ls.TextDocuments<TextDocument> = new ls.TextDocuments(TextDocument);
 
-let documents = new ls.TextDocuments(TextDocument);
 // Make the text document manager listen on the connection
 // for open, change and close text document events
 documents.listen(connection);
@@ -151,11 +152,6 @@ documents.onDidClose(event => {
 	documentSettings.delete(event.document.uri);
 });
 
-let sceneId = "";
-let containerId = "";
-let scriptId = "";
-
-
 function cleanPendingValidation(textDocument: TextDocument): void {
 	const request = pendingValidationRequests[textDocument.uri];
 	if (request) {
@@ -212,9 +208,8 @@ function getLineAt(str, pos, isSignatureHelp) {
 	let dotResult = [];
 
 
-
 	let bracketRanges: ls.Range[] = getBracketRanges(line); //Remove content of closed brackets
-	let lastRange: ls.Range = ls.Range.create(ls.Position.create(-1,-1),ls.Position.create(-1,-1));
+	let lastRange: ls.Range = ls.Range.create(ls.Position.create(0,0),ls.Position.create(0,0));
 	if(bracketRanges.length != 0){
 		for (let i = bracketRanges.length - 1; i >= 0; i--) {
 			const element = bracketRanges[i];
@@ -233,6 +228,11 @@ function getLineAt(str, pos, isSignatureHelp) {
 	if(openBracketPos > 0){
 		if(!isSignatureHelp){
 			line = line.slice(openBracketPos+1);
+		}else{
+			let tmpLine, tmpEndLine;
+			tmpLine = line.slice(0, openBracketPos);
+			tmpEndLine = line.slice(openBracketPos+1);
+			line = removeBeforeOpenBracket(tmpLine) + "(" + tmpEndLine
 		}
 	}
 
@@ -251,6 +251,15 @@ function getLineAt(str, pos, isSignatureHelp) {
 			line = result[1];
 		}
 	}
+
+	result = GetRegexResult(line, /\&(?=[^\&]*$)(.*)/gi); //Split on "&"
+
+	if (result != null){
+		if( result[1] != undefined){
+			line = result[1];
+		}
+	}
+
 
 	let memberStartRegex: RegExp = /([^\.]+)([\.])*/gi; //Split on "."
 
@@ -287,18 +296,33 @@ function getLineAt(str, pos, isSignatureHelp) {
 		});
 	}
 
-
-
     // Search for the sentence beginning and end.
-	var left = cleanString.slice(0, pos + 1).search(/[^\s]+$/)
-    var right = cleanString.slice(pos).search(/[\s\.\(]/);
+	var begin, end;
+
+	let openBracketPosAfter = getOpenBracketPosition(cleanString); //If inside open bracket we should slice away everything before the bracket
+
+	if(!isSignatureHelp){
+		begin = cleanString.slice(0, pos + 1).search(/[^\s]+$/)
+		end = cleanString.slice(pos).search(/[\s\.\(]/);
+	}else{
+		if(openBracketPosAfter > 0){
+			begin = cleanString.slice(0, openBracketPosAfter).search(/[\w\.\(\)]+$/)
+		}else{
+			begin = pos
+		}
+		end = -1;
+	}
+	
+
+	
 
 	// The last word in the string is a special case.
+	
 	let finalString = "";
-    if (right < 0) {
-      finalString =  cleanString.slice(left);
+    if (end < 0) {
+      finalString =  cleanString.slice(begin);
 	} else {
-	  finalString = cleanString.slice(left, right + pos);
+	  finalString = cleanString.slice(begin, end + pos);
 	}
 
 	if(!isSignatureHelp){ //Only do this if it is not a Signature Help
@@ -306,7 +330,7 @@ function getLineAt(str, pos, isSignatureHelp) {
 		regexString = /(.*\()([^\)]*)$/gi;
 		regexResult = regexString.exec(finalString);
 		if(regexResult != null){
-			finalString = regexResult[2]; //  Removing everything before open parantheses at the end of a line (abc.fsdfsd() but not closed parantheses(fsd())
+			finalString = regexResult[2]; //  Removing everything before open parantheses at the end of a line "abc.fsdfsd(" but not closed parantheses "fsd()"
 		}
 	}
 
@@ -315,15 +339,51 @@ function getLineAt(str, pos, isSignatureHelp) {
 	regexResult = regexString.exec(finalString);
 
 	if(regexResult != null){
-		finalString = regexResult[2]; //  Removing everything before open brackets at the end of a line (abc.fsdfsd[) but not closed brackets(fsd[])
+		finalString = regexResult[2]; //  Removing everything before open brackets at the end of a line "abc.fsdfsd[" but not closed brackets "fsd[]"
 	}
 
 	//connection.console.log("Final: " + finalString);
 
-    return finalString;
+  return finalString;
 
 
 
+}
+
+function removeBeforeOpenBracket(mystring) {
+	let stack = [];
+	let bracketpos = [];
+    let map = {
+        '(': ')',
+        '[': ']',
+        '{': '}'
+    }
+
+    for (let i = 0; i < mystring.length; i++) {
+
+        // If character is an opening brace add it to a stack
+        if (mystring[i] === '(' || mystring[i] === '{' || mystring[i] === '[' ) {
+			stack.push(mystring[i]);
+			bracketpos.push(i);
+        }
+        //  If that character is a closing brace, pop from the stack, which will also reduce the length of the stack each time a closing bracket is encountered.
+        else if (mystring[i] === ')' || mystring[i] === '}' || mystring[i] === ']' ) {
+			let last = stack.pop();
+			bracketpos.pop();
+
+            //If the popped element from the stack, which is the last opening brace doesn’t match the corresponding closing brace in the map, then return false
+            if (mystring[i] !== map[last]) {
+				return mystring};
+        }
+    }
+    // By the completion of the for loop after checking all the brackets of the str, at the end, if the stack is not empty then return last open bracket pos
+        if (stack.length !== 0) {
+			//connection.console.log("Open bracket pos: " + bracketpos[stack.length-1]);
+			mystring = mystring.slice(bracketpos[stack.length-1]+1);
+			removeBeforeOpenBracket(mystring);
+		};
+
+    return mystring;
 }
 
 function getOpenBracketPosition(mystring) {
@@ -433,7 +493,7 @@ connection.onSignatureHelp((params: ls.SignatureHelpParams,cancelToken: ls.Cance
 	let noOfMatches = 0;
 
 	while (matches = signatureRegex.exec(lineAt)) {
-		let tmpline = matches[1].replace(/\([^()]*\)/g, '') // Remove parantheses
+		let tmpline = matches[1].replace(/\([^()]*\)?/g, '') // Remove parantheses
 		regexResult.push(tmpline);
 	}
 	noOfMatches = regexResult.length;
@@ -448,7 +508,7 @@ connection.onSignatureHelp((params: ls.SignatureHelpParams,cancelToken: ls.Cance
 	}
 	noOfCommas = regexResult2.length;
 
-	let item = GetItemForSignature(regexResult[noOfMatches-1],noOfMatches,regexResult,params.position);
+	let item = GetItemForSignature(regexResult[noOfMatches],noOfMatches,regexResult,params.position);
 
 	if(item == null) return null;
 	signHelp.signatures = [];
@@ -929,7 +989,7 @@ function GetItemForSignature(name: string, currentIdx: number,regexResult: any[]
 			item = GetSignatureSymbolByName(regexResult[i], position);
 			if(item != null){
 				children = item.children;
-				if((children.length < 1) && (item.parentName != "global") && (item.parentName != "event")) {
+				if((children.length < 1) && (item.parentName != "global") && (item.parentName != "event") && (i < currentIdx-1)) {
 					let innerItem = GetSignatureSymbolByName(item.type, position);
 					if(innerItem != null){
 						children = innerItem.children;
@@ -1746,7 +1806,7 @@ function GetMethodSymbol(statement: LineStatement, uri: string): VizSymbol[] {
 	}
 	symbol.args = openMethod.hint;
 	symbol.nameLocation = openMethod.nameLocation;
-	symbol.parentName = openMethod.name;
+	symbol.parentName = "document";
 	symbol.signatureInfo = GenerateSignatureHelp(symbol.hint, symbol.args);
 	symbol.commitCharacters = [""];
 	symbol.symbolRange = range;
@@ -2060,7 +2120,7 @@ connection.onRequest('showDiagnostics', (vizReply: string) => {
 	if((error != undefined)){
 		let errorRange = GetRegexResult(error[1], /\(([^)]*)\)[^(]*$/gi)
 		if(errorRange == undefined){
-			return error[1]
+			return [error[1], ""]
 		}else{
 			
 			let rangesplit = errorRange[1].split("/");
@@ -2068,8 +2128,7 @@ connection.onRequest('showDiagnostics', (vizReply: string) => {
 			let char = parseInt(rangesplit[1]);
 			let range = ls.Range.create(line-1, char-1, line-1, char);
 			DisplayDiagnostics(documentUri,range,error[1])
-			connection.window.showErrorMessage(error[1])
-			return errorRange[1]
+			return [error[1] ,errorRange[1]]
 		}
 	}
 })

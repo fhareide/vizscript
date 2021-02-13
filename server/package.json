@@ -1,10 +1,10 @@
 {
 	"dependencies": {
-		"vscode-languageserver": "^6.1.1",
-		"vscode-languageserver-textdocument": "1.0.1"
+		"vscode-languageserver": "^7.0.0",
+		"vscode-languageserver-textdocument": "^1.0.1"
 	},
 	"devDependencies": {
-		"@types/vscode": "^1.26.0",
-		"vscode-test": "1.4.0"
+		"@types/vscode": "^1.53.0",
+		"vscode-test": "^1.5.0"
 	}
 }

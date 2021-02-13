@@ -1,3 +1,12 @@
+### 0.2.22
+- **Fix**: Rewrote SignatureHelp for more accurate and consistent results
+- **Fix**: Improved completion detection to support more intricate syntax
+- **Change**: Updated versions of all dependencies 
+- **Change**: Utilized the new status bar background color to move syntax check error messages to status bar
+- **New**: Added `"statusBarItem.errorBackground"` to color themes
+
+---
+
 ### 0.2.21
 - **Fix**: Fixed bug were nested arrays as return values for functions would lead to "Catastrophic Backtracking" in regex
 - **Fix**: Fixed bug were arrays as return values for functions would destroy Signature Help
