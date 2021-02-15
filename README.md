@@ -4,15 +4,17 @@
 
 ## Features
 * Syntax Highlighting
-* Auto-Completion (Ctrl-spacebar to trigger, auto triggers if Quick Suggestions: "Other" is true.)
-    * Supports both built-in and document completions<br>
-	* Includes completions updated to Viz Engine/Artist 3.14
+* Auto-Completion ( <kbd>ctrl</kbd>-<kbd>spacebar</kbd> to trigger, auto triggers if Quick Suggestions: "Other" is true.)
+  * Supports both built-in and document completions
+  * Includes completions updated to Viz Engine/Artist 3.14
 * Color Themes
-* Validate your code on a Viz Engine
-* Get and set container and scene scripts in Viz Artist
-* Signature Help (for both built-in and document functions. With support for overloading)
-* Definition Provider(Ctrl-click to jump to definition)
-* Symbol Searching (Ctrl-Shift-O to trigger)
+* Syntax check your code on a Viz Engine ( <kbd>ctrl</kbd>-<kbd>f5</kbd>)
+* Get and set container and scene scripts in Viz Artist ( Commands: `Get scripts from Viz`  and  `Set current script in Viz`)
+* Signature Help (<kbd>ctrl</kbd>-<kbd>shift</kbd>-<kbd>spacebar</kbd> to trigger, auto triggers on `"("` if function/sub is found ) 
+  * Supports both built-in and document functions. 
+  * Supports overloading
+* Definition Provider(<kbd>ctrl</kbd>-click to jump to definition )
+* Symbol Searching (<kbd>ctrl</kbd>-<kbd>shift</kbd>-<kbd>o</kbd> to trigger )
 
 ## Activation of plugin
 * Activate by triggering `Change Language Mode` on Command Palette and choosing `VizSceneScript` / `VizContainerScript` or by opening a supported filetype.
@@ -29,6 +31,12 @@
 
 
 ----------
+
+## Changes - Viz Script 0.2.22
+* Added keywords to completions. (if,then,else etc.)
+	* Keywords are lowercase by default. Can be changed in settings `vizscript.keywordLowercase`
+* Utilized the new status bar background color to move syntax check error messages to status bar
+  * VS Code version must be `1.53.0` or higher 
 
 ## New Features - Viz Script 0.2.18
 * Added option to show Event completion snippets on root level. (e.g. OnInit())

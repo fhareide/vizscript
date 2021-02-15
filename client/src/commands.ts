@@ -97,6 +97,8 @@ export function requestAllScripts(connectionInfo: VizScriptCompilerSettings){
 	})
 }
 
+let compileMessage : StatusBarItem = window.createStatusBarItem(StatusBarAlignment.Left,0);
+
 export function compileCurrentScript(context: ExtensionContext, client: LanguageClient, editor: TextEditor){
 	client.sendRequest('getVizConnectionInfo')
 	.then(result => {
@@ -104,25 +106,27 @@ export function compileCurrentScript(context: ExtensionContext, client: Language
 		return compileScriptId(window.activeTextEditor.document.getText() ,result[0], Number(result[1]), result[2], linkedId, null)
 	})
 	.then((message) => client.sendRequest('showDiagnostics', message))
-	.then((answer) => {
-		if(answer != null){
-			if( (<string>answer) === "OK"){
-				window.setStatusBarMessage("Script successfully set in Viz. No errors", 5000)
-			} else{
-				let rangesplit = (<string>answer).split("/");
-				let line = parseInt(rangesplit[0]);
-				let char = parseInt(rangesplit[1]);
-				let range = new Range(line-1, char-1, line-1, char);
-				let editor = window.activeTextEditor;
-				editor.selection =  new Selection(range.start, range.end);
-				editor.revealRange(range);
-			}
+	.then(([error, rangeString]) => {
+		if(error == "OK"){
+			
+			compileMessage.text = '$(check) Script successfully set in Viz. No errors';
+			compileMessage.backgroundColor = "";
+			showStatusMessage(compileMessage);
+		}else{
+			let rangesplit = (<string>rangeString).split("/");
+			let line = parseInt(rangesplit[0]);
+			let char = parseInt(rangesplit[1]);
+			let range = new Range(line-1, 0, line-1, char);
+			let editor = window.activeTextEditor;
+			editor.selection =  new Selection(range.start, range.end);
+			editor.revealRange(range);
+ 
+			compileMessage.text = "$(error) " + error;
+			compileMessage.backgroundColor = new ThemeColor('statusBarItem.errorBackground');
+			showStatusMessage(compileMessage);
 		}
-
 	})
 }
-
-let compileMessage : StatusBarItem = window.createStatusBarItem(StatusBarAlignment.Left,0);
 
 export function syntaxCheckCurrentScript(context: ExtensionContext, client: LanguageClient, editor: TextEditor){
 	client.sendRequest('getVizConnectionInfo')

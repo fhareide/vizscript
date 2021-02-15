@@ -1,3 +1,8 @@
+### 0.2.23
+- **Fix**: Fixed bug with missing feedback when setting scripts in Viz
+
+---
+
 ### 0.2.22
 - **Fix**: Rewrote SignatureHelp for more accurate and consistent results
 - **Fix**: Improved completion detection to support more intricate syntax
