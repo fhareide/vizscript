@@ -486,6 +486,8 @@ connection.onSignatureHelp((params: ls.SignatureHelpParams,cancelToken: ls.Cance
 		activeSignature = params.context.activeSignatureHelp.activeSignature;
 	}
 
+	var signatureParts = lineAt.split('(');
+
 	signatureRegex = /[\.]?([^\.\ ]+)[\.\(]+/gi; // Get signature parts
 
 	let matches = [];
@@ -493,10 +495,13 @@ connection.onSignatureHelp((params: ls.SignatureHelpParams,cancelToken: ls.Cance
 
 	let noOfMatches = 0;
 
-	while (matches = signatureRegex.exec(lineAt)) {
-		let tmpline = matches[1].replace(/\([^()]*\)?/g, '') // Remove parantheses
-		regexResult.push(tmpline);
+	if (signatureParts.length > 0){
+		while (matches = signatureRegex.exec(signatureParts[0] + "(")) {
+			let tmpline = matches[1].replace(/\([^()]*\)?/g, '') // Remove parantheses
+			regexResult.push(tmpline);
+		}
 	}
+	
 	noOfMatches = regexResult.length;
 
 	matches = [];
@@ -504,7 +509,7 @@ connection.onSignatureHelp((params: ls.SignatureHelpParams,cancelToken: ls.Cance
 	let noOfCommas = 0;
 
 	signatureRegex = /([,]+)/gi; // Split on commas
-	while (matches = signatureRegex.exec(lineAt)) {
+	while (matches = signatureRegex.exec(signatureParts[1])) {
 		regexResult2.push(matches[1]);
 	}
 	noOfCommas = regexResult2.length;

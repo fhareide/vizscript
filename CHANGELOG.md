@@ -1,3 +1,8 @@
+### 0.2.24
+- **Fix**: Fixed bug were SignatureHelp would fail when using doubles as parameters
+
+---
+
 ### 0.2.23
 - **Fix**: Fixed bug with missing feedback when setting scripts in Viz
 
