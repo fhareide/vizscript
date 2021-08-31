@@ -1,3 +1,8 @@
+### 0.2.25
+- **Change**: Updated SignatureHelp to support more complex parameters without failing
+
+---
+
 ### 0.2.24
 - **Fix**: Fixed bug were SignatureHelp would fail when using doubles as parameters
 

@@ -216,8 +216,15 @@ function getLineAt(str, pos, isSignatureHelp) {
 			const element = bracketRanges[i];
 			if(!PositionInRange(lastRange, element.start)){
 				//connection.console.log("Range: " + element.start.character + " " + element.end.character);
-				var leftstr = line.slice(0,element.start.character+1);
-				var rightstr = line.slice(element.end.character);
+				var leftstr,rightstr;
+				if(isSignatureHelp){
+					leftstr = line.slice(0,element.start.character);
+				  rightstr = line.slice(element.end.character+1);
+				}else{
+					leftstr = line.slice(0,element.start.character+1);
+				  rightstr = line.slice(element.end.character);
+				}
+				
 				line = leftstr + rightstr;
 				//connection.console.log("Line: " + line);
 				lastRange = element;
@@ -255,7 +262,7 @@ function getLineAt(str, pos, isSignatureHelp) {
 
 	result = GetRegexResult(line, /\&(?=[^\&]*$)(.*)/gi); //Split on "&"
 
-	if (result != null){
+	if (result != null && !isSignatureHelp){
 		if( result[1] != undefined){
 			line = result[1];
 		}
