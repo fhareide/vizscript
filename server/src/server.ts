@@ -8,6 +8,7 @@ import * as ls from 'vscode-languageserver/node';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { VizSymbol } from "./vizsymbol";
 import * as data from './viz_completions.json';
+import * as data4 from './viz_completions4.json';
 import * as vizevent from './vizevent_completions.json';
 import { DefinitionLink } from 'vscode-languageserver';
 import { open } from 'fs';
@@ -144,6 +145,7 @@ async function cacheConfiguration(textDocument: TextDocument): Promise<void> {
 documents.onDidOpen(event => {
 	documentUri = event.document.uri;
 	cacheConfiguration(event.document);
+	SetScriptType(event.document.languageId);
 });
 
 // a document has closed: clear all diagnostics
@@ -1500,6 +1502,113 @@ function GetBuiltinSymbols() {
 		}
 	});
 
+	symbolCache["builtin_v3"] = symbols;
+	symbolCache["builtin_root_v3"] = rootsymbols;
+	symbolCache["builtin_global_v3"] = globalsymbols;
+	symbolCache["builtin_keywords_v3"] = globalkeywords;
+
+	let symbols4: VizSymbol[] = [];
+	let rootsymbols4: VizSymbol[] = [];
+	let globalsymbols4: VizSymbol[] = [];
+	let globalkeywords4: VizSymbol[] = [];
+
+	data4.intellisense.completions.forEach(element => {
+		if (element.name == "Global Procedures") {
+			element.methods.forEach(submethod => {
+
+				let symbol: VizSymbol = new VizSymbol();
+				symbol.name = submethod.name;
+				if (submethod.name.startsWith("\"Function")) symbol.kind = ls.CompletionItemKind.Function;
+				else if (submethod.name.startsWith("\"Sub")) symbol.kind = ls.CompletionItemKind.Method;
+				symbol.type = submethod.return_value;
+				symbol.hint = submethod.code_hint;
+				symbol.args = submethod.description;
+				symbol.insertSnippet = GenerateSnippetString(symbol.hint, symbol.args);
+				if((CheckHasParameters(symbol.hint) == false) && (symbol.name != "Println") && (symbol.name != "Random")){
+					symbol.insertText = submethod.name + "()";
+				} else {
+					symbol.insertText = submethod.name;
+				}
+				symbol.parentName = "global";
+				symbol.signatureInfo = GenerateSignatureHelp(symbol.hint, symbol.args);
+				symbol.commitCharacters = [""];
+				let found = globalsymbols4.find(item => item.name == submethod.name);
+				if (found != null) {
+					found.noOfOverloads ++;
+					found.hint = found.name + "() (+ " + (found.noOfOverloads) + " overload(s))"
+					found.overloads.push(symbol.signatureInfo);
+				}else{
+					globalsymbols4.push(symbol);
+				}
+			});
+			element.properties.forEach(properties => {
+				let symbol: VizSymbol = new VizSymbol();
+				symbol.type = "Keyword";
+				symbol.name = properties.name;
+				symbol.insertText = properties.name;
+				symbol.hint = properties.code_hint;
+				symbol.args = properties.description;
+				symbol.kind = ls.CompletionItemKind.Keyword;
+				symbol.parentName = "global";
+				symbol.commitCharacters = [""];
+				globalkeywords4.push(symbol);
+			});
+		}
+		else {
+			let symbol: VizSymbol = new VizSymbol();
+			symbol.kind = ls.CompletionItemKind.Class;
+			symbol.name = element.name;
+			symbol.insertText = element.name;
+			symbol.parentName = "root";
+			symbol.type = element.name;
+			symbol.args = element.descripton;
+			symbol.hint = "";
+			symbol.signatureInfo = null;
+			symbol.commitCharacters = ["."];
+			if((symbol.name == "System")||(symbol.name == "Stage")||(symbol.name == "Scene")){
+			  rootsymbols4.push(symbol);
+			}else{
+			  symbols4.push(symbol);
+			}
+
+			element.methods.forEach(submethod => {
+				let subSymbol: VizSymbol = new VizSymbol();
+				subSymbol.type = submethod.return_value;
+				subSymbol.name = submethod.name;
+				subSymbol.hint = submethod.code_hint;
+				if(CheckHasParameters(subSymbol.hint) == false){
+					subSymbol.insertText = submethod.name + "()";
+				} else {
+					subSymbol.insertText = submethod.name;
+				}
+				subSymbol.args = submethod.description;
+				if (submethod.code_hint.startsWith("\"Function")) subSymbol.kind = ls.CompletionItemKind.Function;
+				else if (submethod.code_hint.startsWith("\"Sub")) subSymbol.kind = ls.CompletionItemKind.Method;
+				subSymbol.parentName = element.name;
+				subSymbol.signatureInfo = GenerateSignatureHelp(subSymbol.hint, subSymbol.args);
+				subSymbol.commitCharacters = [""];
+				symbol.children.push(subSymbol);
+			});
+			element.properties.forEach(properties => {
+				let subSymbol: VizSymbol = new VizSymbol();
+				subSymbol.type = properties.return_value;
+				subSymbol.name = properties.name;
+				subSymbol.insertText = properties.name;
+				subSymbol.hint = properties.code_hint;
+				subSymbol.args = properties.description;
+				subSymbol.kind = ls.CompletionItemKind.Variable;
+				subSymbol.parentName = element.name;
+				subSymbol.commitCharacters = ["."];
+				symbol.children.push(subSymbol);
+			});
+
+		}
+	});
+
+	symbolCache["builtin_v4"] = symbols4;
+	symbolCache["builtin_root_v4"] = rootsymbols4;
+	symbolCache["builtin_global_v4"] = globalsymbols4;
+	symbolCache["builtin_keywords_v4"] = globalkeywords4;
 
 	symbolCache["builtin"] = symbols;
 	symbolCache["builtin_root"] = rootsymbols;
@@ -1509,10 +1618,22 @@ function GetBuiltinSymbols() {
 }
 
 function SetScriptType(languageId: string){
+	if((languageId == "viz") || (languageId == "viz-con")){
+		symbolCache["builtin"] = symbolCache["builtin_v3"];
+		symbolCache["builtin_root"] = symbolCache["builtin_root_v3"];
+		symbolCache["builtin_global"] = symbolCache["builtin_global_v3"];
+		symbolCache["builtin_keywords"] = symbolCache["builtin_keywords_v3"];
+	}else if((languageId == "viz4") || (languageId == "viz4-con")){
+		symbolCache["builtin"] = symbolCache["builtin_v4"];
+		symbolCache["builtin_root"] = symbolCache["builtin_root_v4"];
+		symbolCache["builtin_global"] = symbolCache["builtin_global_v4"];
+		symbolCache["builtin_keywords"] = symbolCache["builtin_keywords_v4"];
+	}
+
 	let lScriptType = "";
-	if(languageId == "viz"){
+	if((languageId == "viz") || (languageId == "viz4")){
 		lScriptType = "Scene";
-	}else if(languageId == "viz-con"){
+	}else if((languageId == "viz-con") || (languageId == "viz4-con")){
 		lScriptType = "Container";
 	} else{
 		symbolCache["builtin_root_this"] = [];
@@ -1528,6 +1649,7 @@ function SetScriptType(languageId: string){
 		symbolCache["builtin_root_this_children"] = [];
 		return false
 	};
+	
 	let newsymbol: VizSymbol = new VizSymbol();
 	newsymbol.kind = symbol.kind;
 	newsymbol.type = symbol.type;

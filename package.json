@@ -27,6 +27,8 @@
 	"activationEvents": [
 		"onLanguage:viz-con",
 		"onLanguage:viz",
+		"onLanguage:viz4-con",
+		"onLanguage:viz4",
 		"onCommand:vizscript.getscripts"
 	],
 	"main": "./client/out/extension",
@@ -49,11 +51,11 @@
 			"commandPalette": [
 				{
 					"command": "vizscript.compile",
-					"when": "editorLangId == viz || editorLangId == viz-con"
+					"when": "editorLangId == viz || editorLangId == viz-con || editorLangId == viz4 || editorLangId == viz4-con"
 				},
 				{
 					"command": "vizscript.compile.currentscript",
-					"when": "editorLangId == viz || editorLangId == viz-con"
+					"when": "editorLangId == viz || editorLangId == viz-con || editorLangId == viz4 || editorLangId == viz4-con"
 				},
 				{
 					"command": "vizscript.getscripts"
@@ -64,12 +66,12 @@
 			{
 				"command": "vizscript.compile",
 				"key": "ctrl+f5",
-				"when": "editorLangId == viz || editorLangId == viz-con"
+				"when": "editorLangId == viz || editorLangId == viz-con || editorLangId == viz4 || editorLangId == viz4-con"
 			},
 			{
 				"command": "vizscript.compile.currentscript",
 				"key": "ctrl+shift+f5",
-				"when": "editorLangId == viz || editorLangId == viz-con"
+				"when": "editorLangId == viz || editorLangId == viz-con || editorLangId == viz4 || editorLangId == viz4-con"
 			}
 		],
 		"languages": [
@@ -95,6 +97,28 @@
 					".vizc"
 				],
 				"configuration": "./syntaxes/language-configuration.json"
+			},
+			{
+				"id": "viz4",
+				"aliases": [
+					"Viz4SceneScript"
+				],
+				"extensions": [
+					".vs4",
+					".viz4"
+				],
+				"configuration": "./syntaxes/language-configuration.json"
+			},
+			{
+				"id": "viz4-con",
+				"aliases": [
+					"Viz4ContainerScript"
+				],
+				"extensions": [
+					".vs4c",
+					".viz4c"
+				],
+				"configuration": "./syntaxes/language-configuration.json"
 			}
 		],
 		"grammars": [
@@ -107,6 +131,16 @@
 				"language": "viz-con",
 				"scopeName": "source.viz",
 				"path": "./syntaxes/viz.tmLanguage.json"
+			},
+			{
+				"language": "viz4",
+				"scopeName": "source.viz4",
+				"path": "./syntaxes/viz4.tmLanguage.json"
+			},
+			{
+				"language": "viz4-con",
+				"scopeName": "source.viz4",
+				"path": "./syntaxes/viz4.tmLanguage.json"
 			}
 		],
 		"themes": [

@@ -1,3 +1,10 @@
+### 0.3.0
+- **New**: Added support for Viz4
+  - Scene scripts: `.vs4 .viz4`
+  - Container scripts: `.vs4c .viz4c`
+
+---
+
 ### 0.2.25
 - **Change**: Updated SignatureHelp to support more complex parameters without failing
 
