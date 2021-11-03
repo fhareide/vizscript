@@ -474,7 +474,7 @@
           {
             "name": "GetAudioChannelVolume",
             "code_hint": "Function GetAudioChannelVolume(param_1 As Integer) As Double",
-            "description": "Volume of audio channel (up to 16 channels)",
+            "description": "Volume of audio channel (up to 64 channels)",
             "return_value": "Double",
             "deprecated": "false"
           },
@@ -502,7 +502,7 @@
           {
             "name": "SetAudioChannelVolume",
             "code_hint": "Function SetAudioChannelVolume(param_1 As Integer) As Double",
-            "description": "Volume of audio channel (up to 16 channels)",
+            "description": "Volume of audio channel (up to 64 channels)",
             "return_value": "Double",
             "deprecated": "false"
           },
@@ -1924,6 +1924,13 @@
             "deprecated": "false"
           },
           {
+            "name": "ReplayMode",
+            "code_hint": "ReplayMode As Boolean",
+            "description": "If true, the channel periodically watches a folder to create its playlist and uses this playlist's end as the latest position for replay. If false, replay jumps back from current position",
+            "return_value": "Boolean",
+            "deprecated": "false"
+          },
+          {
             "name": "ReverseFields",
             "code_hint": "ReverseFields As Boolean",
             "description": "If true swap fields when playing interlaced material backwards.",
@@ -2321,6 +2328,13 @@
             "name": "QueueReplace",
             "code_hint": "Sub QueueReplace([out] ClipName As String, [out] FrameIn As Integer, [out] FrameOut As Integer, [out] AutoStart As Boolean, [out] Position As Integer)",
             "description": "Replaces a clip at the given postion with the new one.",
+            "return_value": "",
+            "deprecated": "false"
+          },
+          {
+            "name": "Replay",
+            "code_hint": "Sub Replay(FramesBack As Integer)",
+            "description": "Start Replaying from playlist end or current position (depending on ReplayMode) minus FramesBack.",
             "return_value": "",
             "deprecated": "false"
           },
@@ -3164,6 +3178,13 @@
             "code_hint": "Function FindSubContainer(name As String) As Container",
             "description": "Searches for a sub-container with the specified name. The search mode is breadth-first. It's possible to combine multiple calls to this function into one call by concatenating the individual container names using $ as a separator. For example, FindSubContainer(\"name1$name2\") has the same effect as FindSubContainer(\"name1\").FindSubContainer(\"name2\").",
             "return_value": "Container",
+            "deprecated": "false"
+          },
+          {
+            "name": "FindSubContainers",
+            "code_hint": "Sub FindSubContainers(name As String, [out] v As Array[Container])",
+            "description": "Searches the container for all subcontainers named name.",
+            "return_value": "",
             "deprecated": "false"
           },
           {
@@ -4376,8 +4397,121 @@
         ]
       },
       {
+        "name": "FusionText",
+        "descripton": "A Geometry's fusion text plugin. It provides interfaces to interact with Fusion Text.",
+        "properties": [
+          {
+            "name": "Eventpool",
+            "code_hint": "Eventpool As Eventpool [read-only]",
+            "description": "(Inherited from Base) Gets system eventpool.",
+            "return_value": "Eventpool",
+            "deprecated": "false"
+          },
+          {
+            "name": "Scene",
+            "code_hint": "Scene As Scene [read-only]",
+            "description": "(Inherited from Base) Gets the current scene.",
+            "return_value": "Scene",
+            "deprecated": "false"
+          },
+          {
+            "name": "Stage",
+            "code_hint": "Stage As Stage [read-only]",
+            "description": "(Inherited from Base) Gets the current stage.",
+            "return_value": "Stage",
+            "deprecated": "false"
+          },
+          {
+            "name": "System",
+            "code_hint": "System As System [read-only]",
+            "description": "(Inherited from Base) Gets system wide data.",
+            "return_value": "System",
+            "deprecated": "false"
+          },
+          {
+            "name": "UTF8Text",
+            "code_hint": "UTF8Text As String",
+            "description": "The UTF8-encoding text string.",
+            "return_value": "String",
+            "deprecated": "false"
+          },
+          {
+            "name": "Valid",
+            "code_hint": "Valid As Boolean [read-only]",
+            "description": "(Inherited from Base) Returns true if the object is valid.",
+            "return_value": "Boolean",
+            "deprecated": "false"
+          },
+          {
+            "name": "VizCommunication",
+            "code_hint": "VizCommunication As VizCommunication [read-only]",
+            "description": "(Inherited from Base) Gets the VizCommunication object.",
+            "return_value": "VizCommunication",
+            "deprecated": "false"
+          },
+          {
+            "name": "VizEventName",
+            "code_hint": "VizEventName As String [read-only]",
+            "description": "(Inherited from Base) The object event name which could be used in registerAsListener and the corresponding callback (the viz object event name could change)",
+            "return_value": "String",
+            "deprecated": "false"
+          },
+          {
+            "name": "VizId",
+            "code_hint": "VizId As Integer",
+            "description": "(Inherited from Base) Gets or sets the internal id of this object.",
+            "return_value": "Integer",
+            "deprecated": "false"
+          }
+        ],
+        "methods": [
+          {
+            "name": "FindChannelOfObject",
+            "code_hint": "Function FindChannelOfObject(channelName As String) As Channel",
+            "description": "(Inherited from Base) Finds an animation channel acting on this object. If this function is called on a type that cannot be animated (such as Director), it returns null.\nYou can limit the search to a particular director by using the syntax \"directorName$channelName\" for the channelName argument. Nested directors may be specified like this: \"directorName1$directorName2$channelName\".",
+            "return_value": "Channel",
+            "deprecated": "false"
+          },
+          {
+            "name": "FindKeyframeOfObject",
+            "code_hint": "Function FindKeyframeOfObject(keyframeName As String) As Keyframe",
+            "description": "(Inherited from Base) Finds a keyframe acting on the object. If this function is called on a type that cannot be animated (such as Director), it returns null.\nYou can limit the search to a particular director by using the syntax \"directorName$keyframeName\" for the keyframeName argument. Nested directors may be specified like this: \"directorName1$directorName2$keyframeName\".",
+            "return_value": "Keyframe",
+            "deprecated": "false"
+          },
+          {
+            "name": "FindOrCreateChannelOfObject",
+            "code_hint": "Function FindOrCreateChannelOfObject(channelName As String) As Channel",
+            "description": "(Inherited from Base) This function works like FindChannelOfObject except that if no animation channel with the specifed name exists, a new one is created.",
+            "return_value": "Channel",
+            "deprecated": "false"
+          },
+          {
+            "name": "GetChannelsOfObject",
+            "code_hint": "Function GetChannelsOfObject([out] v As Array[Channel]) As Integer",
+            "description": "(Inherited from Base) Fills the array v with the animation channels acting on this object, returning the number of channels. If this function is called on a type that cannot be animated (such as Director), v will be empty.",
+            "return_value": "Integer",
+            "deprecated": "false"
+          },
+          {
+            "name": "IsAnimated",
+            "code_hint": "Function IsAnimated() As Boolean",
+            "description": "(Inherited from Base) Returns true if there are animation channels for this object. If this function is called on a type that cannot be animated (such as Director), it always returns false.",
+            "return_value": "Boolean",
+            "deprecated": "false"
+          },
+          {
+            "name": "SetChanged",
+            "code_hint": "Sub SetChanged()",
+            "description": "(Inherited from Base) Mark this object as changed.",
+            "return_value": "",
+            "deprecated": "false"
+          }
+        ]
+      },
+      {
         "name": "Geometry",
-        "descripton": "A container's geometry. Depending on whether the geometry is a plugin or a text, this type provides access to the parameters of the plugin or the text.",
+        "descripton": "A container's geometry. Depending on whether the geometry is a plugin or a text, this type provides access to the parameters of the plugin or the text.\nTo work with the Fusion Text, use 'FusionText' property to access interfaces of the Fusion text",
         "properties": [
           {
             "name": "Active",
@@ -4398,6 +4532,13 @@
             "code_hint": "Eventpool As Eventpool [read-only]",
             "description": "(Inherited from Base) Gets system eventpool.",
             "return_value": "Eventpool",
+            "deprecated": "false"
+          },
+          {
+            "name": "FusionText",
+            "code_hint": "FusionText As FusionText [read-only]",
+            "description": "A geometry's fusion text.",
+            "return_value": "FusionText",
             "deprecated": "false"
           },
           {
@@ -4459,7 +4600,7 @@
           {
             "name": "Text",
             "code_hint": "Text As String",
-            "description": "The text string (if this is a text geometry)",
+            "description": "The text string (if this is a Classic text geometry)",
             "return_value": "String",
             "deprecated": "false"
           },
@@ -4717,7 +4858,7 @@
             "deprecated": "false"
           }
         ],
-        "methods":[]
+        "methods": []
       },
       {
         "name": "GestureRecognizer",
@@ -5009,7 +5150,7 @@
           {
             "name": "GetAudioChannelVolume",
             "code_hint": "Function GetAudioChannelVolume(param_1 As Integer) As Double",
-            "description": "(Inherited from AVChannel) Volume of audio channel (up to 16 channels)",
+            "description": "(Inherited from AVChannel) Volume of audio channel (up to 64 channels)",
             "return_value": "Double",
             "deprecated": "false"
           },
@@ -5030,7 +5171,7 @@
           {
             "name": "SetAudioChannelVolume",
             "code_hint": "Function SetAudioChannelVolume(param_1 As Integer) As Double",
-            "description": "(Inherited from AVChannel) Volume of audio channel (up to 16 channels)",
+            "description": "(Inherited from AVChannel) Volume of audio channel (up to 64 channels)",
             "return_value": "Double",
             "deprecated": "false"
           },
@@ -5763,7 +5904,7 @@
           {
             "name": "GetAudioChannelVolume",
             "code_hint": "Function GetAudioChannelVolume(param_1 As Integer) As Double",
-            "description": "(Inherited from AVChannel) Volume of audio channel (up to 16 channels)",
+            "description": "(Inherited from AVChannel) Volume of audio channel (up to 64 channels)",
             "return_value": "Double",
             "deprecated": "false"
           },
@@ -5784,7 +5925,7 @@
           {
             "name": "SetAudioChannelVolume",
             "code_hint": "Function SetAudioChannelVolume(param_1 As Integer) As Double",
-            "description": "(Inherited from AVChannel) Volume of audio channel (up to 16 channels)",
+            "description": "(Inherited from AVChannel) Volume of audio channel (up to 64 channels)",
             "return_value": "Double",
             "deprecated": "false"
           }
@@ -5906,8 +6047,156 @@
       {
         "name": "Integer",
         "descripton": "A 32-bit signed integer.",
-        "properties":[],
-        "methods":[]
+        "properties": [],
+        "methods": []
+      },
+      {
+        "name": "Json",
+        "descripton": "A object which holds json data.",
+        "properties": [
+          {
+            "name": "Size",
+            "code_hint": "Size As Integer [read-only]",
+            "description": "Returns the size of the current object",
+            "return_value": "Integer",
+            "deprecated": "false"
+          }
+        ],
+        "methods": [
+          {
+            "name": "At",
+            "code_hint": "Function At(index As Integer) As Json",
+            "description": "Get Array entry at given index",
+            "return_value": "Json",
+            "deprecated": "false"
+          },
+          {
+            "name": "Dump",
+            "code_hint": "Function Dump() As String",
+            "description": "Serialize json object to string",
+            "return_value": "String",
+            "deprecated": "false"
+          },
+          {
+            "name": "GetBoolean",
+            "code_hint": "Function GetBoolean(key As String) As Boolean",
+            "description": "Get boolean value for key",
+            "return_value": "Boolean",
+            "deprecated": "false"
+          },
+          {
+            "name": "GetDouble",
+            "code_hint": "Function GetDouble(key As String) As Double",
+            "description": "Get double value for key",
+            "return_value": "Double",
+            "deprecated": "false"
+          },
+          {
+            "name": "GetInteger",
+            "code_hint": "Function GetInteger(key As String) As Integer",
+            "description": "Get integer value for key",
+            "return_value": "Integer",
+            "deprecated": "false"
+          },
+          {
+            "name": "GetString",
+            "code_hint": "Function GetString(key As String) As String",
+            "description": "Get string value for key",
+            "return_value": "String",
+            "deprecated": "false"
+          },
+          {
+            "name": "IsArray",
+            "code_hint": "Function IsArray() As Boolean",
+            "description": "Check if current object is a array",
+            "return_value": "Boolean",
+            "deprecated": "false"
+          },
+          {
+            "name": "IsBoolean",
+            "code_hint": "Function IsBoolean() As Boolean",
+            "description": "Check if current object is a boolean",
+            "return_value": "Boolean",
+            "deprecated": "false"
+          },
+          {
+            "name": "IsDouble",
+            "code_hint": "Function IsDouble() As Boolean",
+            "description": "Check if current object is a double",
+            "return_value": "Boolean",
+            "deprecated": "false"
+          },
+          {
+            "name": "IsInteger",
+            "code_hint": "Function IsInteger() As Boolean",
+            "description": "Check if current object is a integer",
+            "return_value": "Boolean",
+            "deprecated": "false"
+          },
+          {
+            "name": "IsObject",
+            "code_hint": "Function IsObject() As Boolean",
+            "description": "Check if current object is a object",
+            "return_value": "Boolean",
+            "deprecated": "false"
+          },
+          {
+            "name": "IsString",
+            "code_hint": "Function IsString() As Boolean",
+            "description": "Check if current object is a string",
+            "return_value": "Boolean",
+            "deprecated": "false"
+          },
+          {
+            "name": "Load",
+            "code_hint": "Function Load(jsonData As String) As Boolean",
+            "description": "Load a json string",
+            "return_value": "Boolean",
+            "deprecated": "false"
+          },
+          {
+            "name": "LoadFile",
+            "code_hint": "Function LoadFile(filename As String) As Boolean",
+            "description": "Load a json file",
+            "return_value": "Boolean",
+            "deprecated": "false"
+          },
+          {
+            "name": "ToBoolean",
+            "code_hint": "Function ToBoolean() As String",
+            "description": "Get bool value of current object",
+            "return_value": "String",
+            "deprecated": "false"
+          },
+          {
+            "name": "ToDouble",
+            "code_hint": "Function ToDouble() As Double",
+            "description": "Get double value of current object",
+            "return_value": "Double",
+            "deprecated": "false"
+          },
+          {
+            "name": "ToInteger",
+            "code_hint": "Function ToInteger() As Integer",
+            "description": "Get integer value of current object",
+            "return_value": "Integer",
+            "deprecated": "false"
+          },
+          {
+            "name": "ToString",
+            "code_hint": "Function ToString() As String",
+            "description": "Get string value of current object",
+            "return_value": "String",
+            "deprecated": "false"
+          },
+          {
+            "name": "WriteFile",
+            "code_hint": "Function WriteFile(filename As String) As Boolean",
+            "description": "Serialize json object to a file",
+            "return_value": "Boolean",
+            "deprecated": "false"
+          }
+        ]
       },
       {
         "name": "Key",
@@ -6848,7 +7137,7 @@
       {
         "name": "Matrix",
         "descripton": "A 4x4 matrix. The index operator [] can be used to access individual entries, with indices 0, 1, 2, 3 referring to the entries of the first column, 4, 5, 6, 7 to the second, etc.",
-        "properties":[],
+        "properties": [],
         "methods": [
           {
             "name": "Frustum",
@@ -7475,6 +7764,13 @@
             "deprecated": "false"
           },
           {
+            "name": "AssignedClipChannel",
+            "code_hint": "AssignedClipChannel As String",
+            "description": "Get or set the assigned clip channel",
+            "return_value": "String",
+            "deprecated": "false"
+          },
+          {
             "name": "AudioVolume",
             "code_hint": "AudioVolume As Double",
             "description": "ProxyChannel audio volume",
@@ -8089,6 +8385,13 @@
             "deprecated": "false"
           },
           {
+            "name": "FindContainers",
+            "code_hint": "Sub FindContainers(name As String, [out] v As Array[Container])",
+            "description": "Searches the scene tree for all containers named name.",
+            "return_value": "",
+            "deprecated": "false"
+          },
+          {
             "name": "FindKeyframeOfObject",
             "code_hint": "Function FindKeyframeOfObject(keyframeName As String) As Keyframe",
             "description": "(Inherited from Base) Finds a keyframe acting on the object. If this function is called on a type that cannot be animated (such as Director), it returns null.\nYou can limit the search to a particular director by using the syntax \"directorName$keyframeName\" for the keyframeName argument. Nested directors may be specified like this: \"directorName1$directorName2$keyframeName\".",
@@ -8275,8 +8578,8 @@
       {
         "name": "Script",
         "descripton": "The container's script object. This is used to dynamically call member procedures of another container.",
-        "properties":[],
-        "methods":[]
+        "properties": [],
+        "methods": []
       },
       {
         "name": "ScriptSettings",
@@ -8318,7 +8621,7 @@
             "deprecated": "true"
           }
         ],
-        "methods":[]
+        "methods": []
       },
       {
         "name": "SharedMemory",
@@ -9227,9 +9530,16 @@
         ],
         "methods": [
           {
+            "name": "GetActivationDelay",
+            "code_hint": "Function GetActivationDelay() As Integer",
+            "description": "Is this a valid SuperChannel",
+            "return_value": "Integer",
+            "deprecated": "false"
+          },
+          {
             "name": "GetAudioChannelVolume",
             "code_hint": "Function GetAudioChannelVolume(param_1 As Integer) As Double",
-            "description": "(Inherited from AVChannel) Volume of audio channel (up to 16 channels)",
+            "description": "(Inherited from AVChannel) Volume of audio channel (up to 64 channels)",
             "return_value": "Double",
             "deprecated": "false"
           },
@@ -9250,7 +9560,7 @@
           {
             "name": "SetAudioChannelVolume",
             "code_hint": "Function SetAudioChannelVolume(param_1 As Integer) As Double",
-            "description": "(Inherited from AVChannel) Volume of audio channel (up to 16 channels)",
+            "description": "(Inherited from AVChannel) Volume of audio channel (up to 64 channels)",
             "return_value": "Double",
             "deprecated": "false"
           },
@@ -9258,6 +9568,20 @@
             "name": "Toggle",
             "code_hint": "Function Toggle() As Boolean",
             "description": "Toggles playing and pending channel",
+            "return_value": "Boolean",
+            "deprecated": "false"
+          },
+          {
+            "name": "ToggleDelayed",
+            "code_hint": "Function ToggleDelayed(param_1 As Integer) As Boolean",
+            "description": "Toggles playing and pending channel",
+            "return_value": "Boolean",
+            "deprecated": "false"
+          },
+          {
+            "name": "ToggleSynced",
+            "code_hint": "Function ToggleSynced([out] v As Array[Integer]) As Boolean",
+            "description": "Toggles all given superchannel synchronously",
             "return_value": "Boolean",
             "deprecated": "false"
           }
@@ -9438,7 +9762,7 @@
           {
             "name": "OutputSystem",
             "code_hint": "OutputSystem As Integer [read-only]",
-            "description": "Gets the output system. (VIZ_INACTIVE, VIZ_COMP_480I_5994, VIZ_COMP_576I_5000, VIZ_SDI_480I_5994_SMPTE259_NTSC, VIZ_SDI_576I_5000_SMPTE259_PAL, VIZ_SDI_720P_5994_SMPTE296, VIZ_SDI_720P_6000_SMPTE296, VIZ_SDI_1035I_5994_SMPTE260, VIZ_SDI_1035I_6000_SMPTE260, VIZ_SDI_1080I_5000_SMPTE295, VIZ_SDI_1080I_5000_SMPTE274, VIZ_SDI_1080I_5994_SMPTE274, VIZ_SDI_1080I_6000_SMPTE274, VIZ_SDI_1080PSF_23976_SMPTE274, VIZ_SDI_1080PSF_2400_SMPTE274, VIZ_SDI_1080PSF_2500_SMPTE274, VIZ_SDI_1080P_23976_SMPTE274, VIZ_SDI_1080P_2400_SMPTE274, VIZ_SDI_1080P_2500_SMPTE274, VIZ_SDI_1080P_2997_SMPTE274, VIZ_SDI_1080P_3000_SMPTE274, VIZ_SDI_720P_5000_SMPTE296, VIZ_SDI_720P_3000_SMPTE296, VIZ_SDI_720P_2997_SMPTE296, VIZ_SDI_720P_2500_SMPTE296, VIZ_SDI_720P_2400_SMPTE296, VIZ_SDI_720P_2398_SMPTE296, VIZ_SDI_1080P_5000_SMPTE424M, VIZ_SDI_1080P_5994_SMPTE424M, VIZ_SDI_1080P_6000_SMPTE424M, VIZ_SDI_2048P_24_00_SMPTE372, VIZ_SDI_2048P_25_00_SMPTE372, VIZ_SDI_2048P_29_97_SMPTE372, VIZ_SDI_2048P_30_00_SMPTE372, VIZ_SDI_2160P_2500_UHDTV1, VIZ_SDI_2160P_2997_UHDTV1, VIZ_SDI_2160P_3000_UHDTV1, VIZ_SDI_2160P_5000_SMPTE2036_UHDTV1, VIZ_SDI_2160P_5994_SMPTE2036_UHDTV1, VIZ_SDI_2160P_6000_SMPTE2036_UHDTV1, VIZ_SDI_2160P_5000_SMPTE425_5_UHDTV1, VIZ_SDI_2160P_5994_SMPTE425_5_UHDTV1, VIZ_SDI_2160P_5000_4K, VIZ_SDI_2160P_5994_4K, VIZ_SDI_2160P_6000_4K, VIZ_FULL_SCREEN, VIZ_USER_DEFINED).",
+            "description": "Gets the output system. (VIZ_INACTIVE, VIZ_COMP_480I_5994, VIZ_COMP_576I_5000, VIZ_SDI_480I_5994_SMPTE259_NTSC, VIZ_SDI_576I_5000_SMPTE259_PAL, VIZ_SDI_720P_5994_SMPTE296, VIZ_SDI_720P_6000_SMPTE296, VIZ_SDI_1035I_5994_SMPTE260, VIZ_SDI_1035I_6000_SMPTE260, 00007FF74708ADA09, VIZ_SDI_1080I_5000_SMPTE274, VIZ_SDI_1080I_5994_SMPTE274, VIZ_SDI_1080I_6000_SMPTE274, VIZ_SDI_1080PSF_23976_SMPTE274, VIZ_SDI_1080PSF_2400_SMPTE274, VIZ_SDI_1080PSF_2500_SMPTE274, VIZ_SDI_1080P_23976_SMPTE274, VIZ_SDI_1080P_2400_SMPTE274, VIZ_SDI_1080P_2500_SMPTE274, VIZ_SDI_1080P_2997_SMPTE274, VIZ_SDI_1080P_3000_SMPTE274, VIZ_SDI_720P_5000_SMPTE296, VIZ_SDI_720P_3000_SMPTE296, VIZ_SDI_720P_2997_SMPTE296, VIZ_SDI_720P_2500_SMPTE296, VIZ_SDI_720P_2400_SMPTE296, VIZ_SDI_720P_2398_SMPTE296, VIZ_SDI_1080P_5000_SMPTE424M, VIZ_SDI_1080P_5994_SMPTE424M, VIZ_SDI_1080P_6000_SMPTE424M, VIZ_SDI_2048P_24_00_SMPTE372, VIZ_SDI_2048P_25_00_SMPTE372, VIZ_SDI_2048P_29_97_SMPTE372, VIZ_SDI_2048P_30_00_SMPTE372, VIZ_SDI_2160P_2500_UHDTV1, VIZ_SDI_2160P_2997_UHDTV1, VIZ_SDI_2160P_3000_UHDTV1, VIZ_SDI_2160P_5000_SMPTE2036_UHDTV1, VIZ_SDI_2160P_5994_SMPTE2036_UHDTV1, VIZ_SDI_2160P_6000_SMPTE2036_UHDTV1, VIZ_SDI_2160P_5000_SMPTE425_5_UHDTV1, VIZ_SDI_2160P_5994_SMPTE425_5_UHDTV1, VIZ_SDI_2160P_5000_4K, VIZ_SDI_2160P_5994_4K, VIZ_SDI_2160P_6000_4K, VIZ_FULL_SCREEN, VIZ_USER_DEFINED).",
             "return_value": "Integer",
             "deprecated": "false"
           },
@@ -9989,6 +10313,27 @@
             "description": "Same as TcpSendAsync but with additional status Shared Memory Key which informs you about the transmission process. The following Messages (Strings) will be returned in sharedMemoryKeyStatus:\nSENDING\nRECEIVED\nERROR\nTIMEOUT\nThe timeoutInMs has the same meaning as for TcpSendAsync.",
             "return_value": "",
             "deprecated": "false"
+          },
+          {
+            "name": "TcpSendRaw",
+            "code_hint": "Function TcpSendRaw(hostname As String, port As Integer, data As String, timeoutInMs As Integer) As String",
+            "description": "Same as TcpSend, but without any command modification (termination).",
+            "return_value": "String",
+            "deprecated": "false"
+          },
+          {
+            "name": "TcpSendRawAsync",
+            "code_hint": "Sub TcpSendRawAsync(sharedMemoryKey As String, hostname As String, port As Integer, data As String, timeoutInMs As Integer)",
+            "description": "Same as TcpSendAsync, but without any command modification (termination).",
+            "return_value": "",
+            "deprecated": "false"
+          },
+          {
+            "name": "TcpSendRawAsyncStatus",
+            "code_hint": "Sub TcpSendRawAsyncStatus(sharedMemoryKey As String, hostname As String, port As Integer, commandString As String, timeoutInMs As Integer, sharedMemoryKeyStatus As String)",
+            "description": "Same as TcpSendAsyncStatus, but without any command modification (termination).",
+            "return_value": "",
+            "deprecated": "false"
           }
         ]
       },
@@ -10475,7 +10820,7 @@
             "deprecated": "false"
           }
         ],
-        "methods":[]
+        "methods": []
       },
       {
         "name": "Trace",
@@ -10566,8 +10911,8 @@
       {
         "name": "Variant",
         "descripton": "A variant type. Objects of this type can hold objects of any other type.",
-        "properties":[],
-        "methods":[]
+        "properties": [],
+        "methods": []
       },
       {
         "name": "Vertex",
@@ -10860,191 +11205,191 @@
       },
       {
         "name": "Global Procedures",
-        "descripton":"",
-        "properties":[
-					{
+        "descripton": "",
+        "properties": [
+          {
             "name": "Null",
             "code_hint": "",
             "description": "",
             "return_value": "",
             "deprecated": "false"
-					},
-					{
+          },
+          {
             "name": "True",
             "code_hint": "",
             "description": "",
             "return_value": "Boolean",
             "deprecated": "false"
-					},
-					{
+          },
+          {
             "name": "False",
             "code_hint": "",
             "description": "",
             "return_value": "Boolean",
             "deprecated": "false"
           },
-					{
+          {
             "name": "If",
             "code_hint": "",
             "description": "",
             "return_value": "",
             "deprecated": "false"
           },
-					{
+          {
             "name": "Then",
             "code_hint": "",
             "description": "",
             "return_value": "",
             "deprecated": "false"
           },
-					{
+          {
             "name": "Else",
             "code_hint": "",
             "description": "",
             "return_value": "",
             "deprecated": "false"
           },
-					{
+          {
             "name": "ElseIf",
             "code_hint": "",
             "description": "",
             "return_value": "",
             "deprecated": "false"
           },
-					{
+          {
             "name": "End",
             "code_hint": "",
             "description": "",
             "return_value": "",
             "deprecated": "false"
           },
-					{
+          {
             "name": "While",
             "code_hint": "",
             "description": "",
             "return_value": "",
             "deprecated": "false"
           },
-					{
+          {
             "name": "For",
             "code_hint": "",
             "description": "",
             "return_value": "",
             "deprecated": "false"
           },
-					{
+          {
             "name": "To",
             "code_hint": "",
             "description": "",
             "return_value": "",
             "deprecated": "false"
           },
-					{
+          {
             "name": "Each",
             "code_hint": "",
             "description": "",
             "return_value": "",
             "deprecated": "false"
           },
-					{
+          {
             "name": "In",
             "code_hint": "",
             "description": "",
             "return_value": "",
             "deprecated": "false"
           },
-					{
+          {
             "name": "Case",
             "code_hint": "",
             "description": "",
             "return_value": "",
             "deprecated": "false"
           },
-					{
+          {
             "name": "Select",
             "code_hint": "",
             "description": "",
             "return_value": "",
             "deprecated": "false"
           },
-					{
+          {
             "name": "Continue",
             "code_hint": "",
             "description": "",
             "return_value": "",
             "deprecated": "false"
           },
-					{
+          {
             "name": "Do",
             "code_hint": "",
             "description": "",
             "return_value": "",
             "deprecated": "false"
           },
-					{
+          {
             "name": "Loop",
             "code_hint": "",
             "description": "",
             "return_value": "",
             "deprecated": "false"
           },
-					{
+          {
             "name": "Next",
             "code_hint": "",
             "description": "",
             "return_value": "",
             "deprecated": "false"
           },
-					{
+          {
             "name": "Exit",
             "code_hint": "",
             "description": "",
             "return_value": "",
             "deprecated": "false"
           },
-					{
+          {
             "name": "Step",
             "code_hint": "",
             "description": "",
             "return_value": "",
             "deprecated": "false"
           },
-					{
+          {
             "name": "Dim",
             "code_hint": "",
             "description": "",
             "return_value": "",
             "deprecated": "false"
           },
-					{
+          {
             "name": "As",
             "code_hint": "",
             "description": "",
             "return_value": "",
             "deprecated": "false"
           },
-					{
+          {
             "name": "Function",
             "code_hint": "",
             "description": "",
             "return_value": "",
             "deprecated": "false"
           },
-					{
+          {
             "name": "Sub",
             "code_hint": "",
             "description": "",
             "return_value": "",
             "deprecated": "false"
           },
-					{
+          {
             "name": "Structure",
             "code_hint": "",
             "description": "",
             "return_value": "",
             "deprecated": "false"
           }
-				],
+        ],
         "methods": [
           {
             "name": "Abs",
@@ -11715,6 +12060,13 @@
             "name": "RegisterRadioButton",
             "code_hint": "Sub RegisterRadioButton(parameterName As String, label As String, defaultIndex As Integer, buttonNames As Array[String])",
             "description": "Register a block of radio buttons.",
+            "return_value": "String",
+            "deprecated": "false"
+          },
+          {
+            "name": "Request",
+            "code_hint": "Sub Request(location As String, message As String)",
+            "description": "Perform message request",
             "return_value": "String",
             "deprecated": "false"
           },

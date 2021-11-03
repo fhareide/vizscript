@@ -21,5 +21,5 @@ export function showUntitledWindow(id: string, fileExtension: string, content: s
 
 			return window.showTextDocument(<any>textDocument, ViewColumn.One, false);
 		})
-		.then(result =>{context.globalState.update(result.document.uri.toString(), id)});
+		.then(result =>{context.workspaceState.update(result.document.uri.toString(), id)});
 }

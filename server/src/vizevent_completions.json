@@ -27,13 +27,13 @@
       },
       {
         "name": "OnEnterSubContainer",
-        "code_hint": "Sub OnEnterSubContainer(subContainer As Container)",
-        "description": "Called when the mouse cursor enters the area occupied by a sub-container of the script's container. Otherwise identical to OnEnter.\nAttention: Due to the necessary object hit-testing (picking) using this callback can have impacts on the overall render performance."
+        "code_hint": "Sub OnEnterSubContainer(SubContainer As Container)",
+        "description": "Called when the mouse cursor enters the area occupied by a Sub-container of the script's container. Otherwise identical to OnEnter.\nAttention: Due to the necessary object hit-testing (picking) using this callback can have impacts on the overall render performance."
       },
       {
         "name": "OnLeaveSubContainer",
-        "code_hint": "Sub OnLeaveSubContainer(subContainer As Container)",
-        "description": "Called when the mouse cursor leaves the area occupied by a sub-container of the script's container.\nAttention: Due to the necessary object hit-testing (picking) using this callback can have impacts on the overall render performance."
+        "code_hint": "Sub OnLeaveSubContainer(SubContainer As Container)",
+        "description": "Called when the mouse cursor leaves the area occupied by a Sub-container of the script's container.\nAttention: Due to the necessary object hit-testing (picking) using this callback can have impacts on the overall render performance."
       },
       {
         "name": "OnExecPerField",
@@ -167,17 +167,17 @@
       },
       {
         "name": "OnSharedMemoryVariableChanged",
-        "code_hint": "sub OnSharedMemoryVariableChanged(map As SharedMemory, mapKey As String)",
+        "code_hint": "Sub OnSharedMemoryVariableChanged(map As SharedMemory, mapKey As String)",
         "description": "Called when a variable in a SharedMemory map is changed. The SharedMemory map and the name of the variable are passed to this procedure as parameters. The name of the variable must previously be registered to the SharedMemory map by calling its RegisterChangedCallback procedure."
       },
       {
         "name": "OnSharedMemoryVariableDeleted",
-        "code_hint": "sub OnSharedMemoryVariableDeleted(map As SharedMemory, mapKey As String)",
+        "code_hint": "Sub OnSharedMemoryVariableDeleted(map As SharedMemory, mapKey As String)",
         "description": "Called when a variable in a SharedMemory map is deleted. The SharedMemory map and the name of the variable are passed to this procedure as parameters. The name of the variable must previously be registered to the SharedMemory map by calling its RegisterChangedCallback procedure."
       },
       {
         "name": "OnGeometryChanged",
-        "code_hint": "sub OnGeometryChanged(geom As Geometry)",
+        "code_hint": "Sub OnGeometryChanged(geom As Geometry)",
         "description": "Called when a geometry changed which was registered with RegisterChangedCallback or RegisterTextChangedCallback before."
       },
       {
@@ -187,7 +187,7 @@
       },
       {
         "name": "OnPreview",
-        "code_hint": "sub OnPreview(active As Integer)",
+        "code_hint": "Sub OnPreview(active As Integer)",
         "description": "The callback is used to inform Scripts and Plugins that the engine switches to preview mode (active == 1) or back (active == 0). To enter or leave Preview mode the command \"SCENE PREVIEW active\" is used. For example: \"RENDERER*MAIN_LAYER PREVIEW 1\" and \"RENDERER*MAIN_LAYER PREVIEW 0\""
       }
     ]

@@ -1,3 +1,60 @@
+### 0.3.0
+- **New**: Added support for Viz4
+  - Scene scripts: `.vs4 .viz4`
+  - Container scripts: `.vs4c .viz4c`
+
+---
+
+### 0.2.25
+- **Change**: Updated SignatureHelp to support more complex parameters without failing
+
+---
+
+### 0.2.24
+- **Fix**: Fixed bug were SignatureHelp would fail when using doubles as parameters
+
+---
+
+### 0.2.23
+- **Fix**: Fixed bug with missing feedback when setting scripts in Viz
+
+---
+
+### 0.2.22
+- **Fix**: Rewrote SignatureHelp for more accurate and consistent results
+- **Fix**: Improved completion detection to support more intricate syntax
+- **Change**: Updated versions of all dependencies 
+- **Change**: Utilized the new status bar background color to move syntax check error messages to status bar
+- **New**: Added `"statusBarItem.errorBackground"` to color themes
+- **New**: Added keywords to completions
+- **New**: Option `vizscript.keywordLowercase` - Makes all keywords(if,else etc.) lowercase
+
+---
+
+### 0.2.21
+- **Fix**: Fixed bug were nested arrays as return values for functions would lead to "Catastrophic Backtracking" in regex
+- **Fix**: Fixed bug were arrays as return values for functions would destroy Signature Help
+- **Fix**: Added special case for "Println" and "Random" to avoid adding "()" at end of completion
+
+---
+
+### 0.2.20
+- **Fix**: Fixed bug were error message from Viz would not always parse correctly
+
+---
+
+### 0.2.19
+- **Fix**: Fixed a bug were SignatureHelp would spam the console if a function was not found.
+- **Fix**: Fixed a bug were "Get scripts from Viz" would fail with undefined VizId when using the new file option
+
+---
+
+### 0.2.18
+- **New**: Added option to show Event completion snippets on root level. (e.g. OnInit())
+- **New**: Option `vizscript.showEventSnippetCompletionsOnRoot` - Show Event completions on root
+
+---
+
 ### 0.2.17
 - **Fix**: Fixed bug were switching between tabs would not update extension data correctly
 - **Fix**: Improved Definition results further and changed selection range to follow VS Code standard

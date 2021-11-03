@@ -4,23 +4,25 @@
  * ------------------------------------------------------------------------------------------ */
 'use strict';
 
-import * as ls from 'vscode-languageserver';
+import * as ls from 'vscode-languageserver/node';
 import { TextDocument } from 'vscode-languageserver-textdocument';
 import { VizSymbol } from "./vizsymbol";
 import * as data from './viz_completions.json';
+import * as data4 from './viz_completions4.json';
 import * as vizevent from './vizevent_completions.json';
 import * as vizcommands from './viz_commands.json';
 import { DefinitionLink } from 'vscode-languageserver';
+import { open } from 'fs';
 
 
 
-// Create a connection for the server. The connection uses Node's IPC as a transport
-let connection: ls.IConnection = ls.createConnection(new ls.IPCMessageReader(process), new ls.IPCMessageWriter(process));
+// Create a connection for the server, using Node's IPC as a transport.
+// Also include all preview / proposed LSP features.
+let connection = ls.createConnection(ls.ProposedFeatures.all);
 
-// Create a simple text document manager. The text document manager
-// supports full document sync only
+// Create a simple text document manager.
+let documents: ls.TextDocuments<TextDocument> = new ls.TextDocuments(TextDocument);
 
-let documents = new ls.TextDocuments(TextDocument);
 // Make the text document manager listen on the connection
 // for open, change and close text document events
 documents.listen(connection);
@@ -77,6 +79,8 @@ connection.onInitialized(() => {
 interface VizScriptSettings {
 	enableAutoComplete: boolean;
 	showThisCompletionsOnRoot: boolean;
+	showEventSnippetCompletionsOnRoot: boolean;
+	keywordLowercase: boolean;
 	enableSignatureHelp: boolean;
 	enableDefinition: boolean;
 	enableGlobalProcedureSnippets: boolean;
@@ -143,6 +147,7 @@ async function cacheConfiguration(textDocument: TextDocument): Promise<void> {
 documents.onDidOpen(event => {
 	documentUri = event.document.uri;
 	cacheConfiguration(event.document);
+	SetScriptType(event.document.languageId);
 });
 
 // a document has closed: clear all diagnostics
@@ -151,11 +156,6 @@ documents.onDidClose(event => {
 	connection.sendDiagnostics({ uri: event.document.uri, diagnostics: [] });
 	documentSettings.delete(event.document.uri);
 });
-
-let sceneId = "";
-let containerId = "";
-let scriptId = "";
-
 
 function cleanPendingValidation(textDocument: TextDocument): void {
 	const request = pendingValidationRequests[textDocument.uri];
@@ -213,16 +213,22 @@ function getLineAt(str, pos, isSignatureHelp) {
 	let dotResult = [];
 
 
-
 	let bracketRanges: ls.Range[] = getBracketRanges(line); //Remove content of closed brackets
-	let lastRange: ls.Range = ls.Range.create(ls.Position.create(-1,-1),ls.Position.create(-1,-1));
+	let lastRange: ls.Range = ls.Range.create(ls.Position.create(0,0),ls.Position.create(0,0));
 	if(bracketRanges.length != 0){
 		for (let i = bracketRanges.length - 1; i >= 0; i--) {
 			const element = bracketRanges[i];
 			if(!PositionInRange(lastRange, element.start)){
 				//connection.console.log("Range: " + element.start.character + " " + element.end.character);
-				var leftstr = line.slice(0,element.start.character+1);
-				var rightstr = line.slice(element.end.character);
+				var leftstr,rightstr;
+				if(isSignatureHelp){
+					leftstr = line.slice(0,element.start.character);
+				  rightstr = line.slice(element.end.character+1);
+				}else{
+					leftstr = line.slice(0,element.start.character+1);
+				  rightstr = line.slice(element.end.character);
+				}
+				
 				line = leftstr + rightstr;
 				//connection.console.log("Line: " + line);
 				lastRange = element;
@@ -234,6 +240,11 @@ function getLineAt(str, pos, isSignatureHelp) {
 	if(openBracketPos > 0){
 		if(!isSignatureHelp){
 			line = line.slice(openBracketPos+1);
+		}else{
+			let tmpLine, tmpEndLine;
+			tmpLine = line.slice(0, openBracketPos);
+			tmpEndLine = line.slice(openBracketPos+1);
+			line = removeBeforeOpenBracket(tmpLine) + "(" + tmpEndLine
 		}
 	}
 
@@ -252,6 +263,15 @@ function getLineAt(str, pos, isSignatureHelp) {
 			line = result[1];
 		}
 	}
+
+	result = GetRegexResult(line, /\&(?=[^\&]*$)(.*)/gi); //Split on "&"
+
+	if (result != null && !isSignatureHelp){
+		if( result[1] != undefined){
+			line = result[1];
+		}
+	}
+
 
 	let memberStartRegex: RegExp = /([^\.]+)([\.])*/gi; //Split on "."
 
@@ -288,18 +308,33 @@ function getLineAt(str, pos, isSignatureHelp) {
 		});
 	}
 
-
-
     // Search for the sentence beginning and end.
-	var left = cleanString.slice(0, pos + 1).search(/[^\s]+$/)
-    var right = cleanString.slice(pos).search(/[\s\.\(]/);
+	var begin, end;
+
+	let openBracketPosAfter = getOpenBracketPosition(cleanString); //If inside open bracket we should slice away everything before the bracket
+
+	if(!isSignatureHelp){
+		begin = cleanString.slice(0, pos + 1).search(/[^\s]+$/)
+		end = cleanString.slice(pos).search(/[\s\.\(]/);
+	}else{
+		if(openBracketPosAfter > 0){
+			begin = cleanString.slice(0, openBracketPosAfter).search(/[\w\.\(\)]+$/)
+		}else{
+			begin = pos
+		}
+		end = -1;
+	}
+	
+
+	
 
 	// The last word in the string is a special case.
+	
 	let finalString = "";
-    if (right < 0) {
-      finalString =  cleanString.slice(left);
+    if (end < 0) {
+      finalString =  cleanString.slice(begin);
 	} else {
-	  finalString = cleanString.slice(left, right + pos);
+	  finalString = cleanString.slice(begin, end + pos);
 	}
 
 	if(!isSignatureHelp){ //Only do this if it is not a Signature Help
@@ -307,7 +342,7 @@ function getLineAt(str, pos, isSignatureHelp) {
 		regexString = /(.*\()([^\)]*)$/gi;
 		regexResult = regexString.exec(finalString);
 		if(regexResult != null){
-			finalString = regexResult[2]; //  Removing everything before open parantheses at the end of a line (abc.fsdfsd() but not closed parantheses(fsd())
+			finalString = regexResult[2]; //  Removing everything before open parantheses at the end of a line "abc.fsdfsd(" but not closed parantheses "fsd()"
 		}
 	}
 
@@ -316,15 +351,51 @@ function getLineAt(str, pos, isSignatureHelp) {
 	regexResult = regexString.exec(finalString);
 
 	if(regexResult != null){
-		finalString = regexResult[2]; //  Removing everything before open brackets at the end of a line (abc.fsdfsd[) but not closed brackets(fsd[])
+		finalString = regexResult[2]; //  Removing everything before open brackets at the end of a line "abc.fsdfsd[" but not closed brackets "fsd[]"
 	}
 
 	//connection.console.log("Final: " + finalString);
 
-    return finalString;
+  return finalString;
 
 
 
+}
+
+function removeBeforeOpenBracket(mystring) {
+	let stack = [];
+	let bracketpos = [];
+    let map = {
+        '(': ')',
+        '[': ']',
+        '{': '}'
+    }
+
+    for (let i = 0; i < mystring.length; i++) {
+
+        // If character is an opening brace add it to a stack
+        if (mystring[i] === '(' || mystring[i] === '{' || mystring[i] === '[' ) {
+			stack.push(mystring[i]);
+			bracketpos.push(i);
+        }
+        //  If that character is a closing brace, pop from the stack, which will also reduce the length of the stack each time a closing bracket is encountered.
+        else if (mystring[i] === ')' || mystring[i] === '}' || mystring[i] === ']' ) {
+			let last = stack.pop();
+			bracketpos.pop();
+
+            //If the popped element from the stack, which is the last opening brace doesn’t match the corresponding closing brace in the map, then return false
+            if (mystring[i] !== map[last]) {
+				return mystring};
+        }
+    }
+    // By the completion of the for loop after checking all the brackets of the str, at the end, if the stack is not empty then return last open bracket pos
+        if (stack.length !== 0) {
+			//connection.console.log("Open bracket pos: " + bracketpos[stack.length-1]);
+			mystring = mystring.slice(bracketpos[stack.length-1]+1);
+			removeBeforeOpenBracket(mystring);
+		};
+
+    return mystring;
 }
 
 function getCommandLineAt(str, pos, isSignatureHelp) {
@@ -510,6 +581,8 @@ connection.onSignatureHelp((params: ls.SignatureHelpParams,cancelToken: ls.Cance
 		activeSignature = params.context.activeSignatureHelp.activeSignature;
 	}
 
+	var signatureParts = lineAt.split('(');
+
 	signatureRegex = /[\.]?([^\.\ ]+)[\.\(]+/gi; // Get signature parts
 
 	let matches = [];
@@ -517,10 +590,13 @@ connection.onSignatureHelp((params: ls.SignatureHelpParams,cancelToken: ls.Cance
 
 	let noOfMatches = 0;
 
-	while (matches = signatureRegex.exec(lineAt)) {
-		let tmpline = matches[1].replace(/\([^()]*\)/g, '') // Remove parantheses
-		regexResult.push(tmpline);
+	if (signatureParts.length > 0){
+		while (matches = signatureRegex.exec(signatureParts[0] + "(")) {
+			let tmpline = matches[1].replace(/\([^()]*\)?/g, '') // Remove parantheses
+			regexResult.push(tmpline);
+		}
 	}
+	
 	noOfMatches = regexResult.length;
 
 	matches = [];
@@ -528,12 +604,12 @@ connection.onSignatureHelp((params: ls.SignatureHelpParams,cancelToken: ls.Cance
 	let noOfCommas = 0;
 
 	signatureRegex = /([,]+)/gi; // Split on commas
-	while (matches = signatureRegex.exec(lineAt)) {
+	while (matches = signatureRegex.exec(signatureParts[1])) {
 		regexResult2.push(matches[1]);
 	}
 	noOfCommas = regexResult2.length;
 
-	let item = GetItemForSignature(regexResult[noOfMatches-1],noOfMatches,regexResult,params.position);
+	let item = GetItemForSignature(regexResult[noOfMatches],noOfMatches,regexResult,params.position);
 
 	if(item == null) return null;
 	signHelp.signatures = [];
@@ -659,6 +735,26 @@ function GenerateSnippetString(hint: string, documentation: string): string {
 	}
 
 	snippetString += ")"
+
+	return snippetString;
+}
+
+function GenerateEventSnippetString(insertText: string): string {
+	let regexResult = [];
+
+	let regexString: RegExp = /^[ \t]*(function|sub)(.*)*/gi;
+
+	regexResult = regexString.exec(insertText);
+
+	if( regexResult == null) return insertText;
+
+	let snippetString = "";
+
+	if(regexResult.length < 2) return insertText;
+
+	snippetString += regexResult[1].toLowerCase() + regexResult[2] + "\n";
+	snippetString += "  ${0}\n"
+	snippetString += "end " + regexResult[1].toLowerCase()
 
 	return snippetString;
 }
@@ -831,12 +927,7 @@ connection.onCompletion((params: ls.CompletionParams, cancelToken: ls.Cancellati
   // End command suggestions
 
 	if (GetRegexResult(line, /^[ \t]*dim[ \t]+([a-zA-Z0-9\-\_\,]+)[ \t]*([as]+)?$/gi) != null) return;// No sugggestions when declaring variables
-	if (GetRegexResult(line, /^[ \t]*function[ \t]+([a-zA-Z0-9\-\_\,]+)$/gi) != null) return;// No suggestions when declaring functions
-	if (GetRegexResult(line, /^[ \t]*end[ \t]+([a-zA-Z0-9\-\_\,]*)$/gi) != null) return;// No suggestions for ending sub or function
-	if (GetRegexResult(line, /^[ \t]*exit[ \t]+([a-zA-Z0-9\-\_\,]*)$/gi) != null) return;// No suggestions for exit sub or function
-	if (GetRegexResult(line, /^[if|elseif]*(.*)[ \t]+[then]+$/gi) != null) return;// No suggestions at end of if sentence
-	if (GetRegexResult(line, /^[ \t]*[else]+$/gi) != null) return;// No suggestions for else keyword
-
+	if (GetRegexResult(line, /^[ \t]*(function|structure)+[ \t]+([a-zA-Z0-9\-\_\,]+)$/gi) != null) return;// No suggestions when declaring functions or structure
 	if (GetRegexResult(line, /^[ \t]*sub[ \t]+On?$/gi) != null) return SelectBuiltinEventCompletionItems();// Only event suggestions when declaring submethod
 
 	if (GetRegexResult(line, /\=[\s]*([^\=\.\)]+)$/gi) != null) // Suggestions after "="
@@ -845,6 +936,7 @@ connection.onCompletion((params: ls.CompletionParams, cancelToken: ls.Cancellati
 		suggestions = documentCompletions.concat(SelectBuiltinGlobalCompletionItems());
 		suggestions = suggestions.concat(SelectBuiltinRootCompletionItems());
 		suggestions = suggestions.concat(SelectBuiltinRootThisCompletionItems());
+		suggestions = suggestions.concat(SelectBuiltinKeywordCompletionItems());
 		if((settings != null) && (settings.showThisCompletionsOnRoot)){
 			suggestions = suggestions.concat(SelectBuiltinRootThisChildrenCompletionItems());
 		}
@@ -894,6 +986,7 @@ connection.onCompletion((params: ls.CompletionParams, cancelToken: ls.Cancellati
 			}
 			suggestions = documentCompletions.concat(SelectBuiltinCompletionItems());
 			suggestions = suggestions.concat(SelectBuiltinRootCompletionItems());
+			suggestions = suggestions.concat(SelectBuiltinKeywordCompletionItems());
 			suggestions = suggestions.concat(SelectBuiltinRootThisCompletionItems());
 			if((settings != null) && (settings.showThisCompletionsOnRoot)){
 				suggestions = suggestions.concat(SelectBuiltinRootThisChildrenCompletionItems());
@@ -902,7 +995,11 @@ connection.onCompletion((params: ls.CompletionParams, cancelToken: ls.Cancellati
 			documentCompletions = SelectCompletionItems(params);
 			suggestions = documentCompletions.concat(SelectBuiltinGlobalCompletionItems());
 			suggestions = suggestions.concat(SelectBuiltinRootCompletionItems());
+			suggestions = suggestions.concat(SelectBuiltinKeywordCompletionItems());
 			suggestions = suggestions.concat(SelectBuiltinRootThisCompletionItems());
+			if((settings != null) && (settings.showEventSnippetCompletionsOnRoot)){
+				suggestions = suggestions.concat(SelectBuiltinEventSnippetCompletionItems());
+			}
 			if((settings != null) && (settings.showThisCompletionsOnRoot)){
 				suggestions = suggestions.concat(SelectBuiltinRootThisChildrenCompletionItems());
 			}
@@ -1076,9 +1173,11 @@ function GetItemForSignature(name: string, currentIdx: number,regexResult: any[]
 
 	if((settings != null) && (settings.showThisCompletionsOnRoot)){
 		if(regexResult.length == 1){
-			item = GetSymbolByName(regexResult[0], position);
-			if(item.parentName == scriptType){
-				return item;
+			item = GetSignatureSymbolByName(regexResult[0], position);
+			if(item != undefined){
+				if(item.parentName == scriptType){
+					return item;
+				}
 			}
 		}
 	}
@@ -1087,11 +1186,11 @@ function GetItemForSignature(name: string, currentIdx: number,regexResult: any[]
 	for (var i = 0; i < currentIdx; i++) {
 
 		if(children == null){
-			item = GetSymbolByName(regexResult[i], position);
+			item = GetSignatureSymbolByName(regexResult[i], position);
 			if(item != null){
 				children = item.children;
-				if((children.length < 1) && (item.parentName != "global") && (item.parentName != "event")) {
-					let innerItem = GetSymbolByName(item.type, position);
+				if((children.length < 1) && (item.parentName != "global") && (item.parentName != "event") && (i < currentIdx-1)) {
+					let innerItem = GetSignatureSymbolByName(item.type, position);
 					if(innerItem != null){
 						children = innerItem.children;
 						item = innerItem;
@@ -1103,7 +1202,7 @@ function GetItemForSignature(name: string, currentIdx: number,regexResult: any[]
 			//let outerType = GetSymbolTypeInChildren(regexResult[i],children);
 			let outerItem = GetSymbolInChildren(regexResult[i],children);
 			if(outerItem != null){
-				item = GetSymbolByName(outerItem.type, position);
+				item = GetSignatureSymbolByName(outerItem.type, position);
 				if(item != null){
 					children = item.children;
 				}else{
@@ -1130,7 +1229,15 @@ function GetSymbolsOfDocument(uri: string): ls.SymbolInformation[] {
 	return VizSymbol.GetLanguageServerSymbols(symbolCache[uri]);
 }
 
+function GetSignatureSymbolByName(name: string, position: ls.Position): VizSymbol {
+	return GetInternalSymbolByName(name, position, true);
+}
+
 function GetSymbolByName(name: string, position: ls.Position): VizSymbol {
+	return GetInternalSymbolByName(name, position, false);
+}
+
+function GetInternalSymbolByName(name: string, position: ls.Position, isSignature: Boolean): VizSymbol {
 	if(name == undefined) return null;
 	let regexResult;
 	let memberStartRegex: RegExp =/^array[\ ]*\[(.*?)\]/gi; // Remove array[]
@@ -1210,7 +1317,7 @@ function GetSymbolByName(name: string, position: ls.Position): VizSymbol {
 		}
 
 
-		if(result != null && result.type != null){
+		if(result != null && result.type != null && !isSignature){
 			if(result.type.toLowerCase().startsWith("array[")){
 				if(isArrayType){
 					let tmpType = GetRegexResult(result.type, /\[(.*?)\]/gi)
@@ -1548,6 +1655,7 @@ function GetBuiltinSymbols() {
 	let symbols: VizSymbol[] = [];
 	let rootsymbols: VizSymbol[] = [];
 	let globalsymbols: VizSymbol[] = [];
+	let globalkeywords: VizSymbol[] = [];
 
 	data.intellisense.completions.forEach(element => {
 		if (element.name == "Global Procedures") {
@@ -1563,7 +1671,7 @@ function GetBuiltinSymbols() {
 				symbol.hint = submethod.code_hint;
 				symbol.args = submethod.description;
 				symbol.insertSnippet = GenerateSnippetString(symbol.hint, symbol.args);
-				if(CheckHasParameters(symbol.hint) == false){
+				if((CheckHasParameters(symbol.hint) == false) && (symbol.name != "Println") && (symbol.name != "Random")){
 					symbol.insertText = submethod.name + "()";
 				} else {
 					symbol.insertText = submethod.name;
@@ -1582,15 +1690,15 @@ function GetBuiltinSymbols() {
 			});
 			element.properties.forEach(properties => {
 				let symbol: VizSymbol = new VizSymbol();
-				symbol.type = properties.return_value;
+				symbol.type = "Keyword";
 				symbol.name = properties.name;
 				symbol.insertText = properties.name;
 				symbol.hint = properties.code_hint;
 				symbol.args = properties.description;
-				symbol.kind = ls.CompletionItemKind.Variable;
+				symbol.kind = ls.CompletionItemKind.Keyword;
 				symbol.parentName = "global";
 				symbol.commitCharacters = [""];
-				globalsymbols.push(symbol);
+				globalkeywords.push(symbol);
 			});
 		}
 		else {
@@ -1646,10 +1754,118 @@ function GetBuiltinSymbols() {
 		}
 	});
 
+	symbolCache["builtin_v3"] = symbols;
+	symbolCache["builtin_root_v3"] = rootsymbols;
+	symbolCache["builtin_global_v3"] = globalsymbols;
+	symbolCache["builtin_keywords_v3"] = globalkeywords;
+
+	let symbols4: VizSymbol[] = [];
+	let rootsymbols4: VizSymbol[] = [];
+	let globalsymbols4: VizSymbol[] = [];
+	let globalkeywords4: VizSymbol[] = [];
+
+	data4.intellisense.completions.forEach(element => {
+		if (element.name == "Global Procedures") {
+			element.methods.forEach(submethod => {
+
+				let symbol: VizSymbol = new VizSymbol();
+				symbol.name = submethod.name;
+				if (submethod.name.startsWith("\"Function")) symbol.kind = ls.CompletionItemKind.Function;
+				else if (submethod.name.startsWith("\"Sub")) symbol.kind = ls.CompletionItemKind.Method;
+				symbol.type = submethod.return_value;
+				symbol.hint = submethod.code_hint;
+				symbol.args = submethod.description;
+				symbol.insertSnippet = GenerateSnippetString(symbol.hint, symbol.args);
+				if((CheckHasParameters(symbol.hint) == false) && (symbol.name != "Println") && (symbol.name != "Random")){
+					symbol.insertText = submethod.name + "()";
+				} else {
+					symbol.insertText = submethod.name;
+				}
+				symbol.parentName = "global";
+				symbol.signatureInfo = GenerateSignatureHelp(symbol.hint, symbol.args);
+				symbol.commitCharacters = [""];
+				let found = globalsymbols4.find(item => item.name == submethod.name);
+				if (found != null) {
+					found.noOfOverloads ++;
+					found.hint = found.name + "() (+ " + (found.noOfOverloads) + " overload(s))"
+					found.overloads.push(symbol.signatureInfo);
+				}else{
+					globalsymbols4.push(symbol);
+				}
+			});
+			element.properties.forEach(properties => {
+				let symbol: VizSymbol = new VizSymbol();
+				symbol.type = "Keyword";
+				symbol.name = properties.name;
+				symbol.insertText = properties.name;
+				symbol.hint = properties.code_hint;
+				symbol.args = properties.description;
+				symbol.kind = ls.CompletionItemKind.Keyword;
+				symbol.parentName = "global";
+				symbol.commitCharacters = [""];
+				globalkeywords4.push(symbol);
+			});
+		}
+		else {
+			let symbol: VizSymbol = new VizSymbol();
+			symbol.kind = ls.CompletionItemKind.Class;
+			symbol.name = element.name;
+			symbol.insertText = element.name;
+			symbol.parentName = "root";
+			symbol.type = element.name;
+			symbol.args = element.descripton;
+			symbol.hint = "";
+			symbol.signatureInfo = null;
+			symbol.commitCharacters = ["."];
+			if((symbol.name == "System")||(symbol.name == "Stage")||(symbol.name == "Scene")){
+			  rootsymbols4.push(symbol);
+			}else{
+			  symbols4.push(symbol);
+			}
+
+			element.methods.forEach(submethod => {
+				let subSymbol: VizSymbol = new VizSymbol();
+				subSymbol.type = submethod.return_value;
+				subSymbol.name = submethod.name;
+				subSymbol.hint = submethod.code_hint;
+				if(CheckHasParameters(subSymbol.hint) == false){
+					subSymbol.insertText = submethod.name + "()";
+				} else {
+					subSymbol.insertText = submethod.name;
+				}
+				subSymbol.args = submethod.description;
+				if (submethod.code_hint.startsWith("\"Function")) subSymbol.kind = ls.CompletionItemKind.Function;
+				else if (submethod.code_hint.startsWith("\"Sub")) subSymbol.kind = ls.CompletionItemKind.Method;
+				subSymbol.parentName = element.name;
+				subSymbol.signatureInfo = GenerateSignatureHelp(subSymbol.hint, subSymbol.args);
+				subSymbol.commitCharacters = [""];
+				symbol.children.push(subSymbol);
+			});
+			element.properties.forEach(properties => {
+				let subSymbol: VizSymbol = new VizSymbol();
+				subSymbol.type = properties.return_value;
+				subSymbol.name = properties.name;
+				subSymbol.insertText = properties.name;
+				subSymbol.hint = properties.code_hint;
+				subSymbol.args = properties.description;
+				subSymbol.kind = ls.CompletionItemKind.Variable;
+				subSymbol.parentName = element.name;
+				subSymbol.commitCharacters = ["."];
+				symbol.children.push(subSymbol);
+			});
+
+		}
+	});
+
+	symbolCache["builtin_v4"] = symbols4;
+	symbolCache["builtin_root_v4"] = rootsymbols4;
+	symbolCache["builtin_global_v4"] = globalsymbols4;
+	symbolCache["builtin_keywords_v4"] = globalkeywords4;
 
 	symbolCache["builtin"] = symbols;
 	symbolCache["builtin_root"] = rootsymbols;
 	symbolCache["builtin_global"] = globalsymbols;
+	symbolCache["builtin_keywords"] = globalkeywords;
 	//connection.console.info("Found " + symbols.length + " builtin symbols in " + (Date.now() - startTime) + " ms");
 }
 
@@ -1731,10 +1947,22 @@ function GetBuiltinCommands() {
 
 
 function SetScriptType(languageId: string){
+	if((languageId == "viz") || (languageId == "viz-con")){
+		symbolCache["builtin"] = symbolCache["builtin_v3"];
+		symbolCache["builtin_root"] = symbolCache["builtin_root_v3"];
+		symbolCache["builtin_global"] = symbolCache["builtin_global_v3"];
+		symbolCache["builtin_keywords"] = symbolCache["builtin_keywords_v3"];
+	}else if((languageId == "viz4") || (languageId == "viz4-con")){
+		symbolCache["builtin"] = symbolCache["builtin_v4"];
+		symbolCache["builtin_root"] = symbolCache["builtin_root_v4"];
+		symbolCache["builtin_global"] = symbolCache["builtin_global_v4"];
+		symbolCache["builtin_keywords"] = symbolCache["builtin_keywords_v4"];
+	}
+
 	let lScriptType = "";
-	if(languageId == "viz"){
+	if((languageId == "viz") || (languageId == "viz4")){
 		lScriptType = "Scene";
-	}else if(languageId == "viz-con"){
+	}else if((languageId == "viz-con") || (languageId == "viz4-con")){
 		lScriptType = "Container";
 	} else{
 		symbolCache["builtin_root_this"] = [];
@@ -1750,6 +1978,7 @@ function SetScriptType(languageId: string){
 		symbolCache["builtin_root_this_children"] = [];
 		return false
 	};
+	
 	let newsymbol: VizSymbol = new VizSymbol();
 	newsymbol.kind = symbol.kind;
 	newsymbol.type = symbol.type;
@@ -1777,9 +2006,9 @@ function GetVizEvents() {
 		symbol.name = event.name;
 		symbol.insertText = event.code_hint;
 		symbol.insertText = symbol.insertText.replace("Sub ", "");
+		symbol.insertSnippet = GenerateEventSnippetString(event.code_hint);
 		symbol.hint = event.code_hint;
 		symbol.args = event.description;
-		symbol.kind = ls.CompletionItemKind.Variable;
 		symbol.signatureInfo = GenerateSignatureHelp(symbol.hint, symbol.args);
 		symbol.parentName = "event";
 		symbol.visibility = "";
@@ -1829,8 +2058,25 @@ function SelectBuiltinGlobalCompletionItems(): ls.CompletionItem[] {
 	}
 }
 
+function SelectBuiltinKeywordCompletionItems(): ls.CompletionItem[] {
+	if((settings != null) && (settings.keywordLowercase)){
+		let symbols = VizSymbol.GetLanguageServerCompletionItems(symbolCache["builtin_keywords"]);
+		symbols.forEach(symbol => {
+			symbol.insertText = symbol.insertText.toLowerCase();
+			symbol.label = symbol.label.toLowerCase();
+		});
+		return symbols;
+	}else{
+		return VizSymbol.GetLanguageServerCompletionItems(symbolCache["builtin_keywords"]);
+	}
+}
+
 function SelectBuiltinEventCompletionItems(): ls.CompletionItem[] {
 	return VizSymbol.GetLanguageServerCompletionItems(symbolCache["builtin_events"]);
+}
+
+function SelectBuiltinEventSnippetCompletionItems(): ls.CompletionItem[] {
+	return VizSymbol.GetLanguageServerSnippetCompletionItems(symbolCache["builtin_events"]);
 }
 
 let pendingChildren: VizSymbol[] = [];
@@ -1885,7 +2131,7 @@ function FindSymbol(statement: LineStatement, uri: string, symbols: Set<VizSymbo
 
 let openStructureName: string = null;
 let openStructureNameLocation: ls.Location;
-let openStructureStart: ls.Position = ls.Position.create(-1, -1);
+let openStructureStart: ls.Position = ls.Position.create(0, 0);
 
 class OpenMethod {
 	methodType: string;
@@ -1904,7 +2150,7 @@ let openMethod: OpenMethod = null;
 function GetMethodStart(statement: LineStatement, uri: string): boolean {
 	let line = statement.line;
 
-	let rex: RegExp = /^[ \t]*(function|sub)+[ \t]+([a-zA-Z0-9\-\_]+)+[ \t]*(\(([a-zA-Z0-9\[\]\_\-, \t(\(\))]*)\))+[ \t]*(as)?[ \t]*([a-zA-Z0-9\-\_]*)?[ \t]*$/gi;
+	let rex: RegExp = /^[ \t]*(function|sub)+[ \t]+([a-zA-Z0-9\-\_]+)+[ \t]*(\(([a-zA-Z0-9\[\]\_\-, \t(\(\))]*)\))+[ \t]*(as)?[ \t]*([a-zA-Z0-9\-\_\[\]]*)?[ \t]*$/gi;
 
 	let regexResult = rex.exec(line);
 
@@ -2044,7 +2290,7 @@ function GetMethodSymbol(statement: LineStatement, uri: string): VizSymbol[] {
 	}
 	symbol.args = openMethod.hint;
 	symbol.nameLocation = openMethod.nameLocation;
-	symbol.parentName = openMethod.name;
+	symbol.parentName = "document";
 	symbol.signatureInfo = GenerateSignatureHelp(symbol.hint, symbol.args);
 	symbol.commitCharacters = [""];
 	symbol.symbolRange = range;
@@ -2311,7 +2557,7 @@ function GetStructureSymbol(statement: LineStatement, uri: string, children: Viz
 	//let symbol: ls.SymbolInformation = ls.SymbolInformation.create(openClassName, ls.SymbolKind.Class, range, uri);
 
 	openStructureName = null;
-	openStructureStart = ls.Position.create(-1, -1);
+	openStructureStart = ls.Position.create(0, 0);
 
 	return symbol;
 }
@@ -2354,18 +2600,19 @@ connection.onRequest('getVizConnectionInfo', () => {
 });
 
 connection.onRequest('showDiagnostics', (vizReply: string) => {
-	let error = GetRegexResult(vizReply, /\{(.*?)(\((.*)\))?\}/gi)
+	let error = GetRegexResult(vizReply, /\{(.*?)\}/gi)
 	if((error != undefined)){
-		if(error[3] == undefined){
-			return error[1]
+		let errorRange = GetRegexResult(error[1], /\(([^)]*)\)[^(]*$/gi)
+		if(errorRange == undefined){
+			return [error[1], ""]
 		}else{
-			let rangesplit = error[3].split("/");
+			
+			let rangesplit = errorRange[1].split("/");
 			let line = parseInt(rangesplit[0]);
 			let char = parseInt(rangesplit[1]);
 			let range = ls.Range.create(line-1, char-1, line-1, char);
 			DisplayDiagnostics(documentUri,range,error[1])
-			connection.window.showErrorMessage(error[1])
-			return error[3]
+			return [error[1] ,errorRange[1]]
 		}
 	}
 })

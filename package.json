@@ -4,7 +4,7 @@
 	"description": "A complete language extension for Viz Script. Auto complete, syntax checking, syntax highlighting, signature help, jump to definition and more.",
 	"author": "Fredrik Hareide",
 	"license": "MIT",
-	"version": "0.2.17",
+	"version": "0.3.0",
 	"publisher": "fhareide",
 	"keywords": [
 		"Vizrt",
@@ -22,11 +22,13 @@
 	],
 	"icon": "images/vizicon.png",
 	"engines": {
-		"vscode": "^1.26.0"
+		"vscode": "^1.53.0"
 	},
 	"activationEvents": [
 		"onLanguage:viz-con",
 		"onLanguage:viz",
+		"onLanguage:viz4-con",
+		"onLanguage:viz4",
 		"onCommand:vizscript.getscripts"
 	],
 	"main": "./client/out/extension",
@@ -49,11 +51,11 @@
 			"commandPalette": [
 				{
 					"command": "vizscript.compile",
-					"when": "editorLangId == viz || editorLangId == viz-con"
+					"when": "editorLangId == viz || editorLangId == viz-con || editorLangId == viz4 || editorLangId == viz4-con"
 				},
 				{
 					"command": "vizscript.compile.currentscript",
-					"when": "editorLangId == viz || editorLangId == viz-con"
+					"when": "editorLangId == viz || editorLangId == viz-con || editorLangId == viz4 || editorLangId == viz4-con"
 				},
 				{
 					"command": "vizscript.getscripts"
@@ -64,12 +66,12 @@
 			{
 				"command": "vizscript.compile",
 				"key": "ctrl+f5",
-				"when": "editorLangId == viz || editorLangId == viz-con"
+				"when": "editorLangId == viz || editorLangId == viz-con || editorLangId == viz4 || editorLangId == viz4-con"
 			},
 			{
 				"command": "vizscript.compile.currentscript",
 				"key": "ctrl+shift+f5",
-				"when": "editorLangId == viz || editorLangId == viz-con"
+				"when": "editorLangId == viz || editorLangId == viz-con || editorLangId == viz4 || editorLangId == viz4-con"
 			}
 		],
 		"languages": [
@@ -95,6 +97,28 @@
 					".vizc"
 				],
 				"configuration": "./syntaxes/language-configuration.json"
+			},
+			{
+				"id": "viz4",
+				"aliases": [
+					"Viz4SceneScript"
+				],
+				"extensions": [
+					".vs4",
+					".viz4"
+				],
+				"configuration": "./syntaxes/language-configuration.json"
+			},
+			{
+				"id": "viz4-con",
+				"aliases": [
+					"Viz4ContainerScript"
+				],
+				"extensions": [
+					".vs4c",
+					".viz4c"
+				],
+				"configuration": "./syntaxes/language-configuration.json"
 			}
 		],
 		"grammars": [
@@ -107,6 +131,16 @@
 				"language": "viz-con",
 				"scopeName": "source.viz",
 				"path": "./syntaxes/viz.tmLanguage.json"
+			},
+			{
+				"language": "viz4",
+				"scopeName": "source.viz4",
+				"path": "./syntaxes/viz4.tmLanguage.json"
+			},
+			{
+				"language": "viz4-con",
+				"scopeName": "source.viz4",
+				"path": "./syntaxes/viz4.tmLanguage.json"
 			}
 		],
 		"themes": [
@@ -135,6 +169,18 @@
 					"type": "boolean",
 					"default": true,
 					"description": "Show completions for Container/Scene on root",
+					"scope": "resource"
+				},
+				"vizscript.showEventSnippetCompletionsOnRoot": {
+					"type": "boolean",
+					"default": true,
+					"description": "Show Event snippet completions on root",
+					"scope": "resource"
+				},
+				"vizscript.keywordLowercase": {
+					"type": "boolean",
+					"default": true,
+					"description": "Makes all keywords(if,else etc.) lowercase",
 					"scope": "resource"
 				},
 				"vizscript.enableSignatureHelp": {
@@ -198,15 +244,15 @@
 		"development": "npm run webpack-dev && npm run watch"
 	},
 	"devDependencies": {
-		"@types/mocha": "^5.2.7",
-		"@types/node": "^8.10.61",
-		"@types/vscode": "^1.26.0",
-		"merge-options": "^2.0.0",
-		"ts-loader": "^6.2.1",
-		"tslint": "^5.20.1",
-		"typescript": "^3.9.6",
-		"vscode-test": "1.4.0",
-		"webpack": "^4.43.0",
-		"webpack-cli": "^3.3.12"
+		"@types/mocha": "^8.2.0",
+		"@types/node": "^14.14.27",
+		"@types/vscode": "^1.53.0",
+		"merge-options": "^3.0.4",
+		"ts-loader": "^8.0.17",
+		"tslint": "^6.1.3",
+		"typescript": "^4.1.5",
+		"vscode-test": "^1.5.0",
+		"webpack": "^5.21.2",
+		"webpack-cli": "^4.5.0"
 	}
 }
