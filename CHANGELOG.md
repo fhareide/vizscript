@@ -1,3 +1,6 @@
+### 0.3.2
+- **Fix**: Security patch
+
 ### 0.3.1
 - **Fix**: Updated SignatureHelp and Completions to support more cases
 
