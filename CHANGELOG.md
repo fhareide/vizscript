@@ -1,3 +1,6 @@
+### 0.3.1
+- **Fix**: Updated SignatureHelp and Completions to support more cases
+
 ### 0.3.0
 - **New**: Added support for Viz4
   - Scene scripts: `.vs4 .viz4`
