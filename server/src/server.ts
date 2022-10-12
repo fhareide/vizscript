@@ -219,13 +219,8 @@ function getLineAt(str, pos, isSignatureHelp) {
 			if(!PositionInRange(lastRange, element.start)){
 				//connection.console.log("Range: " + element.start.character + " " + element.end.character);
 				var leftstr,rightstr;
-				if(isSignatureHelp){
-					leftstr = line.slice(0,element.start.character);
-				  rightstr = line.slice(element.end.character+1);
-				}else{
-					leftstr = line.slice(0,element.start.character+1);
-				  rightstr = line.slice(element.end.character);
-				}
+				leftstr = line.slice(0,element.start.character+1);
+				rightstr = line.slice(element.end.character);
 				
 				line = leftstr + rightstr;
 				//connection.console.log("Line: " + line);
@@ -270,6 +265,13 @@ function getLineAt(str, pos, isSignatureHelp) {
 		}
 	}
 
+	result = GetRegexResult(line, /.+[\+\-\*\/](.+)$/gi); //Split on "+ - * /"
+
+	if (result != null){
+		if( result[1] != undefined){
+			line = result[1];
+		}
+	}
 
 	let memberStartRegex: RegExp = /([^\.]+)([\.])*/gi; //Split on "."
 
@@ -311,17 +313,11 @@ function getLineAt(str, pos, isSignatureHelp) {
 
 	let openBracketPosAfter = getOpenBracketPosition(cleanString); //If inside open bracket we should slice away everything before the bracket
 
-	if(!isSignatureHelp){
+
 		begin = cleanString.slice(0, pos + 1).search(/[^\s]+$/)
 		end = cleanString.slice(pos).search(/[\s\.\(]/);
-	}else{
-		if(openBracketPosAfter > 0){
-			begin = cleanString.slice(0, openBracketPosAfter).search(/[\w\.\(\)]+$/)
-		}else{
-			begin = pos
-		}
-		end = -1;
-	}
+
+
 	
 
 	
@@ -512,7 +508,9 @@ connection.onSignatureHelp((params: ls.SignatureHelpParams,cancelToken: ls.Cance
 	}
 	
 	noOfMatches = regexResult.length;
+	let item = GetItemForSignature(regexResult[noOfMatches],noOfMatches,regexResult,params.position);
 
+	if(item == null) return null;
 	matches = [];
 	let regexResult2 = [];
 	let noOfCommas = 0;
@@ -523,9 +521,7 @@ connection.onSignatureHelp((params: ls.SignatureHelpParams,cancelToken: ls.Cance
 	}
 	noOfCommas = regexResult2.length;
 
-	let item = GetItemForSignature(regexResult[noOfMatches],noOfMatches,regexResult,params.position);
 
-	if(item == null) return null;
 	signHelp.signatures = [];
 
 	let signature = item.signatureInfo;
@@ -1130,7 +1126,7 @@ function GetInternalSymbolByName(name: string, position: ls.Position, isSignatur
 		}
 
 
-		if(result != null && result.type != null && !isSignature){
+		if(result != null && result.type != null){
 			if(result.type.toLowerCase().startsWith("array[")){
 				if(isArrayType){
 					let tmpType = GetRegexResult(result.type, /\[(.*?)\]/gi)
