@@ -58,7 +58,7 @@ connection.onInitialize((params): ls.InitializeResult => {
 			definitionProvider: true,
 			completionProvider: {
 				resolveProvider: true,
-				triggerCharacters: ['.', '*', '\xa0' ]
+				triggerCharacters: ['.', '*']
 			},
 		}
 
@@ -425,6 +425,7 @@ function getCommandLineAt(str, pos, isSignatureHelp) {
 		if(dotResult.length != 0){
 			dotResult.forEach(result => {
 				let tmpLine = result[1];
+				tmpLine = tmpLine.replace(/['"]+/g, '')
 				regexString = /(.*)?[\[](.*?)[\]]$/gi;
 				regexResult = regexString.exec(result[1]);
 				if(regexResult != null){
@@ -919,7 +920,7 @@ connection.onCompletion((params: ls.CompletionParams, cancelToken: ls.Cancellati
 		//suggestions = SelectVizCommandInterfaceItems();
 		return suggestions;
 	} else{
-		if( params.context.triggerCharacter == "*"){
+		if(( params.context.triggerCharacter == "*") || ( params.context.triggerCharacter == "\"")) {
 			suggestions = [];
 			return suggestions;
 		}
