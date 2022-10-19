@@ -1,3 +1,5 @@
+### 0.3.3
+- **Fix**: Fixed bug on SignatureHelp
 ### 0.3.2
 - **Fix**: Security patch
 

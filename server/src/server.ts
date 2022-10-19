@@ -313,14 +313,17 @@ function getLineAt(str, pos, isSignatureHelp) {
 
 	let openBracketPosAfter = getOpenBracketPosition(cleanString); //If inside open bracket we should slice away everything before the bracket
 
-
+	if(!isSignatureHelp){
 		begin = cleanString.slice(0, pos + 1).search(/[^\s]+$/)
 		end = cleanString.slice(pos).search(/[\s\.\(]/);
-
-
-	
-
-	
+	}else{
+		if(openBracketPosAfter > 0){
+			begin = cleanString.slice(0, openBracketPosAfter).search(/[\w\.\(\)\[\]]+$/)
+		}else{
+			begin = pos
+		}
+		end = -1;
+	}
 
 	// The last word in the string is a special case.
 	
