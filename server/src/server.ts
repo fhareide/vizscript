@@ -529,15 +529,15 @@ connection.onSignatureHelp((params: ls.SignatureHelpParams,cancelToken: ls.Cance
 
 	let signature = item.signatureInfo;
 	if(signature != null){
-		if ((signature.documentation != "") || (signature.parameters.length != 0) || (item.overloads != [])) {
+		if ((signature.documentation != "") || (signature.parameters.length != 0) || (item.overloads.length != 0)) {
 			signHelp.signatures.push(signature);
 		}
 	}
 
-	if(item.overloads != []){
+	if(item.overloads.length != 0){
 		item.overloads.forEach(overload => {
 			if (overload != null){
-				if ((overload.documentation != undefined) || (overload.parameters != [])){
+				if ((overload.documentation != undefined) || (overload.parameters.length != 0)){
 					signHelp.signatures.push(overload);
 				}
 
@@ -827,7 +827,7 @@ connection.onCompletion((params: ls.CompletionParams, cancelToken: ls.Cancellati
 		if (regexResult != null) {
 			documentCompletions = [];
 			let finalSymbols = [];
-			if(symbols != []){
+			if(symbols.length != 0){
 				symbols.forEach(item => {
 					if (item.kind == ls.CompletionItemKind.Struct) {
 						finalSymbols.push(item);
@@ -966,7 +966,7 @@ function GetSymbolForDefinitionByName(name: string, position: ls.Position): VizS
 	let symbols = GetSymbolsOfScope(symbolCache[documentUri], position);
 	let result: VizSymbol = null;
 
-	if (symbols != []){
+	if (symbols.length != 0){
 		symbols.forEach(item => {
 			if (item != null){
 				if (item.name.toLowerCase() == name.toLowerCase()) {
@@ -1087,7 +1087,7 @@ function GetInternalSymbolByName(name: string, position: ls.Position, isSignatur
 	symbols = symbols.concat(globalsymbols);
 	symbols = symbols.concat(globalevents);
 	let result: VizSymbol = null;
-	if(symbols != []){
+	if(symbols.length != 0){
 		symbols.forEach(item => {
 			if (item != null){
 				if (item.name.toLowerCase() == name.toLowerCase()) {
@@ -1101,7 +1101,7 @@ function GetInternalSymbolByName(name: string, position: ls.Position, isSignatur
 	if((settings != null) && (settings.showThisCompletionsOnRoot)){
 		let rootthischildsymbols = symbolCache["builtin_root_this_children"];
 		if(result == null){
-			if(rootthischildsymbols != []){
+			if(rootthischildsymbols.length != 0){
 				rootthischildsymbols.forEach(item => {
 					if (item != null){
 						if (item.name.toLowerCase() == name.toLowerCase()) {
@@ -1118,7 +1118,7 @@ function GetInternalSymbolByName(name: string, position: ls.Position, isSignatur
 		symbols = symbolCache[documentUri];
 		symbols = GetSymbolsOfScope(symbols, position);
 		//connection.console.log("Symbols " + symbols.length)
-		if (symbols != []){
+		if (symbols.length != 0){
 			symbols.forEach(item => {
 				if (item != null){
 					if (item.name.toLowerCase() == name.toLowerCase()) {
@@ -1919,7 +1919,7 @@ function GetMethodSymbol(statement: LineStatement, uri: string): VizSymbol[] {
 
 	let globalevents = symbolCache["builtin_events"];
 	let result: VizSymbol = null;
-	if(globalevents != []){
+	if(globalevents.length != 0){
 		globalevents.forEach(item => {
 			if (item != null){
 				if (item.name.toLowerCase() == openMethod.name.toLowerCase()) {
