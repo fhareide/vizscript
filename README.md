@@ -2,6 +2,13 @@
 
 > A complete language extension for Viz Script development in Visual Studio Code
 
+## New Features - Viz Script 0.4.0
+ * Now supports Viz5
+    * Activate by triggering `Change Language Mode` on Command Palette and choosing `Viz5SceneScript` / `Viz5ContainerScript` or by opening a supported filetype.
+      * Scene scripts: `.vs5 .viz5`
+      * Container scripts: `.vs5c .viz5c`
+
+
 ## New Features - Viz Script 0.3.0
  * Now supports Viz4
     * Activate by triggering `Change Language Mode` on Command Palette and choosing `Viz4SceneScript` / `Viz4ContainerScript` or by opening a supported filetype.

@@ -1,3 +1,6 @@
+### 0.4.1
+- **Change**: Updated readme
+
 ### 0.4.0
 - **New**: Added support for Viz5
   - Scene scripts: `.vs5 .viz5`
