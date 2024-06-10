@@ -1,3 +1,8 @@
+### 0.4.0
+- **New**: Added support for Viz5
+  - Scene scripts: `.vs5 .viz5`
+  - Container scripts: `.vs5c .viz5c`
+
 ### 0.3.3
 - **Fix**: Fixed bug on SignatureHelp
 ### 0.3.2

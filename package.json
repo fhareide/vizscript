@@ -29,6 +29,8 @@
 		"onLanguage:viz",
 		"onLanguage:viz4-con",
 		"onLanguage:viz4",
+		"onLanguage:viz5-con",
+		"onLanguage:viz5",
 		"onCommand:vizscript.getscripts"
 	],
 	"main": "./client/out/extension",
@@ -51,11 +53,11 @@
 			"commandPalette": [
 				{
 					"command": "vizscript.compile",
-					"when": "editorLangId == viz || editorLangId == viz-con || editorLangId == viz4 || editorLangId == viz4-con"
+					"when": "editorLangId == viz || editorLangId == viz-con || editorLangId == viz4 || editorLangId == viz4-con || editorLangId == viz5 || editorLangId == viz5-con"
 				},
 				{
 					"command": "vizscript.compile.currentscript",
-					"when": "editorLangId == viz || editorLangId == viz-con || editorLangId == viz4 || editorLangId == viz4-con"
+					"when": "editorLangId == viz || editorLangId == viz-con || editorLangId == viz4 || editorLangId == viz4-con || editorLangId == viz5 || editorLangId == viz5-con"
 				},
 				{
 					"command": "vizscript.getscripts"
@@ -66,12 +68,12 @@
 			{
 				"command": "vizscript.compile",
 				"key": "ctrl+f5",
-				"when": "editorLangId == viz || editorLangId == viz-con || editorLangId == viz4 || editorLangId == viz4-con"
+				"when": "editorLangId == viz || editorLangId == viz-con || editorLangId == viz4 || editorLangId == viz4-con || editorLangId == viz5 || editorLangId == viz5-con"
 			},
 			{
 				"command": "vizscript.compile.currentscript",
 				"key": "ctrl+shift+f5",
-				"when": "editorLangId == viz || editorLangId == viz-con || editorLangId == viz4 || editorLangId == viz4-con"
+				"when": "editorLangId == viz || editorLangId == viz-con || editorLangId == viz4 || editorLangId == viz4-con || editorLangId == viz5 || editorLangId == viz5-con"
 			}
 		],
 		"languages": [
@@ -119,6 +121,28 @@
 					".viz4c"
 				],
 				"configuration": "./syntaxes/language-configuration.json"
+			},
+			{
+				"id": "viz5",
+				"aliases": [
+					"Viz5SceneScript"
+				],
+				"extensions": [
+					".vs5",
+					".viz5"
+				],
+				"configuration": "./syntaxes/language-configuration.json"
+			},
+			{
+				"id": "viz5-con",
+				"aliases": [
+					"Viz5ContainerScript"
+				],
+				"extensions": [
+					".vs5c",
+					".viz5c"
+				],
+				"configuration": "./syntaxes/language-configuration.json"
 			}
 		],
 		"grammars": [
@@ -141,6 +165,16 @@
 				"language": "viz4-con",
 				"scopeName": "source.viz4",
 				"path": "./syntaxes/viz4.tmLanguage.json"
+			},
+			{
+				"language": "viz5",
+				"scopeName": "source.viz5",
+				"path": "./syntaxes/viz5.tmLanguage.json"
+			},
+			{
+				"language": "viz5-con",
+				"scopeName": "source.viz5",
+				"path": "./syntaxes/viz5.tmLanguage.json"
 			}
 		],
 		"themes": [
