@@ -1,10 +1,13 @@
 import svelte from "rollup-plugin-svelte";
 import resolve from "@rollup/plugin-node-resolve";
 import commonjs from "@rollup/plugin-commonjs";
-import { terser } from "rollup-plugin-terser";
 import typescript from "@rollup/plugin-typescript";
 import path from "path";
 import fs from "fs";
+import terser from "@rollup/plugin-terser";
+import postcss from "rollup-plugin-postcss";
+import tailwindcss from "tailwindcss";
+import autoprefixer from "autoprefixer";
 
 const production = !process.env.ROLLUP_WATCH;
 
@@ -36,6 +39,10 @@ export default fs.readdirSync(path.join(__dirname, "webviews", "pages")).map((in
         tsconfig: path.resolve(__dirname, "webviews", "tsconfig.json"), // Path to your tsconfig.json
         sourceMap: !production,
         inlineSources: !production,
+      }),
+      postcss({
+        extract: path.resolve(__dirname, "out", `${name}.css`),
+        plugins: [tailwindcss(), autoprefixer()],
       }),
       production && terser(),
     ],

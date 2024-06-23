@@ -3,14 +3,13 @@
  * Licensed under the MIT License.
  * ------------------------------------------------------------------------------------------ */
 
-import * as Commands from "./commands";
 import * as path from "path";
 import * as vscode from "vscode";
+import * as Commands from "./commands";
 
 import { LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } from "vscode-languageclient/node";
-import { TestView } from "./vizScriptTreeView";
 import { SidebarProvider } from "./sidebarProvider";
-import { VizScriptPanel } from "./vizScriptPanel";
+import { TestView } from "./vizScriptTreeView";
 
 let client: LanguageClient;
 
@@ -53,27 +52,9 @@ export function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(vscode.commands.registerCommand("vizscript.getscripts", Commands.displayScriptSelector.bind(this, context)));
 
-  // Create webview provider
-  //const provider = new ColorsViewProvider(context.extensionUri);
-
-  //context.subscriptions.push(vscode.window.registerWebviewViewProvider(ColorsViewProvider.viewType, provider));
-
-  /*   context.subscriptions.push(
-    vscode.commands.registerCommand("vizscript.addColor", () => {
-      provider.addColor();
-    })
-  );
-
-  context.subscriptions.push(
-    vscode.commands.registerCommand("vizscript.clearColors", () => {
-      provider.clearColors();
-    })
-  ); */
-
-  VizScriptPanel.createOrShow(context.extensionUri);
-
   const sidebarProvider = new SidebarProvider(context.extensionUri);
-  context.subscriptions.push(vscode.window.registerWebviewViewProvider("vizscript-view", sidebarProvider));
+  console.log("registering webview view provider", sidebarProvider);
+  context.subscriptions.push(vscode.window.registerWebviewViewProvider("viz-script-sidebar", sidebarProvider));
 
   context.subscriptions.push(
     vscode.window.onDidChangeActiveTextEditor((editor) => {
