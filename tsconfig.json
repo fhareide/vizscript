@@ -9,8 +9,5 @@
   },
   "include": ["src"],
   "exclude": ["node_modules", ".vscode-test"],
-  "references": [
-    { "path": "./client", "composite": true },
-    { "path": "./server", "composite": true }
-  ]
+  "references": [{ "path": "./client" }, { "path": "./server" }]
 }

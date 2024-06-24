@@ -14,7 +14,11 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       // Allow scripts in the webview
       enableScripts: true,
 
-      localResourceRoots: [this._extensionUri, vscode.Uri.joinPath(this._extensionUri, "client/out"), vscode.Uri.joinPath(this._extensionUri, "client/media")],
+      localResourceRoots: [
+        this._extensionUri,
+        vscode.Uri.joinPath(this._extensionUri, "client/out"),
+        vscode.Uri.joinPath(this._extensionUri, "client/media"),
+      ],
     };
 
     webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
@@ -33,6 +37,10 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
             return;
           }
           vscode.window.showErrorMessage(data.value);
+          break;
+        }
+        case "getscripts": {
+          vscode.commands.executeCommand("vizscript.fetchscripts");
           break;
         }
       }
@@ -65,6 +73,9 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
 				<link href="${styleResetUri}" rel="stylesheet">
         <link href="${styleMainUri}" rel="stylesheet">
 				<link href="${styleVSCodeUri}" rel="stylesheet">
+				<script nonce="${nonce}"> 
+					const tsvscode = acquireVsCodeApi();
+				</script>
 			</head>
       <body>
 				<script nonce="${nonce}" src="${scriptUri}"></script>

@@ -10,11 +10,21 @@ import * as Commands from "./commands";
 import { LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } from "vscode-languageclient/node";
 import { SidebarProvider } from "./sidebarProvider";
 import { TestView } from "./vizScriptTreeView";
+import { getVizScripts } from "./vizCommunication";
 
 let client: LanguageClient;
 
 function registerCommands(client: LanguageClient, context: vscode.ExtensionContext) {
-  context.subscriptions.push(vscode.commands.registerTextEditorCommand("vizscript.compile", Commands.syntaxCheckCurrentScript.bind(this, context, client)), vscode.commands.registerTextEditorCommand("vizscript.compile.currentscript", Commands.compileCurrentScript.bind(this, context, client)));
+  context.subscriptions.push(
+    vscode.commands.registerTextEditorCommand(
+      "vizscript.compile",
+      Commands.syntaxCheckCurrentScript.bind(this, context, client),
+    ),
+    vscode.commands.registerTextEditorCommand(
+      "vizscript.compile.currentscript",
+      Commands.compileCurrentScript.bind(this, context, client),
+    ),
+  );
 }
 
 function registerNotifications(client: LanguageClient) {
@@ -50,18 +60,31 @@ export function activate(context: vscode.ExtensionContext) {
   // Create the language client and start the client.
   client = new LanguageClient("vizscript", "VizScript", serverOptions, clientOptions);
 
-  context.subscriptions.push(vscode.commands.registerCommand("vizscript.getscripts", Commands.displayScriptSelector.bind(this, context)));
+  context.subscriptions.push(
+    vscode.commands.registerCommand("vizscript.getscripts", Commands.displayScriptSelector.bind(this, context)),
+  );
 
   const sidebarProvider = new SidebarProvider(context.extensionUri);
-  console.log("registering webview view provider", sidebarProvider);
-  context.subscriptions.push(vscode.window.registerWebviewViewProvider("viz-script-sidebar", sidebarProvider));
+  context.subscriptions.push(vscode.window.registerWebviewViewProvider("vizscript-sidebar", sidebarProvider));
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("vizscript.fetchscripts", async () => {
+      vscode.window.showInformationMessage("Fetching scripts...");
+
+      const connectionInfo = await Commands.getConfig();
+      const scripts = await getVizScripts(connectionInfo.hostName, Number(connectionInfo.hostPort));
+      console.log(scripts);
+
+      sidebarProvider._view?.webview.postMessage({ type: "getscripts", value: scripts });
+    }),
+  );
 
   context.subscriptions.push(
     vscode.window.onDidChangeActiveTextEditor((editor) => {
       if (editor != undefined) {
         client.sendRequest("setDocumentUri", editor.document.uri.toString());
       }
-    })
+    }),
   );
 
   client.onReady().then(() => {

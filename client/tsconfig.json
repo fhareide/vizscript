@@ -5,6 +5,7 @@
     "outDir": "out",
     "rootDir": "src",
     "lib": ["es6"],
+    "composite": true,
     "sourceMap": true
   },
   "include": ["src"],

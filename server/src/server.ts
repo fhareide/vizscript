@@ -449,7 +449,14 @@ connection.onSignatureHelp((params: ls.SignatureHelpParams, cancelToken: ls.Canc
   if (settings != null) {
     if (!settings.enableSignatureHelp) return;
   }
-  let line: string = documents.get(params.textDocument.uri).getText(ls.Range.create(ls.Position.create(params.position.line, 0), ls.Position.create(params.position.line, params.position.character)));
+  let line: string = documents
+    .get(params.textDocument.uri)
+    .getText(
+      ls.Range.create(
+        ls.Position.create(params.position.line, 0),
+        ls.Position.create(params.position.line, params.position.character),
+      ),
+    );
 
   let signHelp: ls.SignatureHelp = {
     signatures: [],
@@ -656,73 +663,79 @@ function CheckHasParameters(hint: string): boolean {
   }
 }
 
-connection.onDefinition((params: ls.TextDocumentPositionParams, cancelToken: ls.CancellationToken): DefinitionLink[] => {
-  if (settings != null) {
-    if (!settings.enableDefinition) return;
-  }
-  let line: string = documents.get(params.textDocument.uri).getText(ls.Range.create(ls.Position.create(params.position.line, 0), ls.Position.create(params.position.line, 50000)));
-
-  if (line.length < 2) return;
-
-  let word = getWordAt(line, params.position.character);
-
-  // Check if this is a method name and exit if it is
-  let isMethodRegex = GetRegexResult(line, /^[ \t]*(function|sub)[ \t]+([a-zA-Z0-9\-\_\,]+)/gi);
-  if (isMethodRegex != null && isMethodRegex.length > 1) {
-    let methodName = isMethodRegex[2];
-    if (word === methodName) return []; //We do not want jump to definition on current method name
-  }
-
-  //Get end of current word
-  let sliced = line.slice(params.position.character);
-  let right = sliced.search(/[\s\.\(\)]/);
-
-  let lineAt = getLineAt(line, right + params.position.character - 1, false);
-
-  if (lineAt.endsWith(".")) {
-    lineAt = lineAt.slice(0, lineAt.length - 1);
-  }
-
-  let matches = [];
-  let regexResult = [];
-  let noOfMatches = 0;
-  let item: VizSymbol;
-
-  let memberStartRegex: RegExp = /[\.]?([^\.\ ]+)/gi;
-
-  while ((matches = memberStartRegex.exec(lineAt))) {
-    let tmpline = matches[1].replace(/\([^()]*\)/g, "");
-    regexResult.push(tmpline);
-  }
-  noOfMatches = regexResult.length;
-
-  if (noOfMatches > 1) {
-    if (regexResult != null && regexResult.length > 0) {
-      let internalItem = GetDefinitionItem(noOfMatches, regexResult, params.position);
-      if (internalItem != null) {
-        item = internalItem;
-      } else {
-        item = null;
-      }
+connection.onDefinition(
+  (params: ls.TextDocumentPositionParams, cancelToken: ls.CancellationToken): DefinitionLink[] => {
+    if (settings != null) {
+      if (!settings.enableDefinition) return;
     }
-  } else {
-    item = GetSymbolForDefinitionByName(word, params.position);
-  }
+    let line: string = documents
+      .get(params.textDocument.uri)
+      .getText(
+        ls.Range.create(ls.Position.create(params.position.line, 0), ls.Position.create(params.position.line, 50000)),
+      );
 
-  let selectionRange: ls.Range;
+    if (line.length < 2) return;
 
-  if (item == null) return null;
-  if (item.symbolRange == null) return null;
-  if (PositionInRange(item.nameLocation.range, params.position)) return null;
+    let word = getWordAt(line, params.position.character);
 
-  let DefinitionItem: ls.DefinitionLink = {
-    targetRange: item.symbolRange,
-    targetUri: params.textDocument.uri,
-    targetSelectionRange: item.nameLocation.range,
-  };
+    // Check if this is a method name and exit if it is
+    let isMethodRegex = GetRegexResult(line, /^[ \t]*(function|sub)[ \t]+([a-zA-Z0-9\-\_\,]+)/gi);
+    if (isMethodRegex != null && isMethodRegex.length > 1) {
+      let methodName = isMethodRegex[2];
+      if (word === methodName) return []; //We do not want jump to definition on current method name
+    }
 
-  return [DefinitionItem];
-});
+    //Get end of current word
+    let sliced = line.slice(params.position.character);
+    let right = sliced.search(/[\s\.\(\)]/);
+
+    let lineAt = getLineAt(line, right + params.position.character - 1, false);
+
+    if (lineAt.endsWith(".")) {
+      lineAt = lineAt.slice(0, lineAt.length - 1);
+    }
+
+    let matches = [];
+    let regexResult = [];
+    let noOfMatches = 0;
+    let item: VizSymbol;
+
+    let memberStartRegex: RegExp = /[\.]?([^\.\ ]+)/gi;
+
+    while ((matches = memberStartRegex.exec(lineAt))) {
+      let tmpline = matches[1].replace(/\([^()]*\)/g, "");
+      regexResult.push(tmpline);
+    }
+    noOfMatches = regexResult.length;
+
+    if (noOfMatches > 1) {
+      if (regexResult != null && regexResult.length > 0) {
+        let internalItem = GetDefinitionItem(noOfMatches, regexResult, params.position);
+        if (internalItem != null) {
+          item = internalItem;
+        } else {
+          item = null;
+        }
+      }
+    } else {
+      item = GetSymbolForDefinitionByName(word, params.position);
+    }
+
+    let selectionRange: ls.Range;
+
+    if (item == null) return null;
+    if (item.symbolRange == null) return null;
+    if (PositionInRange(item.nameLocation.range, params.position)) return null;
+
+    let DefinitionItem: ls.DefinitionLink = {
+      targetRange: item.symbolRange,
+      targetUri: params.textDocument.uri,
+      targetSelectionRange: item.nameLocation.range,
+    };
+
+    return [DefinitionItem];
+  },
+);
 
 function GetRegexResult(line: string, regex: RegExp): string[] {
   let RegexString: RegExp = regex;
@@ -738,7 +751,14 @@ connection.onCompletion((params: ls.CompletionParams, cancelToken: ls.Cancellati
   let rootCompletions: ls.CompletionItem[] = [];
 
   // Gets current line
-  let line: string = documents.get(params.textDocument.uri).getText(ls.Range.create(ls.Position.create(params.position.line, 0), ls.Position.create(params.position.line, params.position.character)));
+  let line: string = documents
+    .get(params.textDocument.uri)
+    .getText(
+      ls.Range.create(
+        ls.Position.create(params.position.line, 0),
+        ls.Position.create(params.position.line, params.position.character),
+      ),
+    );
 
   if (GetRegexResult(line, /^[ \t]*dim[ \t]+([a-zA-Z0-9\-\_\,]+)[ \t]*([as]+)?$/gi) != null) return; // No sugggestions when declaring variables
   if (GetRegexResult(line, /^[ \t]*(function|structure)+[ \t]+([a-zA-Z0-9\-\_\,]+)$/gi) != null) return; // No suggestions when declaring functions or structure
@@ -1837,7 +1857,8 @@ let openMethod: OpenMethod = null;
 function GetMethodStart(statement: LineStatement, uri: string): boolean {
   let line = statement.line;
 
-  let rex: RegExp = /^[ \t]*(function|sub)+[ \t]+([a-zA-Z0-9\-\_]+)+[ \t]*(\(([a-zA-Z0-9\[\]\_\-, \t(\(\))]*)\))+[ \t]*(as)?[ \t]*([a-zA-Z0-9\-\_\[\]]*)?[ \t]*$/gi;
+  let rex: RegExp =
+    /^[ \t]*(function|sub)+[ \t]+([a-zA-Z0-9\-\_]+)+[ \t]*(\(([a-zA-Z0-9\[\]\_\-, \t(\(\))]*)\))+[ \t]*(as)?[ \t]*([a-zA-Z0-9\-\_\[\]]*)?[ \t]*$/gi;
 
   let regexResult = rex.exec(line);
 
@@ -1894,7 +1915,13 @@ function GetMethodStart(statement: LineStatement, uri: string): boolean {
     args: regexResult[4],
     hint: description,
     startPosition: statement.GetPositionByCharacter(leadingSpaces),
-    nameLocation: ls.Location.create(uri, ls.Range.create(statement.GetPositionByCharacter(line.indexOf(regexResult[2])), statement.GetPositionByCharacter(line.indexOf(regexResult[2]) + regexResult[2].length))),
+    nameLocation: ls.Location.create(
+      uri,
+      ls.Range.create(
+        statement.GetPositionByCharacter(line.indexOf(regexResult[2])),
+        statement.GetPositionByCharacter(line.indexOf(regexResult[2]) + regexResult[2].length),
+      ),
+    ),
     statement: statement,
   };
 
@@ -1928,7 +1955,10 @@ function GetMethodSymbol(statement: LineStatement, uri: string): VizSymbol[] {
     }
   }
 
-  let range: ls.Range = ls.Range.create(openMethod.startPosition, statement.GetPositionByCharacter(GetNumberOfFrontSpaces(line) + regexResult[0].trim().length));
+  let range: ls.Range = ls.Range.create(
+    openMethod.startPosition,
+    statement.GetPositionByCharacter(GetNumberOfFrontSpaces(line) + regexResult[0].trim().length),
+  );
 
   let globalevents = symbolCache["builtin_events"];
   let result: VizSymbol = null;
@@ -1947,7 +1977,13 @@ function GetMethodSymbol(statement: LineStatement, uri: string): VizSymbol[] {
     result.nameLocation = openMethod.nameLocation;
     result.symbolRange = range;
     let parametersSymbol = [];
-    parametersSymbol = GetParameterSymbols(result.name, openMethod.args, openMethod.argsIndex, openMethod.statement, uri);
+    parametersSymbol = GetParameterSymbols(
+      result.name,
+      openMethod.args,
+      openMethod.argsIndex,
+      openMethod.statement,
+      uri,
+    );
     openMethod = null;
     return parametersSymbol.concat(result);
   }
@@ -1971,7 +2007,13 @@ function GetMethodSymbol(statement: LineStatement, uri: string): VizSymbol[] {
   symbol.symbolRange = range;
 
   let parametersSymbol = [];
-  parametersSymbol = GetParameterSymbols(openMethod.name, openMethod.args, openMethod.argsIndex, openMethod.statement, uri);
+  parametersSymbol = GetParameterSymbols(
+    openMethod.name,
+    openMethod.args,
+    openMethod.argsIndex,
+    openMethod.statement,
+    uri,
+  );
 
   openMethod = null;
   //return [symbol];
@@ -1979,7 +2021,13 @@ function GetMethodSymbol(statement: LineStatement, uri: string): VizSymbol[] {
   return parametersSymbol.concat(symbol);
 }
 
-function GetParameterSymbols(name: string, args: string, argsIndex: number, statement: LineStatement, uri: string): VizSymbol[] {
+function GetParameterSymbols(
+  name: string,
+  args: string,
+  argsIndex: number,
+  statement: LineStatement,
+  uri: string,
+): VizSymbol[] {
   let symbols: VizSymbol[] = [];
   let MethodSignature: ls.SignatureInformation = ls.SignatureInformation.create(name);
 
@@ -1994,7 +2042,8 @@ function GetParameterSymbols(name: string, args: string, argsIndex: number, stat
   for (let i = 0; i < argsSplitted.length; i++) {
     let arg = argsSplitted[i];
 
-    let paramRegEx: RegExp = /^[ \t]*(byval|byref)?[ \t]*([a-zA-Z0-9\-\_]+)+[ \t]*(as)+[ \t]*([a-zA-Z0-9\-\_\[\]]+)+[ \t]*$/gi;
+    let paramRegEx: RegExp =
+      /^[ \t]*(byval|byref)?[ \t]*([a-zA-Z0-9\-\_]+)+[ \t]*(as)+[ \t]*([a-zA-Z0-9\-\_\[\]]+)+[ \t]*$/gi;
 
     let regexResult = paramRegEx.exec(arg);
 
@@ -2014,7 +2063,10 @@ function GetParameterSymbols(name: string, args: string, argsIndex: number, stat
       argTrimmed = argTrimmed.slice(0, regexResult[1].length);
     }
 
-    let range = ls.Range.create(statement.GetPositionByCharacter(argsIndex + arg.indexOf(varSymbol.name)), statement.GetPositionByCharacter(argsIndex + arg.indexOf(varSymbol.name) + varSymbol.name.length));
+    let range = ls.Range.create(
+      statement.GetPositionByCharacter(argsIndex + arg.indexOf(varSymbol.name)),
+      statement.GetPositionByCharacter(argsIndex + arg.indexOf(varSymbol.name) + varSymbol.name.length),
+    );
     varSymbol.nameLocation = ls.Location.create(uri, range);
     varSymbol.commitCharacters = ["."];
     varSymbol.symbolRange = range;
@@ -2067,7 +2119,10 @@ function GetMemberSymbol(statement: LineStatement, uri: string): VizSymbol {
   let indentation = GetNumberOfFrontSpaces(line);
   let nameStartIndex = regexResult[1].length;
 
-  let range: ls.Range = ls.Range.create(statement.GetPositionByCharacter(indentation), statement.GetPositionByCharacter(indentation + regexResult[0].trim().length));
+  let range: ls.Range = ls.Range.create(
+    statement.GetPositionByCharacter(indentation),
+    statement.GetPositionByCharacter(indentation + regexResult[0].trim().length),
+  );
 
   let symbol: VizSymbol = new VizSymbol();
   symbol.kind = ls.CompletionItemKind.Field;
@@ -2076,7 +2131,13 @@ function GetMemberSymbol(statement: LineStatement, uri: string): VizSymbol {
   symbol.insertText = name;
   symbol.args = "";
   symbol.symbolRange = range;
-  symbol.nameLocation = ls.Location.create(uri, ls.Range.create(statement.GetPositionByCharacter(nameStartIndex), statement.GetPositionByCharacter(nameStartIndex + name.length)));
+  symbol.nameLocation = ls.Location.create(
+    uri,
+    ls.Range.create(
+      statement.GetPositionByCharacter(nameStartIndex),
+      statement.GetPositionByCharacter(nameStartIndex + name.length),
+    ),
+  );
   symbol.commitCharacters = [""];
   symbol.parentName = openStructureName;
 
@@ -2093,7 +2154,8 @@ function GetVariableSymbol(statement: LineStatement, uri: string): VizSymbol[] {
   let line: string = statement.originalLine;
 
   let variableSymbols: VizSymbol[] = [];
-  let memberStartRegex: RegExp = /^([ \t]*dim[ \t]+)([a-zA-Z0-9\-\_\,\s]+)[ \t]+as[ \t]+([a-zA-Z0-9\-\_\,\[\]\s]+)[^\']*([\']?.*)$/gi;
+  let memberStartRegex: RegExp =
+    /^([ \t]*dim[ \t]+)([a-zA-Z0-9\-\_\,\s]+)[ \t]+as[ \t]+([a-zA-Z0-9\-\_\,\[\]\s]+)[^\']*([\']?.*)$/gi;
 
   let regexResult = memberStartRegex.exec(line);
 
@@ -2122,9 +2184,18 @@ function GetVariableSymbol(statement: LineStatement, uri: string): VizSymbol[] {
     symbol.args = regexResult[4].replace("'", "");
     symbol.hint = varName + " as " + type;
     symbol.kind = ls.CompletionItemKind.Variable;
-    symbol.nameLocation = ls.Location.create(uri, ls.Range.create(statement.GetPositionByCharacter(nameStartIndex + 1 * i), statement.GetPositionByCharacter(nameStartIndex + variables[i].length + 1 * i)));
+    symbol.nameLocation = ls.Location.create(
+      uri,
+      ls.Range.create(
+        statement.GetPositionByCharacter(nameStartIndex + 1 * i),
+        statement.GetPositionByCharacter(nameStartIndex + variables[i].length + 1 * i),
+      ),
+    );
 
-    symbol.symbolRange = ls.Range.create(statement.GetPositionByCharacter(indentation), statement.GetPositionByCharacter(indentation + regexResult[0].trim().length));
+    symbol.symbolRange = ls.Range.create(
+      statement.GetPositionByCharacter(indentation),
+      statement.GetPositionByCharacter(indentation + regexResult[0].trim().length),
+    );
 
     nameStartIndex += variables[i].length;
 
@@ -2149,7 +2220,13 @@ function GetStructureStart(statement: LineStatement, uri: string): boolean {
   openStructureName = name;
   openStructureStart = statement.GetPositionByCharacter(GetNumberOfFrontSpaces(line));
 
-  openStructureNameLocation = ls.Location.create(uri, ls.Range.create(statement.GetPositionByCharacter(line.indexOf(regexResult[1])), statement.GetPositionByCharacter(line.indexOf(regexResult[1]) + regexResult[1].length)));
+  openStructureNameLocation = ls.Location.create(
+    uri,
+    ls.Range.create(
+      statement.GetPositionByCharacter(line.indexOf(regexResult[1])),
+      statement.GetPositionByCharacter(line.indexOf(regexResult[1]) + regexResult[1].length),
+    ),
+  );
 
   return true;
 }
