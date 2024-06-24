@@ -87,13 +87,10 @@ export function activate(context: vscode.ExtensionContext) {
     }),
   );
 
-  client.onReady().then(() => {
+  client.start().then(() => {
     registerCommands(client, context);
     registerNotifications(client);
   });
-  // Start the client. This will also launch the server
-
-  context.subscriptions.push(client.start());
 }
 
 export function deactivate(): Thenable<void> | undefined {
