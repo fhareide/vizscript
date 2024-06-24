@@ -1,4 +1,7 @@
 {
+	"engines": {
+		"vscode": "^1.75.0"
+	},
 	"dependencies": {
 		"vscode-languageclient": "^9.0.1"
 	},

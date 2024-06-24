@@ -14,6 +14,10 @@ let scriptId = "";
 let thisHost = "";
 let thisPort: number = -1;
 
+function cleanString(str: string): string {
+  return str.replace(/[\x00-\x1F\x7F]/g, "").trim();
+}
+
 export function getVizScripts(host: string, port: number): Promise<VizScriptObject[]> {
   return new Promise((resolve, reject) => {
     let currentObjectId = "";
@@ -39,7 +43,7 @@ export function getVizScripts(host: string, port: number): Promise<VizScriptObje
             vizId: currentObjectId,
             type: "Scene",
             extension: ".vs",
-            name: scriptContent[1],
+            name: cleanString(scriptContent[1]),
             code: scriptContent[0],
             location: "",
           };
@@ -63,7 +67,7 @@ export function getVizScripts(host: string, port: number): Promise<VizScriptObje
                 vizId: scriptVizId,
                 type: "Container",
                 extension: ".vsc",
-                name: code[1].trim(),
+                name: cleanString(code[1]),
                 code: code[0],
                 location: "",
               };
@@ -259,12 +263,12 @@ export function compileScriptId(content: string, host: string, port: number, scr
       }
 
       if (replyCode == "1") {
-        socket.write("-1 #" + scriptId + "*SCRIPT*PLUGIN STOP " + String.fromCharCode(0));
-        socket.write("3 #" + scriptId + "*SCRIPT*PLUGIN*SOURCE_CODE SET " + text + " " + String.fromCharCode(0));
+        socket.write("-1 " + scriptId + "*SCRIPT*PLUGIN STOP " + String.fromCharCode(0));
+        socket.write("3 " + scriptId + "*SCRIPT*PLUGIN*SOURCE_CODE SET " + text + " " + String.fromCharCode(0));
       } else if (replyCode == "3") {
-        socket.write("4 #" + scriptId + "*SCRIPT*PLUGIN COMPILE " + String.fromCharCode(0));
+        socket.write("4 " + scriptId + "*SCRIPT*PLUGIN COMPILE " + String.fromCharCode(0));
       } else if (replyCode == "4") {
-        socket.write("5 #" + scriptId + "*SCRIPT*PLUGIN*COMPILE_STATUS GET " + String.fromCharCode(0));
+        socket.write("5 " + scriptId + "*SCRIPT*PLUGIN*COMPILE_STATUS GET " + String.fromCharCode(0));
       } else if (replyCode == "5") {
         resolve(message);
         socket.end();
@@ -284,5 +288,5 @@ export function compileScriptId(content: string, host: string, port: number, scr
 
 function GetRegexResult(line: string, regex: RegExp): string[] {
   let RegexString: RegExp = regex;
-  return RegexString.exec(line);
+  return RegexString.exec(line) as string[];
 }

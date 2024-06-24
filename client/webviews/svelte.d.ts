@@ -1,8 +1,14 @@
 import * as _vscode from "vscode";
-import type { SvelteComponentTyped } from "svelte";
+import type { SvelteComponent } from "svelte";
 
+/// <reference types="svelte" />
+
+declare module "*.svg" {
+  const value: any;
+  export = value;
+}
 declare module "*.svelte" {
-  export default SvelteComponentTyped;
+  export default SvelteComponent;
 }
 
 declare global {

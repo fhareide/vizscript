@@ -8,25 +8,15 @@
       "name": "Launch Client",
       "runtimeExecutable": "${execPath}",
       "args": ["--extensionDevelopmentPath=${workspaceRoot}"],
-      "outFiles": ["${workspaceRoot}/client/out/**/*.js"]
-    },
-    {
-      "type": "extensionHost",
-      "request": "launch",
-      "name": "Launch Client For Debug",
-      "runtimeExecutable": "${execPath}",
-      "args": ["--extensionDevelopmentPath=${workspaceRoot}"],
       "outFiles": ["${workspaceRoot}/client/out/**/*.js", "${workspaceRoot}/server/out/**/*.js"],
-      "preLaunchTask": {
-        "type": "npm",
-        "script": "watch"
-      }
+      "sourceMaps": true
     },
     {
       "type": "node",
       "request": "attach",
       "name": "Attach to Server",
       "port": 6009,
+      "address": "127.0.0.1",
       "restart": true,
       "outFiles": ["${workspaceRoot}/server/out/**/*.js"]
     }
@@ -34,7 +24,7 @@
   "compounds": [
     {
       "name": "Client + Server",
-      "configurations": ["Launch Client For Debug", "Attach to Server"]
+      "configurations": ["Launch Client", "Attach to Server"]
     }
   ]
 }

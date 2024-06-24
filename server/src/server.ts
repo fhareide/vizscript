@@ -98,7 +98,7 @@ connection.onDidChangeConfiguration((change) => {
   GetBuiltinSymbols();
 });
 
-const pendingValidationRequests: { [uri: string]: NodeJS.Timer } = {};
+const pendingValidationRequests: { [uri: string]: NodeJS.Timeout } = {};
 const validationDelayMs = 500;
 
 let documentUri: string;

@@ -1,336 +1,339 @@
 {
-  "name": "vizscript",
-  "displayName": "Viz Script",
-  "description": "A complete language extension for Viz Script. Auto complete, syntax checking, syntax highlighting, signature help, jump to definition and more.",
-  "author": "Fredrik Hareide",
-  "license": "MIT",
-  "version": "0.4.1",
-  "publisher": "fhareide",
-  "keywords": [
-    "Vizrt",
-    "Viz Artist",
-    "Viz Engine",
-    "Viz Scripting"
-  ],
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/fhareide/vizscript"
-  },
-  "categories": [
-    "Language Packs",
-    "Programming Languages"
-  ],
-  "icon": "images/vizicon.png",
-  "engines": {
-    "vscode": "^1.75.0"
-  },
-  "main": "./client/out/extension",
-  "contributes": {
-    "commands": [
-      {
-        "command": "vizscript.compile",
-        "title": "Viz Script: Syntax check"
-      },
-      {
-        "command": "vizscript.compile.currentscript",
-        "title": "Viz Script: Set current script in Viz"
-      },
-      {
-        "command": "vizscript.getscripts",
-        "title": "Viz Script: Get scripts from Viz"
-      },
-      {
-        "command": "vizscript.fetchscripts",
-        "title": "Viz Script: Fetch scripts from Viz"
-      }
-    ],
-    "menus": {
-      "commandPalette": [
-        {
-          "command": "vizscript.compile",
-          "when": "editorLangId == viz || editorLangId == viz-con || editorLangId == viz4 || editorLangId == viz4-con || editorLangId == viz5 || editorLangId == viz5-con"
-        },
-        {
-          "command": "vizscript.compile.currentscript",
-          "when": "editorLangId == viz || editorLangId == viz-con || editorLangId == viz4 || editorLangId == viz4-con || editorLangId == viz5 || editorLangId == viz5-con"
-        },
-        {
-          "command": "vizscript.getscripts"
-        }
-      ]
-    },
-    "keybindings": [
-      {
-        "command": "vizscript.compile",
-        "key": "ctrl+f5",
-        "when": "editorLangId == viz || editorLangId == viz-con || editorLangId == viz4 || editorLangId == viz4-con || editorLangId == viz5 || editorLangId == viz5-con"
-      },
-      {
-        "command": "vizscript.compile.currentscript",
-        "key": "ctrl+shift+f5",
-        "when": "editorLangId == viz || editorLangId == viz-con || editorLangId == viz4 || editorLangId == viz4-con || editorLangId == viz5 || editorLangId == viz5-con"
-      }
-    ],
-    "languages": [
-      {
-        "id": "viz",
-        "aliases": [
-          "VizSceneScript"
-        ],
-        "extensions": [
-          ".vs",
-          ".viz",
-          ".v3script"
-        ],
-        "configuration": "./syntaxes/language-configuration.json"
-      },
-      {
-        "id": "viz-con",
-        "aliases": [
-          "VizContainerScript"
-        ],
-        "extensions": [
-          ".vsc",
-          ".vizc"
-        ],
-        "configuration": "./syntaxes/language-configuration.json"
-      },
-      {
-        "id": "viz4",
-        "aliases": [
-          "Viz4SceneScript"
-        ],
-        "extensions": [
-          ".vs4",
-          ".viz4"
-        ],
-        "configuration": "./syntaxes/language-configuration.json"
-      },
-      {
-        "id": "viz4-con",
-        "aliases": [
-          "Viz4ContainerScript"
-        ],
-        "extensions": [
-          ".vs4c",
-          ".viz4c"
-        ],
-        "configuration": "./syntaxes/language-configuration.json"
-      },
-      {
-        "id": "viz5",
-        "aliases": [
-          "Viz5SceneScript"
-        ],
-        "extensions": [
-          ".vs5",
-          ".viz5"
-        ],
-        "configuration": "./syntaxes/language-configuration.json"
-      },
-      {
-        "id": "viz5-con",
-        "aliases": [
-          "Viz5ContainerScript"
-        ],
-        "extensions": [
-          ".vs5c",
-          ".viz5c"
-        ],
-        "configuration": "./syntaxes/language-configuration.json"
-      }
-    ],
-    "grammars": [
-      {
-        "language": "viz",
-        "scopeName": "source.viz",
-        "path": "./syntaxes/viz.tmLanguage.json"
-      },
-      {
-        "language": "viz-con",
-        "scopeName": "source.viz",
-        "path": "./syntaxes/viz.tmLanguage.json"
-      },
-      {
-        "language": "viz4",
-        "scopeName": "source.viz4",
-        "path": "./syntaxes/viz4.tmLanguage.json"
-      },
-      {
-        "language": "viz4-con",
-        "scopeName": "source.viz4",
-        "path": "./syntaxes/viz4.tmLanguage.json"
-      },
-      {
-        "language": "viz5",
-        "scopeName": "source.viz5",
-        "path": "./syntaxes/viz5.tmLanguage.json"
-      },
-      {
-        "language": "viz5-con",
-        "scopeName": "source.viz5",
-        "path": "./syntaxes/viz5.tmLanguage.json"
-      }
-    ],
-    "themes": [
-      {
-        "label": "Viz Script Enhanced",
-        "uiTheme": "vs-dark",
-        "path": "./themes/Viz Script-color-theme.json"
-      },
-      {
-        "label": "Viz Script Classic",
-        "uiTheme": "vs-dark",
-        "path": "./themes/Viz Script Classic-color-theme.json"
-      }
-    ],
-    "configuration": {
-      "type": "object",
-      "title": "Viz Script",
-      "properties": {
-        "vizscript.enableAutoComplete": {
-          "type": "boolean",
-          "default": true,
-          "description": "Enable Auto Complete functionality",
-          "scope": "resource"
-        },
-        "vizscript.showThisCompletionsOnRoot": {
-          "type": "boolean",
-          "default": true,
-          "description": "Show completions for Container/Scene on root",
-          "scope": "resource"
-        },
-        "vizscript.showEventSnippetCompletionsOnRoot": {
-          "type": "boolean",
-          "default": true,
-          "description": "Show Event snippet completions on root",
-          "scope": "resource"
-        },
-        "vizscript.keywordLowercase": {
-          "type": "boolean",
-          "default": true,
-          "description": "Makes all keywords(if,else etc.) lowercase",
-          "scope": "resource"
-        },
-        "vizscript.enableSignatureHelp": {
-          "type": "boolean",
-          "default": true,
-          "description": "Enable Signature Help for both built-in and custom procedures",
-          "scope": "resource"
-        },
-        "vizscript.enableDefinition": {
-          "type": "boolean",
-          "default": true,
-          "description": "Enable Jump to Definition for easy navigation",
-          "scope": "resource"
-        },
-        "vizscript.enableGlobalProcedureSnippets": {
-          "type": "boolean",
-          "default": false,
-          "description": "Enable snippet completions for Global Procedures",
-          "scope": "resource"
-        },
-        "vizscript.compiler.hostName": {
-          "type": "string",
-          "default": "localhost",
-          "description": "The hostname for connection to Viz Engine",
-          "scope": "resource"
-        },
-        "vizscript.compiler.hostPort": {
-          "type": "number",
-          "default": 6100,
-          "description": "The port number for connection to Viz Engine",
-          "scope": "resource"
-        },
-        "vizscript.compiler.liveSyntaxChecking": {
-          "type": "boolean",
-          "default": false,
-          "description": "Check syntax on Viz Engine while you write code",
-          "scope": "resource"
-        },
-        "vizscript.trace.server": {
-          "scope": "window",
-          "type": "string",
-          "enum": [
-            "off",
-            "messages",
-            "verbose"
-          ],
-          "default": "off",
-          "description": "Traces the communication between VS Code and the Viz language server."
-        }
-      }
-    },
-    "viewsContainers": {
-      "activitybar": [
-        {
-          "id": "vizscript-sidebar-view",
-          "title": "Viz Script Tools",
-          "icon": "images/vizicon.png",
-          "order": 1
-        }
-      ]
-    },
-    "views": {
-      "vizscript-sidebar-view": [
-        {
-          "id": "vizscript-sidebar",
-          "name": "Viz Script",
-          "type": "webview",
-          "icon": "images/vizicon.png"
-        },
-        {
-          "id": "vizscript-sidebar-tree",
-          "name": "Viz Scene Tree",
-          "type": "tree",
-          "icon": "images/vizicon.png"
-        }
-      ]
-    }
-  },
-  "scripts": {
-    "vscode:prepublish": "npm run webpack",
-    "webpack": "rollup -c ./client/rollup.config.js  --bundleConfigAsCjs && npm run clean && webpack --mode production --config ./client/webpack.config.js && webpack --mode production --config ./server/webpack.config.js",
-    "webpack-dev": "concurrently \"rollup -c ./client/rollup.config.js  --bundleConfigAsCjs -w\"  \"npm run clean && webpack --mode development --config ./client/webpack.config.js && webpack --mode development --config ./server/webpack.config.js\" ",
-    "compile": "tsc -b",
-    "watch": "tsc -b -w",
-    "postinstall": "cd client && npm install && cd ../server && npm install && cd ..",
-    "clean": "rimraf client/out && rimraf server/out",
-    "development": "npm run webpack-dev && npm run watch"
-  },
-  "devDependencies": {
-    "@githubocto/tailwind-vscode": "^1.0.5",
-    "@rollup/plugin-commonjs": "^26.0.1",
-    "@rollup/plugin-node-resolve": "^15.2.3",
-    "@rollup/plugin-terser": "0.4.4",
-    "@rollup/plugin-typescript": "^11.1.6",
-    "@tsconfig/svelte": "^5.0.4",
-    "@types/mocha": "^8.2.0",
-    "@types/node": "^14.14.27",
-    "@types/vscode": "^1.53.0",
-    "@typescript-eslint/eslint-plugin": "^7.13.1",
-    "@typescript-eslint/parser": "^7.13.1",
-    "autoprefixer": "^10.4.19",
-    "concurrently": "^8.2.2",
-    "eslint": "^8.57.0",
-    "eslint-config-prettier": "^9.1.0",
-    "merge-options": "^3.0.4",
-    "postcss": "^8.4.38",
-    "prettier": "3.3.2",
-    "rollup": "^4.18.0",
-    "rollup-plugin-postcss": "^4.0.2",
-    "rollup-plugin-svelte": "^7.2.2",
-    "svelte": "^4.2.18",
-    "svelte-check": "^3.8.1",
-    "svelte-preprocess": "^6.0.1",
-    "tailwindcss": "^3.4.4",
-    "ts-loader": "^8.0.17",
-    "typescript": "^5.4.5",
-    "@vscode/test-electron": "^1.5.0",
-    "webpack": "^5.76.0",
-    "webpack-cli": "^4.5.0"
-  },
-  "dependencies": {
-    "@tanstack/svelte-query": "^5.46.1"
-  }
+	"name": "vizscript",
+	"displayName": "Viz Script",
+	"description": "A complete language extension for Viz Script. Auto complete, syntax checking, syntax highlighting, signature help, jump to definition and more.",
+	"author": "Fredrik Hareide",
+	"license": "MIT",
+	"version": "0.4.1",
+	"publisher": "fhareide",
+	"keywords": [
+		"Vizrt",
+		"Viz Artist",
+		"Viz Engine",
+		"Viz Scripting"
+	],
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/fhareide/vizscript"
+	},
+	"categories": [
+		"Language Packs",
+		"Programming Languages"
+	],
+	"icon": "images/vizicon.png",
+	"engines": {
+		"vscode": "^1.75.0"
+	},
+	"main": "./client/out/extension",
+	"contributes": {
+		"commands": [
+			{
+				"command": "vizscript.compile",
+				"title": "Viz Script: Syntax check"
+			},
+			{
+				"command": "vizscript.compile.currentscript",
+				"title": "Viz Script: Set current script in Viz"
+			},
+			{
+				"command": "vizscript.getscripts",
+				"title": "Viz Script: Get scripts from Viz"
+			},
+			{
+				"command": "vizscript.fetchscripts",
+				"title": "Viz Script: Fetch scripts from Viz"
+			}
+		],
+		"menus": {
+			"commandPalette": [
+				{
+					"command": "vizscript.compile",
+					"when": "editorLangId == viz || editorLangId == viz-con || editorLangId == viz4 || editorLangId == viz4-con || editorLangId == viz5 || editorLangId == viz5-con"
+				},
+				{
+					"command": "vizscript.compile.currentscript",
+					"when": "editorLangId == viz || editorLangId == viz-con || editorLangId == viz4 || editorLangId == viz4-con || editorLangId == viz5 || editorLangId == viz5-con"
+				},
+				{
+					"command": "vizscript.getscripts"
+				}
+			]
+		},
+		"keybindings": [
+			{
+				"command": "vizscript.compile",
+				"key": "ctrl+f5",
+				"when": "editorLangId == viz || editorLangId == viz-con || editorLangId == viz4 || editorLangId == viz4-con || editorLangId == viz5 || editorLangId == viz5-con"
+			},
+			{
+				"command": "vizscript.compile.currentscript",
+				"key": "ctrl+shift+f5",
+				"when": "editorLangId == viz || editorLangId == viz-con || editorLangId == viz4 || editorLangId == viz4-con || editorLangId == viz5 || editorLangId == viz5-con"
+			}
+		],
+		"languages": [
+			{
+				"id": "viz",
+				"aliases": [
+					"VizSceneScript"
+				],
+				"extensions": [
+					".vs",
+					".viz",
+					".v3script"
+				],
+				"configuration": "./syntaxes/language-configuration.json"
+			},
+			{
+				"id": "viz-con",
+				"aliases": [
+					"VizContainerScript"
+				],
+				"extensions": [
+					".vsc",
+					".vizc"
+				],
+				"configuration": "./syntaxes/language-configuration.json"
+			},
+			{
+				"id": "viz4",
+				"aliases": [
+					"Viz4SceneScript"
+				],
+				"extensions": [
+					".vs4",
+					".viz4"
+				],
+				"configuration": "./syntaxes/language-configuration.json"
+			},
+			{
+				"id": "viz4-con",
+				"aliases": [
+					"Viz4ContainerScript"
+				],
+				"extensions": [
+					".vs4c",
+					".viz4c"
+				],
+				"configuration": "./syntaxes/language-configuration.json"
+			},
+			{
+				"id": "viz5",
+				"aliases": [
+					"Viz5SceneScript"
+				],
+				"extensions": [
+					".vs5",
+					".viz5"
+				],
+				"configuration": "./syntaxes/language-configuration.json"
+			},
+			{
+				"id": "viz5-con",
+				"aliases": [
+					"Viz5ContainerScript"
+				],
+				"extensions": [
+					".vs5c",
+					".viz5c"
+				],
+				"configuration": "./syntaxes/language-configuration.json"
+			}
+		],
+		"grammars": [
+			{
+				"language": "viz",
+				"scopeName": "source.viz",
+				"path": "./syntaxes/viz.tmLanguage.json"
+			},
+			{
+				"language": "viz-con",
+				"scopeName": "source.viz",
+				"path": "./syntaxes/viz.tmLanguage.json"
+			},
+			{
+				"language": "viz4",
+				"scopeName": "source.viz4",
+				"path": "./syntaxes/viz4.tmLanguage.json"
+			},
+			{
+				"language": "viz4-con",
+				"scopeName": "source.viz4",
+				"path": "./syntaxes/viz4.tmLanguage.json"
+			},
+			{
+				"language": "viz5",
+				"scopeName": "source.viz5",
+				"path": "./syntaxes/viz5.tmLanguage.json"
+			},
+			{
+				"language": "viz5-con",
+				"scopeName": "source.viz5",
+				"path": "./syntaxes/viz5.tmLanguage.json"
+			}
+		],
+		"themes": [
+			{
+				"label": "Viz Script Enhanced",
+				"uiTheme": "vs-dark",
+				"path": "./themes/Viz Script-color-theme.json"
+			},
+			{
+				"label": "Viz Script Classic",
+				"uiTheme": "vs-dark",
+				"path": "./themes/Viz Script Classic-color-theme.json"
+			}
+		],
+		"configuration": {
+			"type": "object",
+			"title": "Viz Script",
+			"properties": {
+				"vizscript.enableAutoComplete": {
+					"type": "boolean",
+					"default": true,
+					"description": "Enable Auto Complete functionality",
+					"scope": "resource"
+				},
+				"vizscript.showThisCompletionsOnRoot": {
+					"type": "boolean",
+					"default": true,
+					"description": "Show completions for Container/Scene on root",
+					"scope": "resource"
+				},
+				"vizscript.showEventSnippetCompletionsOnRoot": {
+					"type": "boolean",
+					"default": true,
+					"description": "Show Event snippet completions on root",
+					"scope": "resource"
+				},
+				"vizscript.keywordLowercase": {
+					"type": "boolean",
+					"default": true,
+					"description": "Makes all keywords(if,else etc.) lowercase",
+					"scope": "resource"
+				},
+				"vizscript.enableSignatureHelp": {
+					"type": "boolean",
+					"default": true,
+					"description": "Enable Signature Help for both built-in and custom procedures",
+					"scope": "resource"
+				},
+				"vizscript.enableDefinition": {
+					"type": "boolean",
+					"default": true,
+					"description": "Enable Jump to Definition for easy navigation",
+					"scope": "resource"
+				},
+				"vizscript.enableGlobalProcedureSnippets": {
+					"type": "boolean",
+					"default": false,
+					"description": "Enable snippet completions for Global Procedures",
+					"scope": "resource"
+				},
+				"vizscript.compiler.hostName": {
+					"type": "string",
+					"default": "localhost",
+					"description": "The hostname for connection to Viz Engine",
+					"scope": "resource"
+				},
+				"vizscript.compiler.hostPort": {
+					"type": "number",
+					"default": 6100,
+					"description": "The port number for connection to Viz Engine",
+					"scope": "resource"
+				},
+				"vizscript.compiler.liveSyntaxChecking": {
+					"type": "boolean",
+					"default": false,
+					"description": "Check syntax on Viz Engine while you write code",
+					"scope": "resource"
+				},
+				"vizscript.trace.server": {
+					"scope": "window",
+					"type": "string",
+					"enum": [
+						"off",
+						"messages",
+						"verbose"
+					],
+					"default": "off",
+					"description": "Traces the communication between VS Code and the Viz language server."
+				}
+			}
+		},
+		"viewsContainers": {
+			"activitybar": [
+				{
+					"id": "vizscript-sidebar-view",
+					"title": "Viz Script Tools",
+					"icon": "images/vizicon.png",
+					"order": 1
+				}
+			]
+		},
+		"views": {
+			"vizscript-sidebar-view": [
+				{
+					"id": "vizscript-sidebar",
+					"name": "Viz Script",
+					"type": "webview",
+					"icon": "images/vizicon.png"
+				},
+				{
+					"id": "vizscript-sidebar-tree",
+					"name": "Viz Scene Tree",
+					"type": "tree",
+					"icon": "images/vizicon.png"
+				}
+			]
+		}
+	},
+	"scripts": {
+		"vscode:prepublish": "npm run webpack",
+		"webpack": "npm run clean && webpack --mode production --config ./client/webpack.config.js && rollup -c ./client/rollup.config.js  --bundleConfigAsCjs && webpack --mode production --config ./server/webpack.config.js",
+		"webpack-dev": "npm run clean && webpack --mode development --config ./client/webpack.config.js && webpack --mode development --config ./server/webpack.config.js",
+		"rollup-svelte": "rollup -c ./client/rollup.config.js  --bundleConfigAsCjs -w",
+		"compile": "tsc -b",
+		"watch": "tsc -b -w",
+		"postinstall": "cd client && npm install && cd ../server && npm install && cd ..",
+		"clean": "rimraf client/out && rimraf server/out",
+		"development": "npm run webpack-dev && concurrently \"npm run rollup-svelte\" \"npm run watch\""
+	},
+	"devDependencies": {
+		"@githubocto/tailwind-vscode": "^1.0.5",
+		"@rollup/plugin-commonjs": "^26.0.1",
+		"@rollup/plugin-node-resolve": "^15.2.3",
+		"@rollup/plugin-terser": "0.4.4",
+		"@rollup/plugin-typescript": "^11.1.6",
+		"@tsconfig/svelte": "^5.0.4",
+		"@types/mocha": "^8.2.0",
+		"@types/node": "^18.14.6",
+		"@types/vscode": "^1.53.0",
+		"@typescript-eslint/eslint-plugin": "^7.13.1",
+		"@typescript-eslint/parser": "^7.13.1",
+		"@vscode/test-electron": "^1.5.0",
+		"autoprefixer": "^10.4.19",
+		"concurrently": "^8.2.2",
+		"eslint": "^8.57.0",
+		"eslint-config-prettier": "^9.1.0",
+		"merge-options": "^3.0.4",
+		"postcss": "^8.4.38",
+		"prettier": "3.3.2",
+		"rollup": "^4.18.0",
+		"rollup-plugin-postcss": "^4.0.2",
+		"rollup-plugin-string": "^3.0.0",
+		"rollup-plugin-svelte": "^7.2.2",
+		"svelte": "^4.2.18",
+		"svelte-check": "^3.8.1",
+		"svelte-icon": "^2.1.1",
+		"svelte-preprocess": "^6.0.1",
+		"tailwindcss": "^3.4.4",
+		"ts-loader": "^8.0.17",
+		"typescript": "^5.4.5",
+		"webpack": "^5.76.0",
+		"webpack-cli": "^4.5.0"
+	},
+	"dependencies": {
+		"svelte-icons": "^2.1.0"
+	}
 }

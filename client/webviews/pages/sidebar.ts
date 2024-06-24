@@ -1,4 +1,4 @@
-import App from "../components/sidebar.svelte";
+import App from "../components/Sidebar.svelte";
 
 const app = new App({
   target: document.body,

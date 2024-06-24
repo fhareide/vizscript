@@ -3,29 +3,24 @@
  * Licensed under the MIT License.
  * ------------------------------------------------------------------------------------------ */
 
-import { showMessage } from "./showMessage";
-import { showUntitledWindow } from "./showUntitledWindow";
 import {
   ExtensionContext,
-  QuickPickItem,
-  TextEditor,
-  window,
-  Diagnostic,
-  DiagnosticSeverity,
-  Range,
-  languages,
-  commands,
-  Uri,
   Position,
+  QuickPickItem,
+  Range,
   Selection,
-  workspace,
   StatusBarAlignment,
   StatusBarItem,
+  TextEditor,
+  ThemeColor,
+  window,
+  workspace,
 } from "vscode";
 import { LanguageClient } from "vscode-languageclient/node";
+import { showMessage } from "./showMessage";
+import { showUntitledWindow } from "./showUntitledWindow";
+import { compileScript, compileScriptId, getVizScripts } from "./vizCommunication";
 import { VizScriptObject } from "./vizScriptObject";
-import { ThemeColor } from "vscode";
-import { getVizScripts, compileScript, compileScriptId } from "./vizCommunication";
 
 let scriptObjects: VizScriptObject[];
 
@@ -40,7 +35,7 @@ export async function displayScriptSelector(context: ExtensionContext) {
       throw new Error("No script selected.");
     }
 
-    let elements = [];
+    let elements: QuickPickItem[] = [];
     let currentFileItem: QuickPickItem = {
       description: "",
       label: "Add script to current file",
@@ -71,10 +66,19 @@ export async function displayScriptSelector(context: ExtensionContext) {
     let vizId = (<QuickPickItem>selectedScript).label;
     const scriptObject = scriptObjects.find((element) => element.vizId === vizId);
     console.log(scriptObject);
+    if (!scriptObject) {
+      throw new Error("No script object found.");
+    }
 
     if (selection.label === "Add script to current file") {
+      if (!window.activeTextEditor) {
+        throw new Error("No active text editor.");
+      }
       context.workspaceState.update(window.activeTextEditor.document.uri.toString(), vizId);
       await window.activeTextEditor.edit((builder) => {
+        if (!window.activeTextEditor) {
+          throw new Error("No active text editor.");
+        }
         const lastLine = window.activeTextEditor.document.lineCount;
         const lastChar = window.activeTextEditor.document.lineAt(lastLine - 1).range.end.character;
         builder.delete(new Range(0, 0, lastLine, lastChar));
@@ -118,7 +122,10 @@ let compileMessage: StatusBarItem = window.createStatusBarItem(StatusBarAlignmen
 
 export async function compileCurrentScript(context: ExtensionContext, client: LanguageClient, editor: TextEditor) {
   try {
-    const result = await client.sendRequest("getVizConnectionInfo");
+    const result: [string, string, string] = await client.sendRequest("getVizConnectionInfo");
+    if (!window.activeTextEditor) {
+      throw new Error("No active text editor.");
+    }
     const linkedId: string = context.workspaceState.get(window.activeTextEditor.document.uri.toString()) || "";
     const message = await compileScriptId(
       window.activeTextEditor.document.getText(),
@@ -152,7 +159,10 @@ export async function compileCurrentScript(context: ExtensionContext, client: La
 
 export async function syntaxCheckCurrentScript(context: ExtensionContext, client: LanguageClient, editor: TextEditor) {
   try {
-    const result = await client.sendRequest("getVizConnectionInfo");
+    const result: [string, string, string] = await client.sendRequest("getVizConnectionInfo");
+    if (!window.activeTextEditor) {
+      throw new Error("No active text editor.");
+    }
     const message = await compileScript(
       window.activeTextEditor.document.getText(),
       result[0],
@@ -192,11 +202,6 @@ function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function GetRegexResult(line: string, regex: RegExp): string[] {
-  let RegexString: RegExp = regex;
-  return RegexString.exec(line);
-}
-
 class VizScriptCompilerSettings {
   hostName: string;
   hostPort: number;
@@ -205,8 +210,8 @@ class VizScriptCompilerSettings {
 function getConnectionSettings(): Promise<VizScriptCompilerSettings> {
   let config = workspace.getConfiguration("vizscript.compiler");
   let result = new VizScriptCompilerSettings();
-  result.hostName = config.get("hostName");
-  result.hostPort = config.get("hostPort");
+  result.hostName = config.get("hostName") || "localhost";
+  result.hostPort = config.get("hostPort") || 6100;
   return Promise.resolve(result);
 }
 

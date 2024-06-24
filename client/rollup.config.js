@@ -8,6 +8,7 @@ import terser from "@rollup/plugin-terser";
 import postcss from "rollup-plugin-postcss";
 import tailwindcss from "tailwindcss";
 import autoprefixer from "autoprefixer";
+import { sveltePreprocess } from "svelte-preprocess";
 
 const production = !process.env.ROLLUP_WATCH;
 
@@ -23,6 +24,7 @@ export default fs.readdirSync(path.join(__dirname, "webviews", "pages")).map((in
     },
     plugins: [
       svelte({
+        preprocess: sveltePreprocess(),
         compilerOptions: {
           dev: !production,
           css: (css) => {
