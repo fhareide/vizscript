@@ -11,6 +11,7 @@ import { LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } f
 import { SidebarProvider } from "./sidebarProvider";
 import { TestView } from "./vizScriptTreeView";
 import { getVizScripts } from "./vizCommunication";
+import { reloadUntitledContent } from "./showUntitledWindow";
 
 let client: LanguageClient;
 
@@ -68,36 +69,15 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(vscode.window.registerWebviewViewProvider("vizscript-sidebar", sidebarProvider));
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("vizscript.fetchscripts", async () => {
-      vscode.window.withProgress(
-        {
-          location: vscode.ProgressLocation.Notification,
-          title: "Fetching scripts...",
-          cancellable: false,
-        },
-        async (progress, token) => {
-          try {
-            const connectionInfo = await Commands.getConfig();
-            const scripts = await getVizScripts(connectionInfo.hostName, connectionInfo.hostPort, progress);
-            console.log(scripts);
-
-            sidebarProvider._view?.webview.postMessage({ type: "getscripts", value: scripts });
-            return new Promise((resolve) => {
-              resolve(scripts);
-            });
-          } catch (error) {
-            return new Promise((resolve, reject) => {
-              reject(error);
-            });
-          }
-        },
-      );
-    }),
+    vscode.commands.registerCommand(
+      "vizscript.fetchscripts",
+      Commands.getAndPostVizScripts.bind(this, context, sidebarProvider),
+    ),
   );
 
   context.subscriptions.push(
     vscode.commands.registerCommand("vizscript.openscriptinnewfile", async (vizId: string) => {
-      await Commands.openScriptInTextEditor(vizId, true, context);
+      await Commands.openScriptInTextEditor.bind(this)(vizId, true, context);
     }),
   );
 
@@ -112,6 +92,23 @@ export function activate(context: vscode.ExtensionContext) {
   client.start().then(() => {
     registerCommands(client, context);
     registerNotifications(client);
+
+    /*     // Get the currently open text editors
+    const openTextEditors = vscode.window.visibleTextEditors;
+
+    // Filter out the untitled documents with .vs or .vsc extension
+    const documentIdsToReload = openTextEditors
+      .filter(
+        (editor) =>
+          editor.document.isUntitled &&
+          (editor.document.fileName.endsWith(".vs") || editor.document.fileName.endsWith(".vsc")),
+      )
+      .map((editor) => context.workspaceState.get<string>(editor.document.uri.toString()));
+
+    // Reload untitled content for each relevant document
+    documentIdsToReload.forEach((id) => {
+      if (id) reloadUntitledContent(id, context);
+    }); */
   });
 }
 

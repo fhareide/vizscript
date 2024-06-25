@@ -60,7 +60,7 @@ class ScriptTreeDataProvider implements vscode.TreeDataProvider<ScriptTreeItem> 
   async refresh(): Promise<void> {
     try {
       const connectionInfo = await getConfig();
-      const scripts = await getVizScripts(connectionInfo.hostName, Number(connectionInfo.hostPort));
+      const scripts = await getVizScripts(connectionInfo.hostName, Number(connectionInfo.hostPort), this.context);
       console.log(scripts);
       vscode.window.showInformationMessage("Scripts fetched");
 

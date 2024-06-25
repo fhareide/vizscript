@@ -4,7 +4,7 @@
  * ------------------------------------------------------------------------------------------ */
 
 import * as net from "net";
-import { window, Range, Progress } from "vscode";
+import { window, Range, Progress, ExtensionContext } from "vscode";
 import { VizScriptObject } from "./vizScriptObject";
 
 let sceneId = "";
@@ -14,6 +14,8 @@ let scriptId = "";
 let thisHost = "";
 let thisPort: number = -1;
 
+let scriptObjectCache: VizScriptObject[];
+
 function cleanString(str: string): string {
   return str.replace(/[\x00-\x1F\x7F]/g, "").trim();
 }
@@ -21,6 +23,7 @@ function cleanString(str: string): string {
 export function getVizScripts(
   host: string,
   port: number,
+  context: ExtensionContext,
   progress?: Progress<{
     message?: string;
     increment?: number;
@@ -103,9 +106,14 @@ export function getVizScripts(
 
     socket.on("end", () => {
       console.log("Disconnected Viz Engine");
+      context.workspaceState.update("vizScripts", scriptObjects);
       resolve(scriptObjects);
     });
   });
+}
+
+export function getScriptObjectCache(): VizScriptObject[] {
+  return scriptObjectCache;
 }
 
 function getVizScriptContent(vizId: string): Promise<string[]> {

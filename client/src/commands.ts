@@ -1,3 +1,4 @@
+import { SidebarProvider } from "./sidebarProvider";
 /* --------------------------------------------------------------------------------------------
  * Copyright (c) Fredrik Hareide. All rights reserved.
  * Licensed under the MIT License.
@@ -15,6 +16,7 @@ import {
   ThemeColor,
   window,
   workspace,
+  ProgressLocation,
 } from "vscode";
 import { LanguageClient } from "vscode-languageclient/node";
 import { showMessage } from "./showMessage";
@@ -22,14 +24,12 @@ import { showUntitledWindow } from "./showUntitledWindow";
 import { compileScript, compileScriptId, getVizScripts } from "./vizCommunication";
 import { VizScriptObject } from "./vizScriptObject";
 
-let scriptObjects: VizScriptObject[];
-//TODO: Separate out logic to fetch script so we can use it in the webview. Also store the fetched scripts so we can use them with openScriptInTextEditor
 export async function getAndDisplayVizScript(context: ExtensionContext) {
   window.setStatusBarMessage("Fetching script list from Viz...", 5000);
 
   try {
     const connectionString = await getConfig();
-    const selectedScript = await showVizScriptQuickPick(connectionString);
+    const selectedScript = await showVizScriptQuickPick(connectionString, context);
 
     if (!selectedScript) {
       throw new Error("No script selected.");
@@ -72,20 +72,52 @@ export async function getAndDisplayVizScript(context: ExtensionContext) {
   }
 }
 
+export async function getAndPostVizScripts(context: ExtensionContext, sidebarProvider) {
+  window.withProgress(
+    {
+      location: ProgressLocation.Notification,
+      title: "Fetching scripts...",
+      cancellable: false,
+    },
+    async (progress, token) => {
+      try {
+        const connectionInfo = await getConfig();
+        const scripts = await getVizScripts(connectionInfo.hostName, connectionInfo.hostPort, context, progress);
+        console.log(scripts);
+
+        sidebarProvider._view?.webview.postMessage({ type: "getscripts", value: scripts });
+        return new Promise((resolve) => {
+          resolve(scripts);
+        });
+      } catch (error) {
+        return new Promise((resolve, reject) => {
+          reject(error);
+        });
+      }
+    },
+  );
+}
+
 export async function openScriptInTextEditor(vizId: string, newFile: boolean, context: ExtensionContext) {
+  const scriptObjects: VizScriptObject[] = context.workspaceState.get("vizScripts");
+  if (!scriptObjects) {
+    throw new Error("No script objects found.");
+  }
   const scriptObject = scriptObjects.find((element) => element.vizId === vizId);
   console.log(scriptObject);
   if (!scriptObject) {
     throw new Error("No script object found.");
   }
 
+  const vizIdStripped = vizId.replace("#", "");
+
   if (newFile) {
-    await showUntitledWindow(vizId, scriptObject.extension, scriptObject.code, context);
+    await showUntitledWindow(vizIdStripped, scriptObject.name, scriptObject.extension, scriptObject.code, context);
   } else {
     if (!window.activeTextEditor) {
       throw new Error("No active text editor.");
     }
-    context.workspaceState.update(window.activeTextEditor.document.uri.toString(), vizId);
+    context.workspaceState.update(window.activeTextEditor.document.uri.toString(), vizIdStripped);
     await window.activeTextEditor.edit((builder) => {
       if (!window.activeTextEditor) {
         throw new Error("No active text editor.");
@@ -98,15 +130,13 @@ export async function openScriptInTextEditor(vizId: string, newFile: boolean, co
   }
 }
 
-export async function showVizScriptQuickPick(connectionInfo: VizScriptCompilerSettings) {
+export async function showVizScriptQuickPick(connectionInfo: VizScriptCompilerSettings, context: ExtensionContext) {
   window.setStatusBarMessage("Getting viz scripts...", 5000);
 
   try {
-    const reply = await getVizScripts(connectionInfo.hostName, Number(connectionInfo.hostPort));
-    console.log(reply);
-    scriptObjects = reply;
+    const reply = await getVizScripts(connectionInfo.hostName, Number(connectionInfo.hostPort), context);
 
-    let elements = scriptObjects.map((element: VizScriptObject) => {
+    let elements = reply.map((element: VizScriptObject) => {
       return {
         description: `${element.type} ${element.name}`,
         label: element.vizId,
