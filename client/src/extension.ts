@@ -61,7 +61,7 @@ export function activate(context: vscode.ExtensionContext) {
   client = new LanguageClient("vizscript", "VizScript", serverOptions, clientOptions);
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("vizscript.getscripts", Commands.displayScriptSelector.bind(this, context)),
+    vscode.commands.registerCommand("vizscript.getscripts", Commands.getAndDisplayVizScript.bind(this, context)),
   );
 
   const sidebarProvider = new SidebarProvider(context.extensionUri);
@@ -69,13 +69,35 @@ export function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     vscode.commands.registerCommand("vizscript.fetchscripts", async () => {
-      vscode.window.showInformationMessage("Fetching scripts...");
+      vscode.window.withProgress(
+        {
+          location: vscode.ProgressLocation.Notification,
+          title: "Fetching scripts...",
+          cancellable: false,
+        },
+        async (progress, token) => {
+          try {
+            const connectionInfo = await Commands.getConfig();
+            const scripts = await getVizScripts(connectionInfo.hostName, connectionInfo.hostPort, progress);
+            console.log(scripts);
 
-      const connectionInfo = await Commands.getConfig();
-      const scripts = await getVizScripts(connectionInfo.hostName, Number(connectionInfo.hostPort));
-      console.log(scripts);
+            sidebarProvider._view?.webview.postMessage({ type: "getscripts", value: scripts });
+            return new Promise((resolve) => {
+              resolve(scripts);
+            });
+          } catch (error) {
+            return new Promise((resolve, reject) => {
+              reject(error);
+            });
+          }
+        },
+      );
+    }),
+  );
 
-      sidebarProvider._view?.webview.postMessage({ type: "getscripts", value: scripts });
+  context.subscriptions.push(
+    vscode.commands.registerCommand("vizscript.openscriptinnewfile", async (vizId: string) => {
+      await Commands.openScriptInTextEditor(vizId, true, context);
     }),
   );
 

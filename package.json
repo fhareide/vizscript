@@ -42,6 +42,10 @@
 			{
 				"command": "vizscript.fetchscripts",
 				"title": "Viz Script: Fetch scripts from Viz"
+			},
+			{
+				"command": "vizscript.openscriptinnewfile",
+				"title": "Viz Script: Open script in new file"
 			}
 		],
 		"menus": {

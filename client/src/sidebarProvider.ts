@@ -43,6 +43,10 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           vscode.commands.executeCommand("vizscript.fetchscripts");
           break;
         }
+        case "onScriptSelected": {
+          vscode.commands.executeCommand("vizscript.openscriptinnewfile", data.value);
+          break;
+        }
       }
     });
   }

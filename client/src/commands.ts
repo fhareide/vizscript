@@ -23,19 +23,19 @@ import { compileScript, compileScriptId, getVizScripts } from "./vizCommunicatio
 import { VizScriptObject } from "./vizScriptObject";
 
 let scriptObjects: VizScriptObject[];
-
-export async function displayScriptSelector(context: ExtensionContext) {
+//TODO: Separate out logic to fetch script so we can use it in the webview. Also store the fetched scripts so we can use them with openScriptInTextEditor
+export async function getAndDisplayVizScript(context: ExtensionContext) {
   window.setStatusBarMessage("Fetching script list from Viz...", 5000);
 
   try {
     const connectionString = await getConfig();
-    const selectedScript = await requestAllScripts(connectionString);
+    const selectedScript = await showVizScriptQuickPick(connectionString);
 
     if (!selectedScript) {
       throw new Error("No script selected.");
     }
 
-    let elements: QuickPickItem[] = [];
+    let options: QuickPickItem[] = [];
     let currentFileItem: QuickPickItem = {
       description: "",
       label: "Add script to current file",
@@ -48,15 +48,15 @@ export async function displayScriptSelector(context: ExtensionContext) {
     };
 
     if (window.activeTextEditor == undefined) {
-      elements = [newFileItem];
+      options = [newFileItem];
     } else {
-      elements = [newFileItem, currentFileItem];
+      options = [newFileItem, currentFileItem];
     }
 
-    const selection = await window.showQuickPick(elements, {
+    const selection = await window.showQuickPick(options, {
       matchOnDescription: true,
       matchOnDetail: false,
-      placeHolder: "Select your script",
+      placeHolder: "Select option",
     });
 
     if (!selection) {
@@ -64,35 +64,41 @@ export async function displayScriptSelector(context: ExtensionContext) {
     }
 
     let vizId = (<QuickPickItem>selectedScript).label;
-    const scriptObject = scriptObjects.find((element) => element.vizId === vizId);
-    console.log(scriptObject);
-    if (!scriptObject) {
-      throw new Error("No script object found.");
-    }
+    const openInNewFile = selection.label === "Open script in new file";
 
-    if (selection.label === "Add script to current file") {
-      if (!window.activeTextEditor) {
-        throw new Error("No active text editor.");
-      }
-      context.workspaceState.update(window.activeTextEditor.document.uri.toString(), vizId);
-      await window.activeTextEditor.edit((builder) => {
-        if (!window.activeTextEditor) {
-          throw new Error("No active text editor.");
-        }
-        const lastLine = window.activeTextEditor.document.lineCount;
-        const lastChar = window.activeTextEditor.document.lineAt(lastLine - 1).range.end.character;
-        builder.delete(new Range(0, 0, lastLine, lastChar));
-        builder.replace(new Position(0, 0), scriptObject.code);
-      });
-    } else if (selection.label === "Open script in new file") {
-      await showUntitledWindow(vizId, scriptObject.extension, scriptObject.code, context);
-    }
+    await openScriptInTextEditor(vizId, openInNewFile, context);
   } catch (error) {
     showMessage(error);
   }
 }
 
-export async function requestAllScripts(connectionInfo: VizScriptCompilerSettings) {
+export async function openScriptInTextEditor(vizId: string, newFile: boolean, context: ExtensionContext) {
+  const scriptObject = scriptObjects.find((element) => element.vizId === vizId);
+  console.log(scriptObject);
+  if (!scriptObject) {
+    throw new Error("No script object found.");
+  }
+
+  if (newFile) {
+    await showUntitledWindow(vizId, scriptObject.extension, scriptObject.code, context);
+  } else {
+    if (!window.activeTextEditor) {
+      throw new Error("No active text editor.");
+    }
+    context.workspaceState.update(window.activeTextEditor.document.uri.toString(), vizId);
+    await window.activeTextEditor.edit((builder) => {
+      if (!window.activeTextEditor) {
+        throw new Error("No active text editor.");
+      }
+      const lastLine = window.activeTextEditor.document.lineCount;
+      const lastChar = window.activeTextEditor.document.lineAt(lastLine - 1).range.end.character;
+      builder.delete(new Range(0, 0, lastLine, lastChar));
+      builder.replace(new Position(0, 0), scriptObject.code);
+    });
+  }
+}
+
+export async function showVizScriptQuickPick(connectionInfo: VizScriptCompilerSettings) {
   window.setStatusBarMessage("Getting viz scripts...", 5000);
 
   try {

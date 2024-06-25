@@ -4,7 +4,7 @@
   import ScriptItem from "./ScriptItem.svelte";
   import { onMount } from "svelte";
 
-  let vizscripts: VizScriptObject[];
+  let vizscripts: VizScriptObject[] = tsvscode.getState()?.vizscripts || [];
 
   const handleGetScripts = async () => {
     tsvscode.postMessage({
@@ -12,6 +12,10 @@
       value: "Get scripts",
     });
   };
+
+  $: {
+    tsvscode.setState({ vizscripts });
+  }
 
   onMount(() => {
     window.addEventListener("message", (event) => {

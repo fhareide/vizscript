@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import * as path from "path";
 import { getVizScripts } from "./vizCommunication"; // Assuming the module that fetches scripts
 import { VizScriptObject } from "./vizScriptObject"; // Assuming the VizScriptObject class definition
-import { getConfig, requestAllScripts } from "./commands";
+import { getConfig, showVizScriptQuickPick } from "./commands";
 
 export class TestView {
   private treeDataProvider: ScriptTreeDataProvider;

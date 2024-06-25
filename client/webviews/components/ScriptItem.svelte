@@ -7,8 +7,8 @@
 
   const handleMessage = () => {
     tsvscode.postMessage({
-      type: "onInfo",
-      value: "This is my message to you",
+      type: "onScriptSelected",
+      value: script.vizId,
     });
   };
 </script>
@@ -21,7 +21,7 @@
   class="cursor-pointer overflow-hidden w-full h-[72px] hover:bg-vscode-list-hoverBackground relative"
 >
   <div class="flex h-full overflow-hidden w-full box-border bg-vscode-contrastBorder pl-[16px] absolute">
-    <div class="relative flex items-center">
+    <div class="relative flex items-center pr-4">
       {#if script.type == "Scene"}
         <SceneIcon class="w-full" size={40} />
       {:else}

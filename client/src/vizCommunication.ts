@@ -4,7 +4,7 @@
  * ------------------------------------------------------------------------------------------ */
 
 import * as net from "net";
-import { window, Range } from "vscode";
+import { window, Range, Progress } from "vscode";
 import { VizScriptObject } from "./vizScriptObject";
 
 let sceneId = "";
@@ -18,7 +18,14 @@ function cleanString(str: string): string {
   return str.replace(/[\x00-\x1F\x7F]/g, "").trim();
 }
 
-export function getVizScripts(host: string, port: number): Promise<VizScriptObject[]> {
+export function getVizScripts(
+  host: string,
+  port: number,
+  progress?: Progress<{
+    message?: string;
+    increment?: number;
+  }>,
+): Promise<VizScriptObject[]> {
   return new Promise((resolve, reject) => {
     let currentObjectId = "";
     thisHost = host;
@@ -48,6 +55,8 @@ export function getVizScripts(host: string, port: number): Promise<VizScriptObje
             location: "",
           };
           scriptObjects.push(script);
+          progress &&
+            progress.report({ increment: 10, message: "Scene script fetched. Fetching container scripts..." });
           socket.write(
             "3 " + currentObjectId + "*TREE SEARCH_FOR_CONTAINER_WITH_PROPERTY SCRIPT " + String.fromCharCode(0),
           );
@@ -58,9 +67,11 @@ export function getVizScripts(host: string, port: number): Promise<VizScriptObje
         if (answer[3] === "") socket.end();
         const containerScriptVizIds = answer[3].split(" ");
 
+        const increment = 90 / containerScriptVizIds.length;
+
         try {
           await Promise.all(
-            containerScriptVizIds.map(async (scriptVizId) => {
+            containerScriptVizIds.map(async (scriptVizId, index) => {
               const code = await getVizScriptContent(scriptVizId);
 
               const script: VizScriptObject = {
@@ -74,6 +85,7 @@ export function getVizScripts(host: string, port: number): Promise<VizScriptObje
 
               console.log(script);
               scriptObjects.push(script);
+              progress && progress.report({ increment: increment * index, message: "Container script fetched" });
             }),
           );
 
@@ -276,6 +288,7 @@ export function compileScriptId(content: string, host: string, port: number, scr
     });
 
     socket.on("error", () => {
+      window.showErrorMessage("Not able to connect to Viz Engine " + host + ":" + port);
       reject("Not able to connect to Viz Engine " + host + ":" + port);
     });
 
