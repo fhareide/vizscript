@@ -86,7 +86,6 @@ export function getVizScripts(
                 location: "",
               };
 
-              console.log(script);
               scriptObjects.push(script);
               progress && progress.report({ increment: increment * index, message: "Container script fetched" });
             }),

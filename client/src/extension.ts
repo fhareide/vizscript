@@ -63,7 +63,11 @@ export function activate(context: vscode.ExtensionContext) {
   );
 
   const sidebarProvider = new SidebarProvider(context.extensionUri);
+  //const secondarySidebarProvider = new SidebarProvider(context.extensionUri);
+
   context.subscriptions.push(vscode.window.registerWebviewViewProvider("vizscript-sidebar", sidebarProvider));
+
+  context.subscriptions.push(vscode.window.registerWebviewViewProvider("vizscript-secondary-sidebar", sidebarProvider));
 
   context.subscriptions.push(
     vscode.commands.registerCommand(

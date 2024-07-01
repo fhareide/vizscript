@@ -284,9 +284,9 @@
 					"icon": "images/vizicon.png"
 				},
 				{
-					"id": "vizscript-sidebar-tree",
-					"name": "Viz Scene Tree",
-					"type": "tree",
+					"id": "vizscript-secondary-sidebar",
+					"name": "Viz Controls",
+					"type": "webview",
 					"icon": "images/vizicon.png"
 				}
 			]
