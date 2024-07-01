@@ -4,12 +4,13 @@
   import type { VizScriptObject } from "../types";
 
   export let script: VizScriptObject;
+  export let selectedScriptId: string;
 
-  const handleMessage = () => {
-    tsvscode.postMessage({
-      type: "onScriptSelected",
-      value: script.vizId,
-    });
+  // selectedItem as class names
+  const buttonStyles: string = "bg-vscode-menu-selectionBackground hover:bg-vscode-menu-selectionBackground/50 ";
+
+  const handleScriptSelected = () => {
+    selectedScriptId = script.vizId;
   };
 </script>
 
@@ -17,8 +18,9 @@
 <!-- svelte-ignore a11y-no-static-element-interactions -->
 
 <div
-  on:click={handleMessage}
-  class="cursor-pointer overflow-hidden w-full h-[72px] hover:bg-vscode-list-hoverBackground relative"
+  on:click={handleScriptSelected}
+  class={`cursor-pointer overflow-hidden w-full h-[72px] relative
+	${selectedScriptId === script.vizId ? buttonStyles : "hover:bg-vscode-list-hoverBackground "}`}
 >
   <div class="flex h-full overflow-hidden w-full box-border bg-vscode-contrastBorder pl-[16px] absolute">
     <div class="relative flex items-center pr-4">

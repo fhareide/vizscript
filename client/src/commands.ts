@@ -72,32 +72,31 @@ export async function getAndDisplayVizScript(context: ExtensionContext) {
   }
 }
 
-export async function getAndPostVizScripts(context: ExtensionContext, sidebarProvider) {
-  window.withProgress(
-    {
-      location: ProgressLocation.Notification,
-      title: "Fetching scripts...",
-      cancellable: false,
-    },
-    async (progress, token) => {
-      try {
-        const connectionInfo = await getConfig();
-        const scripts = await getVizScripts(connectionInfo.hostName, connectionInfo.hostPort, context, progress);
-        console.log(scripts);
+export async function getAndPostVizScripts(context: ExtensionContext, sidebarProvider: SidebarProvider) {
+  try {
+    await window.withProgress(
+      {
+        location: ProgressLocation.Notification,
+        title: "Fetching scripts...",
+        cancellable: false,
+      },
+      async (progress, token) => {
+        try {
+          const connectionInfo = await getConfig();
+          const scripts = await getVizScripts(connectionInfo.hostName, connectionInfo.hostPort, context, progress);
+          console.log(scripts);
 
-        sidebarProvider._view?.webview.postMessage({ type: "getscripts", value: scripts });
-        return new Promise((resolve) => {
-          resolve(scripts);
-        });
-      } catch (error) {
-        return new Promise((resolve, reject) => {
-          reject(error);
-        });
-      }
-    },
-  );
+          sidebarProvider._view?.webview.postMessage({ type: "getscripts", value: scripts });
+          return scripts;
+        } catch (error) {
+          throw new Error("Error fetching scripts: \n" + error);
+        }
+      },
+    );
+  } catch (error) {
+    showMessage(error);
+  }
 }
-
 export async function openScriptInTextEditor(vizId: string, newFile: boolean, context: ExtensionContext) {
   const scriptObjects: VizScriptObject[] = context.workspaceState.get("vizScripts");
   if (!scriptObjects) {
@@ -140,7 +139,7 @@ export async function showVizScriptQuickPick(connectionInfo: VizScriptCompilerSe
       return {
         description: `${element.type} ${element.name}`,
         label: element.vizId,
-        detail: element.code.substr(0, 100),
+        detail: element.code.slice(0, 100),
       };
     });
 
@@ -149,8 +148,8 @@ export async function showVizScriptQuickPick(connectionInfo: VizScriptCompilerSe
       matchOnDetail: false,
       placeHolder: "Select your script",
     });
-  } catch (reason) {
-    throw new Error(reason);
+  } catch (error) {
+    showMessage(error);
   }
 }
 

@@ -9,9 +9,6 @@ import * as Commands from "./commands";
 
 import { LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } from "vscode-languageclient/node";
 import { SidebarProvider } from "./sidebarProvider";
-import { TestView } from "./vizScriptTreeView";
-import { getVizScripts } from "./vizCommunication";
-import { reloadUntitledContent } from "./showUntitledWindow";
 
 let client: LanguageClient;
 
