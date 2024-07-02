@@ -46,6 +46,10 @@
 			{
 				"command": "vizscript.openscriptinnewfile",
 				"title": "Viz Script: Open script in new file"
+			},
+			{
+				"command": "vizscript.diff",
+				"title": "Viz Script: Diff script with Viz"
 			}
 		],
 		"menus": {

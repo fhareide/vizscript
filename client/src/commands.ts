@@ -23,6 +23,7 @@ import { showMessage } from "./showMessage";
 import { showUntitledWindow } from "./showUntitledWindow";
 import { compileScript, compileScriptId, getVizScripts } from "./vizCommunication";
 import { VizScriptObject } from "./vizScriptObject";
+import { diffWithActiveEditor } from "./showDiffWindow";
 
 export async function getAndDisplayVizScript(context: ExtensionContext) {
   window.setStatusBarMessage("Fetching script list from Viz...", 5000);
@@ -66,13 +67,17 @@ export async function getAndDisplayVizScript(context: ExtensionContext) {
     let vizId = (<QuickPickItem>selectedScript).label;
     const openInNewFile = selection.label === "Open script in new file";
 
-    await openScriptInTextEditor(vizId, openInNewFile, context);
+    await openScriptInTextEditor(context, vizId, openInNewFile);
   } catch (error) {
     showMessage(error);
   }
 }
 
-export async function getAndPostVizScripts(context: ExtensionContext, sidebarProvider: SidebarProvider) {
+export async function getAndPostVizScripts(
+  context: ExtensionContext,
+  sidebarProvider: SidebarProvider,
+  config?: { hostname: string; port: number },
+) {
   try {
     await window.withProgress(
       {
@@ -83,10 +88,13 @@ export async function getAndPostVizScripts(context: ExtensionContext, sidebarPro
       async (progress, token) => {
         try {
           const connectionInfo = await getConfig();
-          const scripts = await getVizScripts(connectionInfo.hostName, connectionInfo.hostPort, context, progress);
-          console.log(scripts);
+          const hostName = config.hostname || connectionInfo.hostName;
+          const hostPort = config.port || connectionInfo.hostPort;
 
-          sidebarProvider._view?.webview.postMessage({ type: "getscripts", value: scripts });
+          //const connectionInfo = await getConfig();
+          const scripts = await getVizScripts(hostName, hostPort, context, progress);
+
+          sidebarProvider._view?.webview.postMessage({ type: "receiveScripts", value: scripts });
           return scripts;
         } catch (error) {
           throw new Error("Error fetching scripts: \n" + error);
@@ -97,7 +105,8 @@ export async function getAndPostVizScripts(context: ExtensionContext, sidebarPro
     showMessage(error);
   }
 }
-export async function openScriptInTextEditor(vizId: string, newFile: boolean, context: ExtensionContext) {
+
+export async function openScriptInTextEditor(context: ExtensionContext, vizId: string, newFile: boolean) {
   const scriptObjects: VizScriptObject[] = context.workspaceState.get("vizScripts");
   if (!scriptObjects) {
     throw new Error("No script objects found.");
@@ -127,6 +136,21 @@ export async function openScriptInTextEditor(vizId: string, newFile: boolean, co
       builder.replace(new Position(0, 0), scriptObject.code);
     });
   }
+}
+
+export async function openScriptInDiff(context: ExtensionContext, vizId: string) {
+  const scriptObjects: VizScriptObject[] = context.workspaceState.get("vizScripts");
+  if (!scriptObjects) {
+    throw new Error("No script objects found.");
+  }
+  const scriptObject = scriptObjects.find((element) => element.vizId === vizId);
+  if (!scriptObject) {
+    throw new Error("No script object found.");
+  }
+
+  const vizIdStripped = vizId.replace("#", "");
+
+  await diffWithActiveEditor(vizIdStripped, scriptObject.name, scriptObject.extension, scriptObject.code, context);
 }
 
 export async function showVizScriptQuickPick(connectionInfo: VizScriptCompilerSettings, context: ExtensionContext) {

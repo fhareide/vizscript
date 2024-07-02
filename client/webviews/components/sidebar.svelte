@@ -1,24 +1,22 @@
 <script lang="ts">
+  import { onMount } from "svelte";
   import type { VizScriptObject } from "../types";
   import ScriptItem from "./ScriptItem.svelte";
-  import { onMount } from "svelte";
-
   let vizscripts: VizScriptObject[] = tsvscode.getState()?.vizscripts || [];
   let selectedScriptId: string;
   let selectedScript: VizScriptObject | undefined;
+
+  let hostname = "localhost";
+  let port = "3000";
 
   $: selectedScript = vizscripts.find((script) => script.vizId === selectedScriptId) || undefined;
 
   const handleGetScripts = async () => {
     tsvscode.postMessage({
       type: "getscripts",
-      value: "Get scripts",
+      value: { hostname, port },
     });
   };
-
-  $: {
-    tsvscode.setState({ vizscripts });
-  }
 
   const handleScriptPreview = () => {
     if (!selectedScript) return;
@@ -28,27 +26,48 @@
     });
   };
 
-  onMount(() => {
-    window.addEventListener("message", (event) => {
-      const message = event.data;
-      switch (message.type) {
-        case "getscripts":
-          console.log("Scripts received", message.value);
-          vizscripts = message.value;
-          break;
-      }
+  const handleDiff = () => {
+    if (!selectedScript) return;
+    tsvscode.postMessage({
+      type: "diff",
+      value: selectedScript.vizId,
     });
+  };
+
+  $: {
+    tsvscode.setState({ vizscripts });
+  }
+
+  const handleMessage = (event: any) => {
+    const message = event.data;
+    if (message.type === "receiveScripts") {
+      console.log("Scripts received", message.value);
+      vizscripts = [...message.value]; // Ensure reactivity by creating a new array
+    } else if (message.type === "receiveSettings") {
+      console.log("Settings received", message.value);
+      hostname = message.value.hostName;
+      port = message.value.hostPort;
+    }
+  };
+
+  onMount(() => {
+    tsvscode.postMessage({ type: "getSettings" });
+
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
   });
 </script>
-
-
 
 <!-- svelte-ignore a11y-click-events-have-key-events -->
 <!-- svelte-ignore a11y-no-static-element-interactions -->
 
 <div class="h-full relative whitespace-nowrap w-full overflow-hidden">
   <div class="h-full overflow-hidden">
-    <div class="p-2">
+    <div class="p-2 flex flex-col gap-2">
+      <div class="flex gap-2">
+        <input type="Text" placeholder="Hostname" bind:value={hostname} class="w-1/2" />
+        <input type="Text" placeholder="Port" bind:value={port} class="w-1/4" />
+      </div>
       <button on:click={handleGetScripts}>Get scripts from Viz</button>
     </div>
 
@@ -72,8 +91,9 @@
             <div class="items-center justify-end h-[24px] flex overflow-hidden pr-[7px]">
               {selectedScript.extension}
             </div>
-            <div class="w-full">
+            <div class="w-full flex flex-col gap-2">
               <button on:click={handleScriptPreview}>Preview</button>
+              <button on:click={handleDiff}>Diff</button>
             </div>
           </div>
         </div>

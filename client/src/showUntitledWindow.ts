@@ -12,7 +12,8 @@ export function showUntitledWindow(
   content: string,
   context: ExtensionContext,
 ) {
-  const uri = Uri.parse(`untitled:${name}${id}${fileExtension}`);
+  const encodedContent = encodeURIComponent(content);
+  const contentUri = Uri.parse(`diff:${name}${fileExtension}?${encodedContent}`);
 
   /*   // Store content in the workspace state
   context.workspaceState.update(`untitledContent:${id}`, content);
@@ -25,17 +26,9 @@ export function showUntitledWindow(
   } */
 
   return workspace
-    .openTextDocument(uri)
+    .openTextDocument(contentUri)
     .then((textDocument) => {
-      const edit = new WorkspaceEdit();
-      const lastLine = textDocument.lineCount;
-      const lastChar = textDocument.lineAt(lastLine - 1).range.end.character;
-      edit.delete(<Uri>uri, new Range(0, 0, lastLine, lastChar));
-      edit.insert(<Uri>uri, new Position(0, 0), content);
-      return Promise.all([<any>textDocument, workspace.applyEdit(edit)]);
-    })
-    .then(([textDocument]) => {
-      return window.showTextDocument(<any>textDocument, ViewColumn.One, false);
+      return window.showTextDocument(<any>textDocument, { preview: true });
     })
     .then((result) => {
       context.workspaceState.update(result.document.uri.toString(), id);

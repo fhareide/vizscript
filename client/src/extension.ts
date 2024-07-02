@@ -9,6 +9,7 @@ import * as Commands from "./commands";
 
 import { LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } from "vscode-languageclient/node";
 import { SidebarProvider } from "./sidebarProvider";
+import { DiffContentProvider } from "./diffContentProvider";
 
 let client: LanguageClient;
 
@@ -62,23 +63,36 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand("vizscript.getscripts", Commands.getAndDisplayVizScript.bind(this, context)),
   );
 
+  const diffContentProvider = new DiffContentProvider();
+  const providerRegistration = vscode.workspace.registerTextDocumentContentProvider("diff", diffContentProvider);
+  context.subscriptions.push(providerRegistration);
+
   const sidebarProvider = new SidebarProvider(context.extensionUri);
-  //const secondarySidebarProvider = new SidebarProvider(context.extensionUri);
+  const secondarySidebarProvider = new SidebarProvider(context.extensionUri);
 
   context.subscriptions.push(vscode.window.registerWebviewViewProvider("vizscript-sidebar", sidebarProvider));
 
-  context.subscriptions.push(vscode.window.registerWebviewViewProvider("vizscript-secondary-sidebar", sidebarProvider));
+  context.subscriptions.push(
+    vscode.window.registerWebviewViewProvider("vizscript-secondary-sidebar", secondarySidebarProvider),
+  );
 
   context.subscriptions.push(
     vscode.commands.registerCommand(
       "vizscript.fetchscripts",
-      Commands.getAndPostVizScripts.bind(this, context, sidebarProvider),
+      async (config: { hostName: string; hostPort: Number }) =>
+        await Commands.getAndPostVizScripts.bind(this)(context, sidebarProvider, config),
     ),
   );
 
   context.subscriptions.push(
     vscode.commands.registerCommand("vizscript.openscriptinnewfile", async (vizId: string) => {
-      await Commands.openScriptInTextEditor.bind(this)(vizId, true, context);
+      await Commands.openScriptInTextEditor.bind(this)(context, vizId, true);
+    }),
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("vizscript.diff", async (vizId: string) => {
+      await Commands.openScriptInDiff.bind(this)(context, vizId, true);
     }),
   );
 
