@@ -2,7 +2,7 @@
   import { onMount } from "svelte";
   import type { VizScriptObject } from "../types";
   import ScriptItem from "./ScriptItem.svelte";
-  let vizscripts: VizScriptObject[] = tsvscode.getState()?.vizscripts || [];
+  let vizscripts: VizScriptObject[] =  [];
   let selectedScriptId: string;
   let selectedScript: VizScriptObject | undefined;
 
@@ -34,24 +34,31 @@
     });
   };
 
-  $: {
-    tsvscode.setState({ vizscripts });
-  }
-
   const handleMessage = (event: any) => {
     const message = event.data;
     if (message.type === "receiveScripts") {
       console.log("Scripts received", message.value);
-      vizscripts = [...message.value]; // Ensure reactivity by creating a new array
+			tsvscode.postMessage({ type: "saveState", value: {vizscripts: message.value}})
+      vizscripts = [...message.value]; 
     } else if (message.type === "receiveSettings") {
       console.log("Settings received", message.value);
       hostname = message.value.hostName;
       port = message.value.hostPort;
-    }
+    } else if (message.type === "receiveState") {
+			console.log("State received", message.value);
+			vizscripts = [...message.value.vizscripts];
+		}
   };
+
+	const handleScriptDoubleClick = (event: CustomEvent) => {
+    selectedScriptId = event.detail.script.vizId;
+    handleScriptPreview();
+  };
+
 
   onMount(() => {
     tsvscode.postMessage({ type: "getSettings" });
+		tsvscode.postMessage({ type: "loadState" });
 
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
@@ -77,7 +84,7 @@
           <div class="flex items-center justify-center h-full text-vscode-descriptionForeground">No scripts found</div>
         {:else}
           {#each Object.values(vizscripts) as script}
-            <ScriptItem {script} bind:selectedScriptId />
+            <ScriptItem {script} bind:selectedScriptId on:doubleClick={handleScriptDoubleClick}/>
           {/each}
         {/if}
       </div>

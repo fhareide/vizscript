@@ -6,9 +6,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
   _doc?: vscode.TextDocument;
   viewId: string;
 
-  constructor(private readonly _extensionUri: vscode.Uri) {
-    // Initialize viewId to a default value or null
-    this.viewId = "";
+  constructor(private readonly _context: vscode.ExtensionContext) {
+    this.viewId = "default";
   }
 
   public resolveWebviewView(
@@ -32,9 +31,9 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
       enableScripts: true,
 
       localResourceRoots: [
-        this._extensionUri,
-        vscode.Uri.joinPath(this._extensionUri, "client/out"),
-        vscode.Uri.joinPath(this._extensionUri, "client/media"),
+        this._context.extensionUri,
+        vscode.Uri.joinPath(this._context.extensionUri, "client/out"),
+        vscode.Uri.joinPath(this._context.extensionUri, "client/media"),
       ],
     };
 
@@ -56,6 +55,24 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           vscode.window.showErrorMessage(data.value);
           break;
         }
+        case "saveState":
+          if (!data.value) {
+            return;
+          }
+          if (this._context.storageUri) {
+            const filePath = vscode.Uri.joinPath(this._context.storageUri, "vizscriptData.json");
+            const content = JSON.stringify(data.value);
+            await vscode.workspace.fs.writeFile(filePath, Buffer.from(content));
+          }
+          break;
+        case "loadState":
+          if (this._context.storageUri) {
+            const filePath = vscode.Uri.joinPath(this._context.storageUri, "vizscriptData.json");
+            const content = await vscode.workspace.fs.readFile(filePath);
+            const state = JSON.parse(content.toString());
+            webviewView.webview.postMessage({ type: "receiveState", value: state });
+          }
+          break;
         case "getscripts": {
           vscode.commands.executeCommand("vizscript.fetchscripts", data.value);
           break;
@@ -79,10 +96,14 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
   }
 
   private _getHtmlForWebview(webview: vscode.Webview, viewId: string) {
-    const styleResetUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, "client/media", "reset.css"));
-    const styleVSCodeUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, "client/media", "vscode.css"));
-    const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, "client/out", "app.js"));
-    const styleMainUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, "client/out", "app.css"));
+    const styleResetUri = webview.asWebviewUri(
+      vscode.Uri.joinPath(this._context.extensionUri, "client/media", "reset.css"),
+    );
+    const styleVSCodeUri = webview.asWebviewUri(
+      vscode.Uri.joinPath(this._context.extensionUri, "client/media", "vscode.css"),
+    );
+    const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(this._context.extensionUri, "client/out", "app.js"));
+    const styleMainUri = webview.asWebviewUri(vscode.Uri.joinPath(this._context.extensionUri, "client/out", "app.css"));
 
     const nonce = getNonce();
 

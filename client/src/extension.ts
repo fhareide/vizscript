@@ -10,8 +10,36 @@ import * as Commands from "./commands";
 import { LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } from "vscode-languageclient/node";
 import { SidebarProvider } from "./sidebarProvider";
 import { DiffContentProvider } from "./diffContentProvider";
+import { PreviewContentProvider } from "./previewContentProvider";
 
 let client: LanguageClient;
+
+async function handleSaveAs(uri: vscode.Uri) {
+  // get workspace folder
+  const workspaceFolder = vscode.workspace.getWorkspaceFolder(uri);
+  const startPath = workspaceFolder ? workspaceFolder.uri.fsPath : "";
+
+  const defaultUri = vscode.Uri.file(startPath);
+  const options: vscode.SaveDialogOptions = {
+    defaultUri,
+    saveLabel: "Save",
+    filters: {
+      // Define filters if needed
+    },
+  };
+  const saveUri = await vscode.window.showSaveDialog(options);
+  if (saveUri) {
+    // Save the content of the preview file (`uri`) to `saveUri`
+    const previewFileContent = await vscode.workspace.fs.readFile(uri);
+    await vscode.workspace.fs.writeFile(saveUri, previewFileContent);
+
+    // Close the current preview file
+    await vscode.commands.executeCommand("workbench.action.closeActiveEditor");
+
+    // Open the newly saved file
+    await vscode.commands.executeCommand("vscode.open", saveUri);
+  }
+}
 
 function registerCommands(client: LanguageClient, context: vscode.ExtensionContext) {
   context.subscriptions.push(
@@ -59,16 +87,24 @@ export function activate(context: vscode.ExtensionContext) {
   // Create the language client and start the client.
   client = new LanguageClient("vizscript", "VizScript", serverOptions, clientOptions);
 
+  const previewContentProvider = new PreviewContentProvider();
   context.subscriptions.push(
-    vscode.commands.registerCommand("vizscript.getscripts", Commands.getAndDisplayVizScript.bind(this, context)),
+    vscode.workspace.registerFileSystemProvider("preview", previewContentProvider, { isCaseSensitive: true }),
   );
 
   const diffContentProvider = new DiffContentProvider();
   const providerRegistration = vscode.workspace.registerTextDocumentContentProvider("diff", diffContentProvider);
   context.subscriptions.push(providerRegistration);
 
-  const sidebarProvider = new SidebarProvider(context.extensionUri);
-  const secondarySidebarProvider = new SidebarProvider(context.extensionUri);
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      "vizscript.getscripts",
+      Commands.getAndDisplayVizScript.bind(this, context, previewContentProvider),
+    ),
+  );
+
+  const sidebarProvider = new SidebarProvider(context);
+  const secondarySidebarProvider = new SidebarProvider(context);
 
   context.subscriptions.push(vscode.window.registerWebviewViewProvider("vizscript-sidebar", sidebarProvider));
 
@@ -86,7 +122,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     vscode.commands.registerCommand("vizscript.openscriptinnewfile", async (vizId: string) => {
-      await Commands.openScriptInTextEditor.bind(this)(context, vizId, true);
+      await Commands.openScriptInTextEditor.bind(this)(context, previewContentProvider, vizId, true);
     }),
   );
 
@@ -104,26 +140,61 @@ export function activate(context: vscode.ExtensionContext) {
     }),
   );
 
+  vscode.workspace.onDidChangeTextDocument(async (event) => {
+    const {
+      document: { uri },
+    } = event;
+
+    // Check if the document is a preview and if it has become dirty
+    if (uri.scheme === "preview" && event.document.isDirty) {
+      console.log(`Preview document '${event.document.fileName}' has become dirty.`);
+
+      // Retrieve the content of the dirty preview document
+      const content = event.document.getText();
+
+      // Get the name of the preview document
+      const name = event.document.fileName.replace(/^.*[\\\/]/, "");
+
+      console.log(`Preview document name: ${name}`);
+
+      // Close the existing preview document
+      await vscode.commands.executeCommand("workbench.action.revertAndCloseActiveEditor");
+
+      // Open a new untitled document with the same name
+      const untitledUri = vscode.Uri.parse(`untitled:${name}`);
+
+      return vscode.workspace.openTextDocument(untitledUri).then((textDocument) => {
+        const edit = new vscode.WorkspaceEdit();
+        const lastLine = textDocument.lineCount;
+        const lastChar = textDocument.lineAt(lastLine - 1).range.end.character;
+        edit.delete(<vscode.Uri>untitledUri, new vscode.Range(0, 0, lastLine, lastChar));
+        edit.insert(<vscode.Uri>untitledUri, new vscode.Position(0, 0), content);
+        return Promise.all([<any>textDocument, vscode.workspace.applyEdit(edit)]);
+      });
+    }
+  });
+
+  /*   vscode.workspace.onWillSaveTextDocument(async (event) => {
+    const {
+      document: { uri },
+    } = event;
+    if (uri.scheme === "preview") {
+      // Handle save logic for preview files
+      // For example, prompt user to save the file somewhere permanent
+      await handleSaveAs(uri);
+    }
+  });
+
+  vscode.workspace.onDidSaveTextDocument(async (document) => {
+    const { uri } = document;
+    if (uri.scheme === "preview") {
+      // Handle save logic for preview files after they are saved
+    }
+  }); */
+
   client.start().then(() => {
     registerCommands(client, context);
     registerNotifications(client);
-
-    /*     // Get the currently open text editors
-    const openTextEditors = vscode.window.visibleTextEditors;
-
-    // Filter out the untitled documents with .vs or .vsc extension
-    const documentIdsToReload = openTextEditors
-      .filter(
-        (editor) =>
-          editor.document.isUntitled &&
-          (editor.document.fileName.endsWith(".vs") || editor.document.fileName.endsWith(".vsc")),
-      )
-      .map((editor) => context.workspaceState.get<string>(editor.document.uri.toString()));
-
-    // Reload untitled content for each relevant document
-    documentIdsToReload.forEach((id) => {
-      if (id) reloadUntitledContent(id, context);
-    }); */
   });
 }
 
