@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import { getNonce } from "./getNonce";
+import { loadFromStorage } from "./commands";
 
 export class SidebarProvider implements vscode.WebviewViewProvider {
   _view?: vscode.WebviewView;
@@ -66,23 +67,24 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           }
           break;
         case "loadState":
-          if (this._context.storageUri) {
-            const filePath = vscode.Uri.joinPath(this._context.storageUri, "vizscriptData.json");
-            const content = await vscode.workspace.fs.readFile(filePath);
-            const state = JSON.parse(content.toString());
-            webviewView.webview.postMessage({ type: "receiveState", value: state });
-          }
+          const state = await loadFromStorage(this._context);
+          webviewView.webview.postMessage({ type: "receiveState", value: state });
+
           break;
         case "getscripts": {
           vscode.commands.executeCommand("vizscript.fetchscripts", data.value);
           break;
         }
         case "onScriptSelected": {
-          vscode.commands.executeCommand("vizscript.openscriptinnewfile", data.value);
+          vscode.commands.executeCommand("vizscript.previewscript", data.value);
           break;
         }
         case "diff": {
           vscode.commands.executeCommand("vizscript.diff", data.value);
+          break;
+        }
+        case "editScript": {
+          vscode.commands.executeCommand("vizscript.editscript", data.value);
           break;
         }
         case "getSettings": {

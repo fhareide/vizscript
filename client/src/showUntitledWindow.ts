@@ -1,5 +1,4 @@
 import * as vscode from "vscode";
-import { PreviewContentProvider } from "./previewContentProvider";
 
 export function showUntitledWindow(
   id: string,
@@ -7,24 +6,34 @@ export function showUntitledWindow(
   fileExtension: string,
   content: string,
   context: vscode.ExtensionContext,
-  previewContentProvider: PreviewContentProvider,
 ) {
-  const uri = vscode.Uri.parse(`untitled:/${name}${fileExtension}`);
+  // Create an untitled URI with the specified file extension
+  const uri = vscode.Uri.parse(`untitled:${name}${fileExtension}`);
 
   return vscode.workspace
     .openTextDocument(uri)
     .then((textDocument) => {
       const edit = new vscode.WorkspaceEdit();
-      const lastLine = textDocument.lineCount;
-      const lastChar = textDocument.lineAt(lastLine - 1).range.end.character;
-      edit.delete(<vscode.Uri>uri, new vscode.Range(0, 0, lastLine, lastChar));
-      edit.insert(<vscode.Uri>uri, new vscode.Position(0, 0), content);
-      return Promise.all([<any>textDocument, vscode.workspace.applyEdit(edit)]);
+      edit.insert(textDocument.uri, new vscode.Position(0, 0), content);
+      return vscode.workspace.applyEdit(edit).then(() => textDocument);
     })
-    .then(([textDocument]) => {
-      return vscode.window.showTextDocument(textDocument, { preview: true });
+    .then((textDocument) => {
+      // Show the newly created text document
+      return vscode.window.showTextDocument(textDocument);
     })
-    .then((result) => {
-      context.workspaceState.update(result.document.uri.toString(), id);
+    .then((editor) => {
+      // Listen for willSaveTextDocument event to trigger "Save As"
+      const disposable = vscode.workspace.onWillSaveTextDocument((event) => {
+        if (event.document.uri.scheme === "untitled") {
+          // Trigger "Save As" command for untitled documents
+          vscode.commands.executeCommand("workbench.action.files.saveAs", event.document.uri);
+          // Note: There's no need to call event.waitUntil() here.
+        }
+      });
+
+      // Ensure the event listener is disposed when no longer needed
+      context.subscriptions.push(disposable);
+
+      return editor;
     });
 }

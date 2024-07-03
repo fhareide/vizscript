@@ -1,4 +1,4 @@
-import { PreviewContentProvider } from "./previewContentProvider";
+import { PreviewFileSystemProvider } from "./previewFileSystemProvider";
 import { SidebarProvider } from "./sidebarProvider";
 /* --------------------------------------------------------------------------------------------
  * Copyright (c) Fredrik Hareide. All rights reserved.
@@ -18,17 +18,36 @@ import {
   window,
   workspace,
   ProgressLocation,
+  Uri,
 } from "vscode";
 import { LanguageClient } from "vscode-languageclient/node";
 import { showMessage } from "./showMessage";
 import { compileScript, compileScriptId, getVizScripts } from "./vizCommunication";
 import { VizScriptObject } from "./vizScriptObject";
 import { diffWithActiveEditor } from "./showDiffWindow";
+import { showEditablePreviewWindow } from "./showEditablePreviewWindow";
+import { showUntitledWindow } from "./showUntitledWindow";
 import { showPreviewWindow } from "./showPreviewWindow";
+
+export async function saveToStorage(context: ExtensionContext, data: any) {
+  if (context.storageUri) {
+    const filePath = Uri.joinPath(context.storageUri, "vizscriptData.json");
+    const content = JSON.stringify(data);
+    await workspace.fs.writeFile(filePath, Buffer.from(content));
+  }
+}
+
+export async function loadFromStorage(context: ExtensionContext) {
+  if (context.storageUri) {
+    const filePath = Uri.joinPath(context.storageUri, "vizscriptData.json");
+    const content = await workspace.fs.readFile(filePath);
+    return JSON.parse(content.toString());
+  }
+}
 
 export async function getAndDisplayVizScript(
   context: ExtensionContext,
-  previewContentProvider: PreviewContentProvider,
+  previewFileSystemProvider: PreviewFileSystemProvider,
 ) {
   window.setStatusBarMessage("Fetching script list from Viz...", 5000);
 
@@ -71,7 +90,7 @@ export async function getAndDisplayVizScript(
     let vizId = (<QuickPickItem>selectedScript).label;
     const openInNewFile = selection.label === "Open script in new file";
 
-    await openScriptInTextEditor(context, previewContentProvider, vizId, openInNewFile);
+    await openScriptInTextEditor(context, vizId, openInNewFile);
   } catch (error) {
     showMessage(error);
   }
@@ -97,8 +116,8 @@ export async function getAndPostVizScripts(
 
           //const connectionInfo = await getConfig();
           const scripts = await getVizScripts(hostName, hostPort, context, progress);
-          // save scripts to workspace state
-          context.workspaceState.update("vizScripts", scripts);
+
+          await saveToStorage(context, scripts);
 
           sidebarProvider._view?.webview.postMessage({ type: "receiveScripts", value: scripts });
           return scripts;
@@ -114,11 +133,12 @@ export async function getAndPostVizScripts(
 
 export async function openScriptInTextEditor(
   context: ExtensionContext,
-  previewContentProvider: PreviewContentProvider,
   vizId: string,
   newFile: boolean,
+  preview: boolean = false,
 ) {
-  const scriptObjects: VizScriptObject[] = context.workspaceState.get("vizScripts");
+  const state = await loadFromStorage(context);
+  const scriptObjects: VizScriptObject[] = state;
   if (!scriptObjects) {
     throw new Error("No script objects found.");
   }
@@ -130,16 +150,12 @@ export async function openScriptInTextEditor(
 
   const vizIdStripped = vizId.replace("#", "");
 
-  if (newFile) {
-    await showPreviewWindow(
-      vizIdStripped,
-      scriptObject.name,
-      scriptObject.extension,
-      scriptObject.code,
-      context,
-      previewContentProvider,
-    );
+  if (preview) {
+    await showPreviewWindow(vizIdStripped, scriptObject.name, scriptObject.extension, scriptObject.code, context);
   } else {
+    await showUntitledWindow(vizIdStripped, scriptObject.name, scriptObject.extension, scriptObject.code, context);
+  }
+  /* else {
     if (!window.activeTextEditor) {
       throw new Error("No active text editor.");
     }
@@ -153,11 +169,12 @@ export async function openScriptInTextEditor(
       builder.delete(new Range(0, 0, lastLine, lastChar));
       builder.replace(new Position(0, 0), scriptObject.code);
     });
-  }
+  } */
 }
 
 export async function openScriptInDiff(context: ExtensionContext, vizId: string) {
-  const scriptObjects: VizScriptObject[] = context.workspaceState.get("vizScripts");
+  const state = await loadFromStorage(context);
+  const scriptObjects: VizScriptObject[] = state;
   if (!scriptObjects) {
     throw new Error("No script objects found.");
   }

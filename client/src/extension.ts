@@ -9,8 +9,9 @@ import * as Commands from "./commands";
 
 import { LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } from "vscode-languageclient/node";
 import { SidebarProvider } from "./sidebarProvider";
-import { DiffContentProvider } from "./diffContentProvider";
 import { PreviewContentProvider } from "./previewContentProvider";
+import { PreviewFileSystemProvider } from "./previewFileSystemProvider";
+import { PreviewFile } from "./showEditablePreviewWindow";
 
 let client: LanguageClient;
 
@@ -87,20 +88,12 @@ export function activate(context: vscode.ExtensionContext) {
   // Create the language client and start the client.
   client = new LanguageClient("vizscript", "VizScript", serverOptions, clientOptions);
 
-  const previewContentProvider = new PreviewContentProvider();
-  context.subscriptions.push(
-    vscode.workspace.registerFileSystemProvider("preview", previewContentProvider, { isCaseSensitive: true }),
-  );
-
-  const diffContentProvider = new DiffContentProvider();
+  const diffContentProvider = new PreviewContentProvider();
   const providerRegistration = vscode.workspace.registerTextDocumentContentProvider("diff", diffContentProvider);
   context.subscriptions.push(providerRegistration);
 
   context.subscriptions.push(
-    vscode.commands.registerCommand(
-      "vizscript.getscripts",
-      Commands.getAndDisplayVizScript.bind(this, context, previewContentProvider),
-    ),
+    vscode.commands.registerCommand("vizscript.getscripts", Commands.getAndDisplayVizScript.bind(this, context)),
   );
 
   const sidebarProvider = new SidebarProvider(context);
@@ -121,8 +114,14 @@ export function activate(context: vscode.ExtensionContext) {
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("vizscript.openscriptinnewfile", async (vizId: string) => {
-      await Commands.openScriptInTextEditor.bind(this)(context, previewContentProvider, vizId, true);
+    vscode.commands.registerCommand("vizscript.previewscript", async (vizId: string) => {
+      await Commands.openScriptInTextEditor.bind(this)(context, vizId, true, true);
+    }),
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("vizscript.editscript", async (vizId: string) => {
+      await Commands.openScriptInTextEditor.bind(this)(context, vizId, true);
     }),
   );
 
@@ -140,7 +139,7 @@ export function activate(context: vscode.ExtensionContext) {
     }),
   );
 
-  vscode.workspace.onDidChangeTextDocument(async (event) => {
+  /*   vscode.workspace.onDidChangeTextDocument(async (event) => {
     const {
       document: { uri },
     } = event;
@@ -172,7 +171,7 @@ export function activate(context: vscode.ExtensionContext) {
         return Promise.all([<any>textDocument, vscode.workspace.applyEdit(edit)]);
       });
     }
-  });
+  }); */
 
   /*   vscode.workspace.onWillSaveTextDocument(async (event) => {
     const {

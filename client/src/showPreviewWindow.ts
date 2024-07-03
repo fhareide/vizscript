@@ -1,22 +1,28 @@
-import * as vscode from "vscode";
-import { PreviewContentProvider } from "./previewContentProvider";
+/* --------------------------------------------------------------------------------------------
+ * Copyright (c) Fredrik Hareide. All rights reserved.
+ * Licensed under the MIT License.
+ * ------------------------------------------------------------------------------------------ */
+
+import { Position, Uri, ViewColumn, WorkspaceEdit, window, workspace, Range, ExtensionContext } from "vscode";
 
 export function showPreviewWindow(
   id: string,
   name: string,
   fileExtension: string,
   content: string,
-  context: vscode.ExtensionContext,
-  previewContentProvider: PreviewContentProvider,
+  context: ExtensionContext,
 ) {
-  const uri = vscode.Uri.parse(`preview:/${name}${fileExtension}`);
+  const encodedContent = encodeURIComponent(content);
+  const contentUri = Uri.parse(`diff:${name}(read-only)${fileExtension}?${encodedContent}`);
 
-  previewContentProvider.writeFile(uri, Buffer.from(content, "utf8"), { create: true, overwrite: true });
-
-  return vscode.workspace
-    .openTextDocument(uri)
+  return workspace
+    .openTextDocument(contentUri)
     .then((textDocument) => {
-      return vscode.window.showTextDocument(textDocument, { preview: true });
+      return window.showTextDocument(<any>textDocument, {
+        preview: true,
+        preserveFocus: true,
+        viewColumn: ViewColumn.Beside,
+      });
     })
     .then((result) => {
       context.workspaceState.update(result.document.uri.toString(), id);
