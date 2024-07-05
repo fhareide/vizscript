@@ -6,6 +6,7 @@
 import * as net from "net";
 import { window, Range, Progress, ExtensionContext } from "vscode";
 import { VizScriptObject } from "./vizScriptObject";
+import { loadFromStorage, saveToStorage } from "./commands";
 
 let sceneId = "";
 let containerId = "";
@@ -13,8 +14,6 @@ let scriptId = "";
 
 let thisHost = "";
 let thisPort: number = -1;
-
-let scriptObjectCache: VizScriptObject[];
 
 function cleanString(str: string): string {
   return str.replace(/[\x00-\x1F\x7F]/g, "").trim();
@@ -33,6 +32,7 @@ export function getVizScripts(
     let currentObjectId = "";
     thisHost = host;
     thisPort = port;
+    let sceneScript = new Array<VizScriptObject>();
     let scriptObjects = new Array<VizScriptObject>();
 
     const socket = net.createConnection({ port: port, host: host }, () => {
@@ -47,19 +47,22 @@ export function getVizScripts(
         socket.write("2 MAIN_SCENE*OBJECT_ID GET " + String.fromCharCode(0));
       } else if (answer[1] == "2") {
         currentObjectId = answer[3];
+        context.workspaceState.update("currentSceneId", currentObjectId);
         try {
           const scriptContent = await getVizScriptContent(currentObjectId);
-          const scriptName = scriptContent[0] === "" ? "No scene script found" : cleanString(scriptContent[1]);
+          const cleanName = cleanString(scriptContent[1]);
+          const scriptName = cleanName.startsWith("#") ? "Unsaved Scene" : cleanName;
+          const finalScriptName = scriptContent[0] === "" ? "No scene script found" : scriptName;
           const script: VizScriptObject = {
             vizId: currentObjectId,
             type: "Scene",
             extension: ".vs",
-            name: scriptName,
+            name: finalScriptName,
             code: scriptContent[0],
             location: "",
             children: [],
           };
-          scriptObjects.push(script);
+          sceneScript.push(script);
           progress &&
             progress.report({ increment: 10, message: "Scene script fetched. Fetching container scripts..." });
           socket.write(
@@ -95,43 +98,56 @@ export function getVizScripts(
             }),
           );
 
-          // Combine similar scripts
-          const scriptMap = new Map();
-          let collectionIndex = 0;
+          // Map to store scripts by vizId
+          const scriptMap = new Map<string, VizScriptObject>();
 
-          // Group scripts by content
+          // Map to group script vizIds by content
+          const contentMap = new Map<string, string[]>(); // Map from script content to array of vizIds
+
+          // Iterate over scriptObjects to populate scriptMap and contentMap
           for (const script of scriptObjects) {
-            const scriptKey = script.code; // Use script content as the key
-            if (scriptMap.has(scriptKey)) {
-              // Append vizId to the existing entry
-              const existingEntry = scriptMap.get(scriptKey);
-              existingEntry.children.push(script.vizId);
+            const vizId = script.vizId;
+            const scriptContent = script.code;
+
+            // Store script in scriptMap
+            scriptMap.set(vizId, script);
+
+            // Update contentMap to group vizIds by content
+            if (contentMap.has(scriptContent)) {
+              contentMap.get(scriptContent).push(vizId);
             } else {
-              // Create a new entry in the map
-              scriptMap.set(scriptKey, { ...script, children: [script.vizId] });
+              contentMap.set(scriptContent, [vizId]);
             }
           }
 
           // Prepare the final scriptObjects list with collections
           const finalScriptObjects = [];
 
-          for (const [key, value] of scriptMap.entries()) {
-            if (value.children.length > 1) {
+          // Collection index counter
+          let collectionIndex = 0;
+
+          // Add scene script to the final list
+          finalScriptObjects.push(...sceneScript);
+
+          // Iterate over contentMap to create collection script objects
+          for (const [content, vizIds] of contentMap.entries()) {
+            if (vizIds.length > 1) {
               // Create a collection for similar scripts
               const collectionScript: VizScriptObject = {
                 vizId: `#c${collectionIndex}`,
-                type: `ContainerCollection ( x${value.children.length} )`,
+                type: `ContainerCollection ( x${vizIds.length} )`,
                 extension: ".vsc",
                 name: `Collection${collectionIndex}`, // Keeping the original name for simplicity
-                code: value.code,
+                code: scriptMap.get(vizIds[0]).code, // Use the code of the first script as an example
                 location: "",
-                children: value.children,
+                children: vizIds,
               };
               finalScriptObjects.push(collectionScript);
               collectionIndex++; // Increment the collection index after creating a collection
             } else {
-              // Keep the script as is if there is no match
-              finalScriptObjects.push(value);
+              // If only one script with this content, add it as is
+              const singleScript = scriptMap.get(vizIds[0]); // Use the first vizId as an example
+              finalScriptObjects.push(singleScript);
             }
           }
 
@@ -140,6 +156,7 @@ export function getVizScripts(
 
           // Do something with scriptObjects, e.g., send them back to the client
           console.log(scriptObjects);
+          await saveToStorage(context, scriptObjects);
 
           socket.end();
         } catch (error) {
@@ -155,14 +172,23 @@ export function getVizScripts(
 
     socket.on("end", () => {
       console.log("Disconnected Viz Engine");
-      context.workspaceState.update("vizScripts", scriptObjects);
       resolve(scriptObjects);
     });
   });
 }
 
-export function getScriptObjectCache(): VizScriptObject[] {
-  return scriptObjectCache;
+export function getScriptObjectCache(context: ExtensionContext): Promise<any> {
+  return loadFromStorage(context)
+    .then((scriptObjectCache) => {
+      if (scriptObjectCache === undefined) {
+        return [];
+      } else {
+        return scriptObjectCache;
+      }
+    })
+    .catch((error) => {
+      return Promise.reject(error);
+    });
 }
 
 function getVizScriptContent(vizId: string): Promise<string[]> {
@@ -308,30 +334,82 @@ export function compileScript(content: string, host: string, port: number, scrip
   });
 }
 
-export function compileScriptId(content: string, host: string, port: number, scriptId: string) {
+export function compileScriptId(
+  context: ExtensionContext,
+  content: string,
+  host: string,
+  port: number,
+  scriptId: string,
+) {
   return new Promise((resolve, reject) => {
     if (scriptId == undefined) {
       reject("No viz script associated with this script");
     }
-    const socket = net.createConnection({ port: port, host: host }, () => {
+
+    /*     const socket = net.createConnection({ port: port, host: host }, () => {
       socket.write("1 MAIN*CONFIGURATION*COMMUNICATION*PROCESS_COMMANDS_ALWAYS GET " + String.fromCharCode(0));
+    }); */
+
+    const socket = net.createConnection({ port: port, host: host }, () => {
+      socket.write("1 MAIN_SCENE*OBJECT_ID GET " + String.fromCharCode(0));
     });
 
+    //check if the vizid is #c01, #c02, etc
+    if (scriptId.startsWith("#c")) {
+      getScriptObjectCache(context)
+        .then((scriptObjects) => {
+          if (Array.isArray(scriptObjects)) {
+            let vizIdPromises = scriptObjects.map((scriptObject) => {
+              if (scriptObject.vizId === scriptId) {
+                return Promise.resolve(scriptObject.children);
+              }
+              return Promise.resolve([]);
+            });
+
+            // Execute all vizId promises concurrently
+            return Promise.all(vizIdPromises);
+          } else {
+            throw new Error("Script objects are not iterable or are undefined");
+          }
+        })
+        .then((vizIdArrays) => {
+          // Flatten array of arrays into a single array of vizIds
+          let vizIds = vizIdArrays.reduce((acc, val) => acc.concat(val), []);
+
+          // Compile each script in the collection
+          let compilePromises = vizIds.map((vizId) => {
+            return compileScriptId(context, content, host, port, vizId);
+          });
+
+          // Wait for all compilations to complete
+          return Promise.all(compilePromises);
+        })
+        .then(() => {
+          // All scripts in the collection have been compiled
+          resolve("All scripts compiled successfully");
+        })
+        .catch((error) => {
+          reject(error);
+        });
+      return;
+    }
+
     let text = content;
-    let isReceivingData = false;
     let replyCode = "-1";
     //connection.console.log('Script type is: ' + scriptType);
 
     socket.on("data", (data) => {
-      let message = data.toString();
-
-      if (!isReceivingData) {
-        replyCode = GetRegexResult(message, /^([^\s]+)(\s?)/gim)[1];
-        message = message.slice(2);
-        message = message.replace(String.fromCharCode(0), "");
-      }
+      let message = data.toString().replace(String.fromCharCode(0), "");
+      let answer = GetRegexResult(message, /^([^\s]+)(\s?)(.*)/gi);
+      replyCode = answer[1];
 
       if (replyCode == "1") {
+        const currentSceneId = context.workspaceState.get("currentSceneId");
+        if (currentSceneId !== answer[3]) {
+          window.showErrorMessage("Scene ID mismatch. Please try again.");
+          socket.end();
+          return;
+        }
         socket.write("-1 " + scriptId + "*SCRIPT*PLUGIN STOP " + String.fromCharCode(0));
         socket.write("3 " + scriptId + "*SCRIPT*PLUGIN*SOURCE_CODE SET " + text + " " + String.fromCharCode(0));
       } else if (replyCode == "3") {

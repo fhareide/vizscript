@@ -10,5 +10,5 @@ export type VizScriptObject = {
   code: string;
   location: string;
   vizId: string;
-  children: VizScriptObject[];
+  children: string[];
 };

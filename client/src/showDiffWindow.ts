@@ -30,7 +30,7 @@ export async function diffWithActiveEditor(
 
     const normalizedContent = normalizeContent(content);
     const encodedContent = encodeURIComponent(content);
-    const diffUri = Uri.parse(`untitled:${name}${fileExtension}?${encodedContent}`, true);
+    const diffUri = Uri.parse(`diff:${name}${fileExtension}?${encodedContent}`);
 
     // Normalize and URI-encode the active editor content
     const activeEditorContent = activeEditor.document.getText();

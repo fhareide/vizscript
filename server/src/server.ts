@@ -2303,6 +2303,8 @@ function ClearDiagnostics(uri: string) {
   connection.sendDiagnostics({ uri, diagnostics });
 }
 
+//TODO: Make setMetadata request to make server store all metadata in VSCODE-META tags
+
 connection.onRequest("setDocumentUri", (incomingDocumentUri: string) => {
   documentUri = incomingDocumentUri;
 });

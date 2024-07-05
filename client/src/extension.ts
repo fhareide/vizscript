@@ -8,10 +8,8 @@ import * as vscode from "vscode";
 import * as Commands from "./commands";
 
 import { LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } from "vscode-languageclient/node";
-import { SidebarProvider } from "./sidebarProvider";
 import { PreviewContentProvider } from "./previewContentProvider";
-import { PreviewFileSystemProvider } from "./previewFileSystemProvider";
-import { PreviewFile } from "./showEditablePreviewWindow";
+import { SidebarProvider } from "./sidebarProvider";
 
 let client: LanguageClient;
 
@@ -191,6 +189,8 @@ export function activate(context: vscode.ExtensionContext) {
       document: { uri },
     } = event;
 
+    //TODO: Change this to check for VSCODE-META tags and send request to server to add to file
+
     // Check scheme of active document
     const activeUri = vscode.window.activeTextEditor?.document.uri;
 
@@ -203,12 +203,6 @@ export function activate(context: vscode.ExtensionContext) {
       edit.insert(uri, new vscode.Position(0, 0), `'VSCODE: ${relativePath}\n`);
       await vscode.workspace.applyEdit(edit);
     }
-  });
-
-  vscode.workspace.onDidSaveTextDocument(async (document) => {
-    const { uri } = document;
-
-    vscode.window.showInformationMessage("Did save text document");
   });
 
   client.start().then(() => {

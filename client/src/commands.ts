@@ -7,7 +7,7 @@ import { SidebarProvider } from "./sidebarProvider";
 
 import {
   ExtensionContext,
-  Position,
+  ProgressLocation,
   QuickPickItem,
   Range,
   Selection,
@@ -15,19 +15,17 @@ import {
   StatusBarItem,
   TextEditor,
   ThemeColor,
+  Uri,
   window,
   workspace,
-  ProgressLocation,
-  Uri,
 } from "vscode";
 import { LanguageClient } from "vscode-languageclient/node";
+import { diffWithActiveEditor } from "./showDiffWindow";
 import { showMessage } from "./showMessage";
+import { showPreviewWindow } from "./showPreviewWindow";
+import { showUntitledWindow } from "./showUntitledWindow";
 import { compileScript, compileScriptId, getVizScripts } from "./vizCommunication";
 import { VizScriptObject } from "./vizScriptObject";
-import { diffWithActiveEditor } from "./showDiffWindow";
-import { showEditablePreviewWindow } from "./showEditablePreviewWindow";
-import { showUntitledWindow } from "./showUntitledWindow";
-import { showPreviewWindow } from "./showPreviewWindow";
 
 export async function saveToStorage(context: ExtensionContext, data: any) {
   if (context.storageUri) {
@@ -37,7 +35,7 @@ export async function saveToStorage(context: ExtensionContext, data: any) {
   }
 }
 
-export async function loadFromStorage(context: ExtensionContext) {
+export async function loadFromStorage(context: ExtensionContext): Promise<VizScriptObject[]> {
   if (context.storageUri) {
     const filePath = Uri.joinPath(context.storageUri, "vizscriptData.json");
     const content = await workspace.fs.readFile(filePath);
@@ -116,8 +114,6 @@ export async function getAndPostVizScripts(
 
           //const connectionInfo = await getConfig();
           const scripts = await getVizScripts(hostName, hostPort, context, progress);
-
-          await saveToStorage(context, scripts);
 
           sidebarProvider._view?.webview.postMessage({ type: "receiveScripts", value: scripts });
           return scripts;
@@ -221,69 +217,64 @@ export async function compileCurrentScript(context: ExtensionContext, client: La
       throw new Error("No active text editor.");
     }
 
-    const message = await compileScriptId(
+    try {
+      await syntaxCheckCurrentScript(context, client);
+    } catch (error) {
+      throw new Error("Syntax error in script. Please correct before trying to set again.");
+    }
+
+    await compileScriptId(
+      context,
       window.activeTextEditor.document.getText(),
       connectionString.hostName,
       connectionString.hostPort,
       vizId,
     );
-
-    const [error, rangeString]: [string, string] = await client.sendRequest("showDiagnostics", message);
-
-    if (error === "OK") {
-      compileMessage.text = "$(check) Script successfully set in Viz. No errors";
-      compileMessage.backgroundColor = "";
-      showStatusMessage(compileMessage);
-    } else {
-      const [line, char] = rangeString.split("/").map(Number);
-      const range = new Range(line - 1, 0, line - 1, char);
-      const editor = window.activeTextEditor;
-      editor.selection = new Selection(range.start, range.end);
-      editor.revealRange(range);
-
-      compileMessage.text = "$(error) " + error;
-      compileMessage.backgroundColor = new ThemeColor("statusBarItem.errorBackground");
-      showStatusMessage(compileMessage);
-    }
+    window.showInformationMessage("Script set successfully in Viz!");
   } catch (error) {
     showMessage(error);
   }
 }
 
-export async function syntaxCheckCurrentScript(context: ExtensionContext, client: LanguageClient, editor: TextEditor) {
-  try {
-    const connectionString = await getConfig();
-    if (!window.activeTextEditor) {
-      throw new Error("No active text editor.");
+export async function syntaxCheckCurrentScript(context: ExtensionContext, client: LanguageClient): Promise<void> {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const connectionString = await getConfig();
+      if (!window.activeTextEditor) {
+        throw new Error("No active text editor.");
+      }
+      const scriptType = window.activeTextEditor.document.languageId === "viz" ? "Scene" : "Container";
+      const message = await compileScript(
+        window.activeTextEditor.document.getText(),
+        connectionString.hostName,
+        connectionString.hostPort,
+        scriptType,
+      );
+
+      const [error, rangeString]: [string, string] = await client.sendRequest("showDiagnostics", message);
+
+      if (error === "OK") {
+        compileMessage.text = "$(check) Compile OK";
+        compileMessage.backgroundColor = "";
+        showStatusMessage(compileMessage);
+        resolve();
+      } else {
+        const [line, char] = rangeString.split("/").map(Number);
+        const range = new Range(line - 1, 0, line - 1, char);
+        const editor = window.activeTextEditor;
+        editor.selection = new Selection(range.start, range.end);
+        editor.revealRange(range);
+
+        compileMessage.text = "$(error) " + error;
+        compileMessage.backgroundColor = new ThemeColor("statusBarItem.errorBackground");
+        showStatusMessage(compileMessage);
+        reject(new Error(error));
+      }
+    } catch (error) {
+      showMessage(error);
+      reject(error);
     }
-    const scriptType = window.activeTextEditor.document.languageId === "viz" ? "Scene" : "Container";
-    const message = await compileScript(
-      window.activeTextEditor.document.getText(),
-      connectionString.hostName,
-      connectionString.hostPort,
-      scriptType,
-    );
-
-    const [error, rangeString]: [string, string] = await client.sendRequest("showDiagnostics", message);
-
-    if (error === "OK") {
-      compileMessage.text = "$(check) Compile OK";
-      compileMessage.backgroundColor = "";
-      showStatusMessage(compileMessage);
-    } else {
-      const [line, char] = rangeString.split("/").map(Number);
-      const range = new Range(line - 1, 0, line - 1, char);
-      const editor = window.activeTextEditor;
-      editor.selection = new Selection(range.start, range.end);
-      editor.revealRange(range);
-
-      compileMessage.text = "$(error) " + error;
-      compileMessage.backgroundColor = new ThemeColor("statusBarItem.errorBackground");
-      showStatusMessage(compileMessage);
-    }
-  } catch (error) {
-    showMessage(error);
-  }
+  });
 }
 
 async function showStatusMessage(currentErrorMessage: StatusBarItem) {
