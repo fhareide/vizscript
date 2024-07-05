@@ -298,14 +298,14 @@
 	},
 	"scripts": {
 		"vscode:prepublish": "npm run webpack",
-		"webpack": "npm run clean && webpack --mode production --config ./client/webpack.config.js && rollup -c ./client/rollup.config.js --bundleConfigAsCjs && webpack --mode production --config ./server/webpack.config.js",
-		"webpack-dev": "npm run clean && webpack --mode development --config ./client/webpack.config.js && webpack --mode development --config ./server/webpack.config.js",
-		"rollup-svelte": "rollup -c ./client/rollup.config.js --bundleConfigAsCjs -w",
-		"compile": "tsc -b",
-		"watch": "tsc -b -w",
+		"webpack": "npm run clean && webpack --mode production --config ./client/webpack.config.js && rollup -c ./client/rollup.config.js  --bundleConfigAsCjs && webpack --mode production --config ./server/webpack.config.js",
+		"webpack-dev": "npm run clean && webpack --watch --mode development --config ./client/webpack.config.js && webpack --watch --mode development --config ./server/webpack.config.js",
 		"postinstall": "cd client && npm install && cd ../server && npm install && cd ..",
 		"clean": "rimraf client/out && rimraf server/out",
-		"development": "concurrently \"npm run rollup-svelte\" \"npm run watch\""
+		"webpack-dev-client": "webpack --mode development --config ./client/webpack.config.js --watch",
+		"webpack-dev-server": "webpack --mode development --config ./server/webpack.config.js --watch",
+		"rollup-svelte-watch": "rollup -c ./client/rollup.config.js --bundleConfigAsCjs -w",
+		"development": "npm run clean && concurrently \"npm run webpack-dev-client\" \"npm run webpack-dev-server\" \"npm run rollup-svelte-watch\""
 	},
 	"devDependencies": {
 		"@githubocto/tailwind-vscode": "^1.0.5",
@@ -327,7 +327,9 @@
 		"merge-options": "^3.0.4",
 		"postcss": "^8.4.38",
 		"prettier": "3.3.2",
+		"rimraf": "^5.0.7",
 		"rollup": "^4.18.0",
+		"rollup-plugin-livereload": "^2.0.5",
 		"rollup-plugin-postcss": "^4.0.2",
 		"rollup-plugin-string": "^3.0.0",
 		"rollup-plugin-svelte": "^7.2.2",
@@ -336,19 +338,12 @@
 		"svelte-icon": "^2.1.1",
 		"svelte-preprocess": "^6.0.1",
 		"tailwindcss": "^3.4.4",
-		"ts-loader": "^8.4.0",
-		"typescript": "^5.5.3",
-		"webpack": "^5.92.1",
-		"webpack-cli": "^4.10.0"
+		"ts-loader": "^8.0.17",
+		"typescript": "^5.4.5",
+		"webpack": "^5.76.0",
+		"webpack-cli": "^4.5.0"
 	},
 	"dependencies": {
-		"nodemon": "^3.1.4",
-		"rimraf": "^5.0.7",
-		"rollup-plugin-livereload": "^2.0.5",
-		"rollup-plugin-serve": "^1.1.1",
-		"svelte-icons": "^2.1.0",
-		"webpack-dev-middleware": "^7.2.1",
-		"webpack-hot-middleware": "^2.26.1",
-		"webpack-node-externals": "^3.0.0"
+		"svelte-icons": "^2.1.0"
 	}
 }

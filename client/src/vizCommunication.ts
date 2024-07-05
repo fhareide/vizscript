@@ -120,9 +120,9 @@ export function getVizScripts(
               // Create a collection for similar scripts
               const collectionScript: VizScriptObject = {
                 vizId: `#c${collectionIndex}`,
-                type: "ContainerCollection",
+                type: `ContainerCollection ( x${value.children.length} )`,
                 extension: ".vsc",
-                name: `Collection${collectionIndex} ( x${value.children.length} )`, // Keeping the original name for simplicity
+                name: `Collection${collectionIndex}`, // Keeping the original name for simplicity
                 code: value.code,
                 location: "",
                 children: value.children,

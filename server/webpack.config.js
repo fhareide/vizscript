@@ -1,16 +1,15 @@
 "use strict";
 
 const path = require("path");
-const webpack = require("webpack");
-const nodeExternals = require("webpack-node-externals");
 
 const configServer = {
-  mode: "development",
+  mode: "none",
   target: "node",
   node: {
     __dirname: false,
   },
   resolve: {
+    //mainFields: ["module", "main"],
     extensions: [".ts", ".js"],
   },
   module: {
@@ -25,26 +24,24 @@ const configServer = {
               compilerOptions: {
                 sourceMap: true,
               },
-              transpileOnly: true,
             },
           },
         ],
       },
     ],
   },
-  externals: [
-    nodeExternals({
-      allowlist: ["webpack/hot/poll?1000"],
-    }),
-  ],
-  entry: ["webpack/hot/poll?1000", "./server/src/server.ts"],
+  externals: {
+    vscode: "commonjs vscode",
+  },
+  entry: {
+    extension: "./server/src/server.ts",
+  },
   output: {
     filename: "server.js",
     path: path.join(__dirname, "out"),
-    libraryTarget: "commonjs2",
+    libraryTarget: "commonjs",
     devtoolModuleFilenameTemplate: "../[resource-path]",
   },
-  plugins: [new webpack.HotModuleReplacementPlugin()],
   devtool: "source-map",
 };
 

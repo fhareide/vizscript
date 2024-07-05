@@ -1,15 +1,15 @@
 "use strict";
 
 const path = require("path");
-const webpack = require("webpack");
 
 const configClient = {
-  mode: "development",
+  mode: "none",
   target: "node",
   node: {
     __dirname: false,
   },
   resolve: {
+    //mainFields: ["module", "main"],
     extensions: [".ts", ".js"],
   },
   module: {
@@ -24,7 +24,6 @@ const configClient = {
               compilerOptions: {
                 sourceMap: true,
               },
-              transpileOnly: true,
             },
           },
         ],
@@ -35,15 +34,13 @@ const configClient = {
     vscode: "commonjs vscode",
   },
   entry: {
-    extension: ["webpack/hot/poll?1000", "./client/src/extension.ts"],
+    extension: "./client/src/extension.ts",
   },
   output: {
     filename: "extension.js",
     path: path.join(__dirname, "out"),
-    libraryTarget: "commonjs2",
-    devtoolModuleFilenameTemplate: "../[resource-path]",
+    libraryTarget: "commonjs",
   },
-  plugins: [new webpack.HotModuleReplacementPlugin()],
   devtool: "source-map",
 };
 

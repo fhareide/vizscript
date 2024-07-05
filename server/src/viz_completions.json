@@ -2,7 +2,7 @@
 	"intellisense": {
 		"completions": [
 			{
-				"name": "AlphaTEST",
+				"name": "Alpha",
 				"descripton": "An alpha object. This is used to control a container's alpha value.",
 				"properties": [
 					{
