@@ -9,6 +9,7 @@ import postcss from "rollup-plugin-postcss";
 import tailwindcss from "tailwindcss";
 import autoprefixer from "autoprefixer";
 import { sveltePreprocess } from "svelte-preprocess";
+import livereload from "rollup-plugin-livereload";
 
 const production = !process.env.ROLLUP_WATCH;
 
@@ -46,6 +47,10 @@ export default fs.readdirSync(path.join(__dirname, "webviews", "pages")).map((in
         extract: path.resolve(__dirname, "out", `${name}.css`),
         plugins: [tailwindcss(), autoprefixer()],
       }),
+      !production &&
+        livereload({
+          watch: "out",
+        }),
       production && terser(),
     ],
     watch: {

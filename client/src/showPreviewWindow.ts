@@ -21,7 +21,6 @@ export function showPreviewWindow(
       return window.showTextDocument(<any>textDocument, {
         preview: true,
         preserveFocus: true,
-        viewColumn: ViewColumn.Beside,
       });
     })
     .then((result) => {

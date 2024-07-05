@@ -42,6 +42,14 @@
     });
   };
 
+	const handleScriptSet = () => {
+		if (!selectedScript) return;
+		tsvscode.postMessage({
+			type: "setScript",
+			value: selectedScript.vizId,
+		});
+	};
+
   const handleMessage = (event: any) => {
     const message = event.data;
     if (message.type === "receiveScripts") {
@@ -109,6 +117,7 @@
               <button on:click={handleScriptEdit}>Edit</button>
               <button on:click={handleScriptPreview}>Preview</button>
               <button on:click={handleScriptDiff}>Diff</button>
+							<button on:click={handleScriptSet}>Set script in Viz</button>
             </div>
           </div>
         </div>

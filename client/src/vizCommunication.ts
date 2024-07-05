@@ -49,13 +49,15 @@ export function getVizScripts(
         currentObjectId = answer[3];
         try {
           const scriptContent = await getVizScriptContent(currentObjectId);
+          const scriptName = scriptContent[0] === "" ? "No scene script found" : cleanString(scriptContent[1]);
           const script: VizScriptObject = {
             vizId: currentObjectId,
             type: "Scene",
             extension: ".vs",
-            name: cleanString(scriptContent[1]),
+            name: scriptName,
             code: scriptContent[0],
             location: "",
+            children: [],
           };
           scriptObjects.push(script);
           progress &&
@@ -73,6 +75,7 @@ export function getVizScripts(
         const increment = 90 / containerScriptVizIds.length;
 
         try {
+          // Fetch all script contents
           await Promise.all(
             containerScriptVizIds.map(async (scriptVizId, index) => {
               const code = await getVizScriptContent(scriptVizId);
@@ -84,12 +87,59 @@ export function getVizScripts(
                 name: cleanString(code[1]),
                 code: code[0],
                 location: "",
+                children: [],
               };
 
               scriptObjects.push(script);
               progress && progress.report({ increment: increment * index, message: "Container script fetched" });
             }),
           );
+
+          // Combine similar scripts
+          const scriptMap = new Map();
+          let collectionIndex = 0;
+
+          // Group scripts by content
+          for (const script of scriptObjects) {
+            const scriptKey = script.code; // Use script content as the key
+            if (scriptMap.has(scriptKey)) {
+              // Append vizId to the existing entry
+              const existingEntry = scriptMap.get(scriptKey);
+              existingEntry.children.push(script.vizId);
+            } else {
+              // Create a new entry in the map
+              scriptMap.set(scriptKey, { ...script, children: [script.vizId] });
+            }
+          }
+
+          // Prepare the final scriptObjects list with collections
+          const finalScriptObjects = [];
+
+          for (const [key, value] of scriptMap.entries()) {
+            if (value.children.length > 1) {
+              // Create a collection for similar scripts
+              const collectionScript: VizScriptObject = {
+                vizId: `#c${collectionIndex}`,
+                type: "ContainerCollection",
+                extension: ".vsc",
+                name: `Collection${collectionIndex} ( x${value.children.length} )`, // Keeping the original name for simplicity
+                code: value.code,
+                location: "",
+                children: value.children,
+              };
+              finalScriptObjects.push(collectionScript);
+              collectionIndex++; // Increment the collection index after creating a collection
+            } else {
+              // Keep the script as is if there is no match
+              finalScriptObjects.push(value);
+            }
+          }
+
+          // Replace scriptObjects with the final list
+          scriptObjects = finalScriptObjects;
+
+          // Do something with scriptObjects, e.g., send them back to the client
+          console.log(scriptObjects);
 
           socket.end();
         } catch (error) {
@@ -258,7 +308,7 @@ export function compileScript(content: string, host: string, port: number, scrip
   });
 }
 
-export function compileScriptId(content: string, host: string, port: number, scriptType: string, scriptId: string) {
+export function compileScriptId(content: string, host: string, port: number, scriptId: string) {
   return new Promise((resolve, reject) => {
     if (scriptId == undefined) {
       reject("No viz script associated with this script");

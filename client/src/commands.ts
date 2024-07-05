@@ -214,19 +214,18 @@ export async function showVizScriptQuickPick(connectionInfo: VizScriptCompilerSe
 
 let compileMessage: StatusBarItem = window.createStatusBarItem(StatusBarAlignment.Left, 0);
 
-export async function compileCurrentScript(context: ExtensionContext, client: LanguageClient, editor: TextEditor) {
+export async function compileCurrentScript(context: ExtensionContext, client: LanguageClient, vizId: string) {
   try {
-    const result: [string, string, string] = await client.sendRequest("getVizConnectionInfo");
+    const connectionString = await getConfig();
     if (!window.activeTextEditor) {
       throw new Error("No active text editor.");
     }
-    const linkedId: string = context.workspaceState.get(window.activeTextEditor.document.uri.toString()) || "";
+
     const message = await compileScriptId(
       window.activeTextEditor.document.getText(),
-      result[0],
-      Number(result[1]),
-      result[2],
-      linkedId,
+      connectionString.hostName,
+      connectionString.hostPort,
+      vizId,
     );
 
     const [error, rangeString]: [string, string] = await client.sendRequest("showDiagnostics", message);
@@ -253,15 +252,16 @@ export async function compileCurrentScript(context: ExtensionContext, client: La
 
 export async function syntaxCheckCurrentScript(context: ExtensionContext, client: LanguageClient, editor: TextEditor) {
   try {
-    const result: [string, string, string] = await client.sendRequest("getVizConnectionInfo");
+    const connectionString = await getConfig();
     if (!window.activeTextEditor) {
       throw new Error("No active text editor.");
     }
+    const scriptType = window.activeTextEditor.document.languageId === "viz" ? "Scene" : "Container";
     const message = await compileScript(
       window.activeTextEditor.document.getText(),
-      result[0],
-      Number(result[1]),
-      result[2],
+      connectionString.hostName,
+      connectionString.hostPort,
+      scriptType,
     );
 
     const [error, rangeString]: [string, string] = await client.sendRequest("showDiagnostics", message);

@@ -121,7 +121,20 @@ export function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     vscode.commands.registerCommand("vizscript.editscript", async (vizId: string) => {
+      vscode.window.showInformationMessage("Edit script");
       await Commands.openScriptInTextEditor.bind(this)(context, vizId, true);
+    }),
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("vizscript.setscript", async (vizId: string) => {
+      await Commands.compileCurrentScript.bind(this)(context, client, vizId, true);
+    }),
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("vizscript.previewdiff", async (vizId: string) => {
+      await Commands.openScriptInDiff.bind(this)(context, vizId, true);
     }),
   );
 
@@ -173,23 +186,30 @@ export function activate(context: vscode.ExtensionContext) {
     }
   }); */
 
-  /*   vscode.workspace.onWillSaveTextDocument(async (event) => {
+  vscode.workspace.onWillSaveTextDocument(async (event) => {
     const {
       document: { uri },
     } = event;
-    if (uri.scheme === "preview") {
-      // Handle save logic for preview files
-      // For example, prompt user to save the file somewhere permanent
-      await handleSaveAs(uri);
+
+    // Check scheme of active document
+    const activeUri = vscode.window.activeTextEditor?.document.uri;
+
+    // Add selected file name to top of the file to save only if it is a viz file that is untitled
+    if (activeUri?.scheme === "untitled" && (uri.path.endsWith(".vs") || uri.path.endsWith(".vsc"))) {
+      const workspaceFolder = vscode.workspace.getWorkspaceFolder(uri);
+      const relativePath = workspaceFolder ? vscode.workspace.asRelativePath(uri) : uri.path;
+
+      const edit = new vscode.WorkspaceEdit();
+      edit.insert(uri, new vscode.Position(0, 0), `'VSCODE: ${relativePath}\n`);
+      await vscode.workspace.applyEdit(edit);
     }
   });
 
   vscode.workspace.onDidSaveTextDocument(async (document) => {
     const { uri } = document;
-    if (uri.scheme === "preview") {
-      // Handle save logic for preview files after they are saved
-    }
-  }); */
+
+    vscode.window.showInformationMessage("Did save text document");
+  });
 
   client.start().then(() => {
     registerCommands(client, context);
