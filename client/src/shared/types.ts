@@ -3,6 +3,7 @@ export type VizScriptObject = {
   type: string;
   extension: string;
   code: string;
-  location: string;
+  scenePath: string;
   vizId: string;
+  children: string[];
 };

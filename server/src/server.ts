@@ -12,7 +12,6 @@ import * as data4 from "./viz_completions4.json";
 import * as data5 from "./viz_completions5.json";
 import * as vizevent from "./vizevent_completions.json";
 import { DefinitionLink } from "vscode-languageserver";
-import { open } from "fs";
 
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.

@@ -13,33 +13,6 @@ import { SidebarProvider } from "./sidebarProvider";
 
 let client: LanguageClient;
 
-async function handleSaveAs(uri: vscode.Uri) {
-  // get workspace folder
-  const workspaceFolder = vscode.workspace.getWorkspaceFolder(uri);
-  const startPath = workspaceFolder ? workspaceFolder.uri.fsPath : "";
-
-  const defaultUri = vscode.Uri.file(startPath);
-  const options: vscode.SaveDialogOptions = {
-    defaultUri,
-    saveLabel: "Save",
-    filters: {
-      // Define filters if needed
-    },
-  };
-  const saveUri = await vscode.window.showSaveDialog(options);
-  if (saveUri) {
-    // Save the content of the preview file (`uri`) to `saveUri`
-    const previewFileContent = await vscode.workspace.fs.readFile(uri);
-    await vscode.workspace.fs.writeFile(saveUri, previewFileContent);
-
-    // Close the current preview file
-    await vscode.commands.executeCommand("workbench.action.closeActiveEditor");
-
-    // Open the newly saved file
-    await vscode.commands.executeCommand("vscode.open", saveUri);
-  }
-}
-
 function registerCommands(client: LanguageClient, context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerTextEditorCommand(
@@ -149,6 +122,37 @@ export function activate(context: vscode.ExtensionContext) {
       }
     }),
   );
+
+  //TODO: This should only happen in devmode
+
+  const extensionDevPath = context.extensionPath;
+
+  const clientPattern = new vscode.RelativePattern(`${extensionDevPath}`, "**/client/out/extension.js");
+  const serverPattern = new vscode.RelativePattern(`${extensionDevPath}`, "**/server/out/**/*.js");
+  const webviewPattern = new vscode.RelativePattern(`${extensionDevPath}`, "**/client/out/app.js");
+
+  // Watcher for client files
+  const clientWatcher = vscode.workspace.createFileSystemWatcher(clientPattern);
+  clientWatcher.onDidChange(handleChange);
+
+  // Watcher for server files
+  const serverWatcher = vscode.workspace.createFileSystemWatcher(serverPattern);
+  serverWatcher.onDidChange(handleChange);
+
+  // Watcher for webview files
+  const webviewWatcher = vscode.workspace.createFileSystemWatcher(webviewPattern);
+  webviewWatcher.onDidChange(() => {
+    console.info(`Webview changed. Reloading VSCode...`);
+    vscode.commands.executeCommand("workbench.action.webview.reloadWebviewAction");
+  });
+
+  function handleChange({ scheme, path }) {
+    console.info(`${scheme} ${path} changed. Reloading VSCode...`);
+    vscode.commands.executeCommand("workbench.action.reloadWindow");
+  }
+
+  // Clean up watchers on extension deactivation
+  context.subscriptions.push(clientWatcher, serverWatcher, webviewWatcher);
 
   /*   vscode.workspace.onDidChangeTextDocument(async (event) => {
     const {

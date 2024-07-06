@@ -4,21 +4,19 @@
  * ------------------------------------------------------------------------------------------ */
 
 import * as net from "net";
-import { window, Range, Progress, ExtensionContext } from "vscode";
-import { VizScriptObject } from "./vizScriptObject";
+import { ExtensionContext, Progress, window } from "vscode";
 import { loadFromStorage, saveToStorage } from "./commands";
+import type { VizScriptObject } from "./shared/types";
 
 let sceneId = "";
 let containerId = "";
 let scriptId = "";
 
-let thisHost = "";
-let thisPort: number = -1;
-
 function cleanString(str: string): string {
   return str.replace(/[\x00-\x1F\x7F]/g, "").trim();
 }
 
+//Get all scripts from Viz Engine
 export function getVizScripts(
   host: string,
   port: number,
@@ -30,8 +28,7 @@ export function getVizScripts(
 ): Promise<VizScriptObject[]> {
   return new Promise((resolve, reject) => {
     let currentObjectId = "";
-    thisHost = host;
-    thisPort = port;
+    let scenePath = "";
     let sceneScript = new Array<VizScriptObject>();
     let scriptObjects = new Array<VizScriptObject>();
 
@@ -44,12 +41,17 @@ export function getVizScripts(
       let answer = GetRegexResult(message, /^([^\s]+)(\s?)(.*)/gi);
 
       if (answer[1] == "1") {
+        socket.write("UUID MAIN_SCENE*UUID GET " + String.fromCharCode(0));
+      } else if (answer[1] == "UUID") {
+        socket.write("PATH FILENAME_FROM_UUID GET " + answer[3] + String.fromCharCode(0));
+      } else if (answer[1] == "PATH") {
+        scenePath = answer[3];
         socket.write("2 MAIN_SCENE*OBJECT_ID GET " + String.fromCharCode(0));
       } else if (answer[1] == "2") {
         currentObjectId = answer[3];
         context.workspaceState.update("currentSceneId", currentObjectId);
         try {
-          const scriptContent = await getVizScriptContent(currentObjectId);
+          const scriptContent = await getVizScriptContent(host, port, currentObjectId);
           const cleanName = cleanString(scriptContent[1]);
           const scriptName = cleanName.startsWith("#") ? "Unsaved Scene" : cleanName;
           const finalScriptName = scriptContent[0] === "" ? "No scene script found" : scriptName;
@@ -59,7 +61,7 @@ export function getVizScripts(
             extension: ".vs",
             name: finalScriptName,
             code: scriptContent[0],
-            location: "",
+            scenePath: scenePath,
             children: [],
           };
           sceneScript.push(script);
@@ -81,7 +83,7 @@ export function getVizScripts(
           // Fetch all script contents
           await Promise.all(
             containerScriptVizIds.map(async (scriptVizId, index) => {
-              const code = await getVizScriptContent(scriptVizId);
+              const code = await getVizScriptContent(host, port, scriptVizId);
 
               const script: VizScriptObject = {
                 vizId: scriptVizId,
@@ -89,7 +91,7 @@ export function getVizScripts(
                 extension: ".vsc",
                 name: cleanString(code[1]),
                 code: code[0],
-                location: "",
+                scenePath: scenePath,
                 children: [],
               };
 
@@ -139,7 +141,7 @@ export function getVizScripts(
                 extension: ".vsc",
                 name: `Collection${collectionIndex}`, // Keeping the original name for simplicity
                 code: scriptMap.get(vizIds[0]).code, // Use the code of the first script as an example
-                location: "",
+                scenePath: scenePath,
                 children: vizIds,
               };
               finalScriptObjects.push(collectionScript);
@@ -177,6 +179,7 @@ export function getVizScripts(
   });
 }
 
+//Get all scripts from workspace storage file
 export function getScriptObjectCache(context: ExtensionContext): Promise<any> {
   return loadFromStorage(context)
     .then((scriptObjectCache) => {
@@ -191,12 +194,13 @@ export function getScriptObjectCache(context: ExtensionContext): Promise<any> {
     });
 }
 
-function getVizScriptContent(vizId: string): Promise<string[]> {
+//Get script content from Viz Engine
+function getVizScriptContent(host: string, port: number, vizId: string): Promise<string[]> {
   return new Promise((resolve, reject) => {
     let code = "";
     let name = "";
 
-    const socket = net.createConnection({ port: thisPort, host: thisHost }, () => {
+    const socket = net.createConnection({ port, host }, () => {
       socket.write("1 MAIN*CONFIGURATION*COMMUNICATION*PROCESS_COMMANDS_ALWAYS GET " + String.fromCharCode(0));
     });
 
@@ -235,7 +239,7 @@ function getVizScriptContent(vizId: string): Promise<string[]> {
     });
 
     socket.on("error", () => {
-      reject("Not able to connect to Viz Engine " + thisHost + ":" + thisPort);
+      reject("Not able to connect to Viz Engine " + host + ":" + port);
     });
 
     socket.on("end", () => {

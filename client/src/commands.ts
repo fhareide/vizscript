@@ -25,7 +25,7 @@ import { showMessage } from "./showMessage";
 import { showPreviewWindow } from "./showPreviewWindow";
 import { showUntitledWindow } from "./showUntitledWindow";
 import { compileScript, compileScriptId, getVizScripts } from "./vizCommunication";
-import { VizScriptObject } from "./vizScriptObject";
+import { VizScriptObject } from "./shared/types";
 
 export async function saveToStorage(context: ExtensionContext, data: any) {
   if (context.storageUri) {

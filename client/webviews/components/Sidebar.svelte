@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import type { VizScriptObject } from "../types";
+	import type {VizScriptObject} from "../../src/shared/types"
   import ScriptItem from "./ScriptItem.svelte";
   let vizscripts: VizScriptObject[] = [];
   let selectedScriptId: string;
@@ -90,7 +90,7 @@
         <input type="Text" placeholder="Hostname" bind:value={hostname} class="w-1/2" />
         <input type="Text" placeholder="Port" bind:value={port} class="w-1/4" />
       </div>
-      <button on:click={handleGetScripts}>Get scripts from Viz</button>
+			<button on:click={handleGetScripts}>Get scripts from Viz</button>
     </div>
 
     <div class="h-full flex flex-col bg-vscode-sideBar-background overflow-hidden">
@@ -110,6 +110,7 @@
               <div class="overflow-hidden flex">{selectedScript.name}</div>
               <div class="text-vscode-descriptionForeground">{selectedScript.type}</div>
             </div>
+						<div>{selectedScript.scenePath}</div>
             <div class="items-center justify-end h-[24px] flex overflow-hidden pr-[7px]">
               {selectedScript.extension}
             </div>
