@@ -12,6 +12,7 @@ import * as data4 from "./viz_completions4.json";
 import * as data5 from "./viz_completions5.json";
 import * as vizevent from "./vizevent_completions.json";
 import { DefinitionLink } from "vscode-languageserver";
+import { MetadataProcessor } from "./metadataProcessor";
 
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -102,6 +103,8 @@ const validationDelayMs = 500;
 
 let documentUri: string;
 let scriptType: string = "";
+let currentMetaJson: any;
+const metadataProcessor = new MetadataProcessor();
 
 // The content of a text document has changed. This event is emitted
 // when the text document first opened or when its content has changed.
@@ -1282,7 +1285,9 @@ function RefreshDocumentsSymbols(uri: string) {
   let startTime: number = Date.now();
   let symbolsList: VizSymbol[] = CollectSymbols(documents.get(uri));
   symbolCache[uri] = symbolsList;
-  //connection.console.info("Found " + symbolsList.length + " document symbols in '" + uri + "': " + (Date.now() - startTime) + " ms");
+  /*   connection.console.info(
+    "Found " + symbolsList.length + " document symbols in '" + uri + "': " + (Date.now() - startTime) + " ms",
+  ); */
 }
 
 connection.onDocumentSymbol((docParams: ls.DocumentSymbolParams): ls.SymbolInformation[] => {
@@ -1295,17 +1300,22 @@ function CollectSymbols(document: TextDocument): VizSymbol[] {
   let lines = document.getText().split(/\r?\n/g);
   GetVizEvents();
 
+  metadataProcessor.extractMetadata(lines);
+  currentMetaJson = metadataProcessor.getCurrentMetaJson();
+
   for (var i = 0; i < lines.length; i++) {
     let line = lines[i];
     let originalLine = line;
 
     let containsComment = line.indexOf("'");
-    //Removes comments from symbol lines
-    if (containsComment > -1) line = line.substring(0, containsComment);
+    if (containsComment > -1 && !line.includes("VSCODE-META-START") && !line.includes("VSCODE-META-END")) {
+      // Removes comments from symbol lines if not within meta content
+      line = line.substring(0, containsComment);
+    }
 
-    //Remove literal strings
+    // Remove literal strings
     let stringLiterals = /\"(([^\"]|\"\")*)\"/gi;
-    line.replace(stringLiterals, ReplaceBySpaces);
+    line = line.replace(stringLiterals, ReplaceBySpaces);
 
     let statement: LineStatement = new LineStatement();
     statement.startLine = i;
@@ -1313,13 +1323,34 @@ function CollectSymbols(document: TextDocument): VizSymbol[] {
     statement.startCharacter = 0;
     statement.originalLine = originalLine;
 
-    //connection.console.info("Line " + i.toString() + " is " + statement.line);
+    // connection.console.info("Line " + i.toString() + " is " + statement.line);
     FindSymbol(statement, document.uri, symbols);
   }
 
+  // Optionally, write metadata back to the document
+  let newLines = metadataProcessor.writeMetadataBack(lines);
+  let newText = newLines.join("\n");
+
+  // Create edits for the document
+  let textEdits: ls.TextEdit[] = [];
+  let fullRange: ls.Range = {
+    start: { line: 0, character: 0 },
+    end: { line: document.lineCount, character: 0 },
+  };
+
+  textEdits.push(ls.TextEdit.replace(fullRange, newText));
+
+  // Apply the edits
+  let workspaceEdit: ls.WorkspaceEdit = {
+    changes: {
+      [document.uri]: textEdits,
+    },
+  };
+
+  connection.workspace.applyEdit(workspaceEdit);
+
   return Array.from(symbols);
 }
-
 class LineStatement {
   startCharacter: number = 0;
   startLine: number = -1;
@@ -2302,7 +2333,44 @@ function ClearDiagnostics(uri: string) {
   connection.sendDiagnostics({ uri, diagnostics });
 }
 
-//TODO: Make setMetadata request to make server store all metadata in VSCODE-META tags
+// Metadata logic start
+connection.onRequest("addMetaDataItem", () => {
+  // Example: Add a new key-value pair to metadata
+  metadataProcessor.setMetaValue("newKey", "newValue");
+
+  // Optionally, update the document content based on the new metadata
+  let document = documents.get(documentUri);
+  let lines = document.getText().split(/\r?\n/g);
+  let newLines = metadataProcessor.writeMetadataBack(lines);
+  let newText = newLines.join("\n");
+
+  // Apply edits to the document
+  connection.workspace.applyEdit({
+    changes: {
+      [document.uri]: [
+        {
+          range: {
+            start: { line: 0, character: 0 },
+            end: { line: lines.length, character: 0 },
+          },
+          newText: newText,
+        },
+      ],
+    },
+  });
+
+  return Promise.resolve();
+});
+
+connection.onRequest("setMetadata", (metadata: string) => {
+  return metadata;
+});
+
+connection.onRequest("getMetadata", () => {
+  return currentMetaJson;
+});
+
+// Metadata logic end
 
 connection.onRequest("setDocumentUri", (incomingDocumentUri: string) => {
   documentUri = incomingDocumentUri;

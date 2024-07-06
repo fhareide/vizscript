@@ -13,33 +13,62 @@ import {
   Selection,
   StatusBarAlignment,
   StatusBarItem,
-  TextEditor,
   ThemeColor,
   Uri,
   window,
   workspace,
 } from "vscode";
 import { LanguageClient } from "vscode-languageclient/node";
+import { VizScriptObject } from "./shared/types";
 import { diffWithActiveEditor } from "./showDiffWindow";
 import { showMessage } from "./showMessage";
 import { showPreviewWindow } from "./showPreviewWindow";
 import { showUntitledWindow } from "./showUntitledWindow";
 import { compileScript, compileScriptId, getVizScripts } from "./vizCommunication";
-import { VizScriptObject } from "./shared/types";
 
-export async function saveToStorage(context: ExtensionContext, data: any) {
-  if (context.storageUri) {
-    const filePath = Uri.joinPath(context.storageUri, "vizscriptData.json");
-    const content = JSON.stringify(data);
-    await workspace.fs.writeFile(filePath, Buffer.from(content));
+async function fileExists(uri: Uri): Promise<boolean> {
+  try {
+    await workspace.fs.stat(uri);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function saveToStorage(context: ExtensionContext, data: any): Promise<void> {
+  try {
+    if (context.storageUri) {
+      const filePath = Uri.joinPath(context.storageUri, "vizscriptData.json");
+      const content = JSON.stringify(data);
+      await workspace.fs.writeFile(filePath, Buffer.from(content));
+    } else {
+      console.warn("No storageUri found in context.");
+    }
+  } catch (error) {
+    console.error("Failed to save data to storage:", error);
   }
 }
 
 export async function loadFromStorage(context: ExtensionContext): Promise<VizScriptObject[]> {
-  if (context.storageUri) {
-    const filePath = Uri.joinPath(context.storageUri, "vizscriptData.json");
-    const content = await workspace.fs.readFile(filePath);
-    return JSON.parse(content.toString());
+  try {
+    if (context.storageUri) {
+      const filePath = Uri.joinPath(context.storageUri, "vizscriptData.json");
+
+      const exists = await fileExists(filePath);
+      if (!exists) {
+        console.warn("File does not exist:", filePath.fsPath);
+        return [];
+      }
+
+      const content = await workspace.fs.readFile(filePath);
+      return JSON.parse(content.toString());
+    } else {
+      console.warn("No storageUri found in context.");
+      return [];
+    }
+  } catch (error) {
+    console.error("Failed to load data from storage:", error);
+    return [];
   }
 }
 

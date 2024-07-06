@@ -50,6 +50,14 @@
 			{
 				"command": "vizscript.diff",
 				"title": "Viz Script: Diff script with Viz"
+			},
+			{
+				"command": "vizscript.addmetadata",
+				"title": "Viz Script: Add metadata to script"
+			},
+			{
+				"command": "vizscript.removemetadata",
+				"title": "Viz Script: Remove metadata from script"
 			}
 		],
 		"menus": {
@@ -329,7 +337,6 @@
 		"prettier": "3.3.2",
 		"rimraf": "^5.0.7",
 		"rollup": "^4.18.0",
-		"rollup-plugin-livereload": "^2.0.5",
 		"rollup-plugin-postcss": "^4.0.2",
 		"rollup-plugin-string": "^3.0.0",
 		"rollup-plugin-svelte": "^7.2.2",

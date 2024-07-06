@@ -56,16 +56,6 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           vscode.window.showErrorMessage(data.value);
           break;
         }
-        case "saveState":
-          if (!data.value) {
-            return;
-          }
-          if (this._context.storageUri) {
-            const filePath = vscode.Uri.joinPath(this._context.storageUri, "vizscriptData.json");
-            const content = JSON.stringify(data.value);
-            await vscode.workspace.fs.writeFile(filePath, Buffer.from(content));
-          }
-          break;
         case "loadState":
           const state = await loadFromStorage(this._context);
           webviewView.webview.postMessage({ type: "receiveState", value: state });

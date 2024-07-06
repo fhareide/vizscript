@@ -92,7 +92,6 @@ export function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     vscode.commands.registerCommand("vizscript.editscript", async (vizId: string) => {
-      vscode.window.showInformationMessage("Edit script");
       await Commands.openScriptInTextEditor.bind(this)(context, vizId, true);
     }),
   );
@@ -112,6 +111,12 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand("vizscript.diff", async (vizId: string) => {
       await Commands.openScriptInDiff.bind(this)(context, vizId, true);
+    }),
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("vizscript.addmetadata", async () => {
+      await client.sendRequest("addMetaDataItem");
     }),
   );
 
