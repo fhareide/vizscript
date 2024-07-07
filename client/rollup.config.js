@@ -24,7 +24,12 @@ export default fs.readdirSync(path.join(__dirname, "webviews", "pages")).map((in
     },
     plugins: [
       svelte({
-        preprocess: sveltePreprocess(),
+        preprocess: sveltePreprocess({
+          sourceMap: !production,
+          postcss: {
+            plugins: [tailwindcss(), autoprefixer()],
+          },
+        }),
         compilerOptions: {
           dev: !production,
           css: (css) => {

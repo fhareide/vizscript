@@ -1,3 +1,4 @@
+import "../pages/global.css";
 import App from "../components/App.svelte";
 
 declare global {

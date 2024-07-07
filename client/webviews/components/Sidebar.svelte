@@ -7,7 +7,7 @@
   let selectedScript: VizScriptObject | undefined;
 
   let hostname = "localhost";
-  let port = "3000";
+  let port = "6100";
 
   $: selectedScript = vizscripts.find((script) => script.vizId === selectedScriptId) || undefined;
 

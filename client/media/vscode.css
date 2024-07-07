@@ -156,3 +156,19 @@ input::placeholder,
 textarea::placeholder {
   color: var(--vscode-input-placeholderForeground);
 }
+
+::-webkit-scrollbar {
+  width: 3px;
+}
+
+::-webkit-scrollbar-track {
+  background-color: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: rebeccapurple;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: #007acc;
+}

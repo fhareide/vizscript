@@ -2,13 +2,13 @@
   import ContainerIcon from "../icons/Container.svelte";
   import SceneIcon from "../icons/Scene.svelte";
 	import { createEventDispatcher } from "svelte";
-  import type { VizScriptObject } from "../types";
+  import type { VizScriptObject } from "../../src/shared/types";
 
   export let script: VizScriptObject;
   export let selectedScriptId: string;
 
   // selectedItem as class names
-  const buttonStyles: string = "bg-vscode-menu-selectionBackground hover:bg-vscode-menu-selectionBackground/50 ";
+  const buttonStyles: string = "bg-vscode-list-activeSelectionBackground hover:bg-vscode-menu-selectionBackground/50 ";
 
 
 	const dispatch = createEventDispatcher();
@@ -30,9 +30,9 @@
   on:click={handleScriptSelected}
 	on:dblclick={handleDoubleClick}
   class={`cursor-pointer overflow-hidden w-full h-[72px] relative select-none
-	${selectedScriptId === script.vizId ? buttonStyles : "hover:bg-vscode-list-hoverBackground "}`}
+	${selectedScriptId === script.vizId ? buttonStyles : "hover:bg-vscode-list-hoverBackground"}`}
 >
-  <div class="flex h-full overflow-hidden w-full box-border bg-vscode-contrastBorder pl-[16px] absolute">
+  <div class="flex h-full overflow-hidden w-full box-border pl-[16px] absolute">
     <div class="relative flex items-center pr-4">
       {#if script.type == "Scene"}
         <SceneIcon class="w-full" size={40} />
