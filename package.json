@@ -36,6 +36,10 @@
 				"title": "Viz Script: Set current script in Viz"
 			},
 			{
+				"command": "vizscript.openSettings",
+				"title": "Viz Script: Open settings"
+			},
+			{
 				"command": "vizscript.getscripts",
 				"title": "Viz Script: Get scripts from Viz"
 			},

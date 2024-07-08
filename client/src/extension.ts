@@ -85,6 +85,12 @@ export function activate(context: vscode.ExtensionContext) {
   );
 
   context.subscriptions.push(
+    vscode.commands.registerCommand("vizscript.openSettings", () => {
+      vscode.commands.executeCommand("workbench.action.openSettings", "vizscript");
+    }),
+  );
+
+  context.subscriptions.push(
     vscode.commands.registerCommand("vizscript.previewscript", async (vizId: string) => {
       await Commands.openScriptInTextEditor.bind(this)(context, vizId, true, true);
     }),

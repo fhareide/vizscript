@@ -6,16 +6,25 @@
 
   export let script: VizScriptObject;
   export let selectedScriptId: string;
+	
 
   // selectedItem as class names
-  const buttonStyles: string = "bg-vscode-list-activeSelectionBackground hover:bg-vscode-menu-selectionBackground/50 ";
+  const buttonStyles: string = "bg-vscode-list-activeSelectionBackground border-vscode-inputOption-activeBackground border-[1.8px] hover:bg-vscode-menu-selectionBackground/50 ";
 
 
 	const dispatch = createEventDispatcher();
 
 
   const handleScriptSelected = () => {
-    selectedScriptId = script.vizId;
+		const currentState = tsvscode.getState() || {};
+
+		const updatedState = {
+        ...currentState,
+        selectedScriptId: script.vizId
+      };
+
+		tsvscode.setState(updatedState)
+		selectedScriptId = script.vizId;
   };
 
 	const handleDoubleClick = () => {

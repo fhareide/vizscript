@@ -15,15 +15,10 @@ export function showPreviewWindow(
   const encodedContent = encodeURIComponent(content);
   const contentUri = Uri.parse(`diff:${name}(read-only)${fileExtension}?${encodedContent}`);
 
-  return workspace
-    .openTextDocument(contentUri)
-    .then((textDocument) => {
-      return window.showTextDocument(<any>textDocument, {
-        preview: true,
-        preserveFocus: true,
-      });
-    })
-    .then((result) => {
-      context.workspaceState.update(result.document.uri.toString(), id);
+  return workspace.openTextDocument(contentUri).then((textDocument) => {
+    return window.showTextDocument(<any>textDocument, {
+      preview: true,
+      preserveFocus: true,
     });
+  });
 }

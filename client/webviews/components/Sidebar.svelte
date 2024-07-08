@@ -54,7 +54,6 @@
     const message = event.data;
     if (message.type === "receiveScripts") {
       console.log("Scripts received", message.value);
-      //tsvscode.postMessage({ type: "saveState", value: { vizscripts: message.value } });
       vizscripts = [...message.value];
     } else if (message.type === "receiveSettings") {
       console.log("Settings received", message.value);
@@ -74,6 +73,11 @@
   onMount(() => {
     tsvscode.postMessage({ type: "getSettings" });
     tsvscode.postMessage({ type: "loadState" });
+
+		const currentState = tsvscode.getState() || {};
+
+		selectedScriptId = currentState.selectedScriptId;
+
 
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);

@@ -37,13 +37,19 @@ async function fileExists(uri: Uri): Promise<boolean> {
 
 export async function saveToStorage(context: ExtensionContext, data: any): Promise<void> {
   try {
+    const content = JSON.stringify(data);
+    let filePath: Uri;
+
     if (context.storageUri) {
-      const filePath = Uri.joinPath(context.storageUri, "vizscriptData.json");
-      const content = JSON.stringify(data);
-      await workspace.fs.writeFile(filePath, Buffer.from(content));
+      filePath = Uri.joinPath(context.storageUri, "vizscriptData.json");
+    } else if (context.globalStorageUri) {
+      filePath = Uri.joinPath(context.globalStorageUri, "vizscriptData.json");
     } else {
       console.warn("No storageUri found in context.");
+      return;
     }
+
+    await workspace.fs.writeFile(filePath, Buffer.from(content));
   } catch (error) {
     console.error("Failed to save data to storage:", error);
   }
@@ -51,21 +57,25 @@ export async function saveToStorage(context: ExtensionContext, data: any): Promi
 
 export async function loadFromStorage(context: ExtensionContext): Promise<VizScriptObject[]> {
   try {
+    let filePath: Uri;
+
     if (context.storageUri) {
-      const filePath = Uri.joinPath(context.storageUri, "vizscriptData.json");
-
-      const exists = await fileExists(filePath);
-      if (!exists) {
-        console.warn("File does not exist:", filePath.fsPath);
-        return [];
-      }
-
-      const content = await workspace.fs.readFile(filePath);
-      return JSON.parse(content.toString());
+      filePath = Uri.joinPath(context.storageUri, "vizscriptData.json");
+    } else if (context.globalStorageUri) {
+      filePath = Uri.joinPath(context.globalStorageUri, "vizscriptData.json");
     } else {
-      console.warn("No storageUri found in context.");
+      console.warn("No storageUri or storagePath found in context.");
       return [];
     }
+
+    const exists = await fileExists(filePath);
+    if (!exists) {
+      console.warn("File does not exist:", filePath.fsPath);
+      return [];
+    }
+
+    const content = await workspace.fs.readFile(filePath);
+    return JSON.parse(content.toString());
   } catch (error) {
     console.error("Failed to load data from storage:", error);
     return [];
@@ -163,12 +173,14 @@ export async function openScriptInTextEditor(
   preview: boolean = false,
 ) {
   const state = await loadFromStorage(context);
+
   const scriptObjects: VizScriptObject[] = state;
+
   if (!scriptObjects) {
     throw new Error("No script objects found.");
   }
   const scriptObject = scriptObjects.find((element) => element.vizId === vizId);
-  console.log(scriptObject);
+
   if (!scriptObject) {
     throw new Error("No script object found.");
   }
@@ -180,21 +192,6 @@ export async function openScriptInTextEditor(
   } else {
     await showUntitledWindow(vizIdStripped, scriptObject.name, scriptObject.extension, scriptObject.code, context);
   }
-  /* else {
-    if (!window.activeTextEditor) {
-      throw new Error("No active text editor.");
-    }
-    context.workspaceState.update(window.activeTextEditor.document.uri.toString(), vizIdStripped);
-    await window.activeTextEditor.edit((builder) => {
-      if (!window.activeTextEditor) {
-        throw new Error("No active text editor.");
-      }
-      const lastLine = window.activeTextEditor.document.lineCount;
-      const lastChar = window.activeTextEditor.document.lineAt(lastLine - 1).range.end.character;
-      builder.delete(new Range(0, 0, lastLine, lastChar));
-      builder.replace(new Position(0, 0), scriptObject.code);
-    });
-  } */
 }
 
 export async function openScriptInDiff(context: ExtensionContext, vizId: string) {

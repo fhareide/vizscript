@@ -1327,6 +1327,8 @@ function CollectSymbols(document: TextDocument): VizSymbol[] {
     FindSymbol(statement, document.uri, symbols);
   }
 
+  return Array.from(symbols);
+
   // Optionally, write metadata back to the document
   let newLines = metadataProcessor.writeMetadataBack(lines);
   let newText = newLines.join("\n");
@@ -1348,8 +1350,6 @@ function CollectSymbols(document: TextDocument): VizSymbol[] {
   };
 
   connection.workspace.applyEdit(workspaceEdit);
-
-  return Array.from(symbols);
 }
 class LineStatement {
   startCharacter: number = 0;
