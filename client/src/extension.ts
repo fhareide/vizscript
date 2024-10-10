@@ -10,6 +10,8 @@ import * as Commands from "./commands";
 import { LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } from "vscode-languageclient/node";
 import { PreviewContentProvider } from "./previewContentProvider";
 import { SidebarProvider } from "./sidebarProvider";
+import { VizScriptObject } from "./shared/types";
+import { randomUUID } from "crypto";
 
 let client: LanguageClient;
 
@@ -209,24 +211,33 @@ export function activate(context: vscode.ExtensionContext) {
     // Check scheme of active document
     const activeUri = vscode.window.activeTextEditor?.document.uri;
 
-    // Add selected file name to top of the file to save only if it is a viz file that is untitled
-    if (activeUri?.scheme === "untitled" && (uri.path.endsWith(".vs") || uri.path.endsWith(".vsc"))) {
-      const workspaceFolder = vscode.workspace.getWorkspaceFolder(uri);
-      const relativePath = workspaceFolder ? vscode.workspace.asRelativePath(uri) : uri.path;
+    const state: VizScriptObject[] = await Commands.loadFromStorage(context);
+    //check if state is larger than 0, if so destructure the first element
+    if (state.length > 0) {
+      //TODO: Add check to which vizscript object is selected and being saved
+      const { scenePath, extension, name } = state[0];
 
-      const edit = new vscode.WorkspaceEdit();
-      edit.insert(
-        uri,
-        new vscode.Position(0, 0),
-        `'VSCODE-META-START
-'{\n
-'  "scenePath": "Onair/Test",\n
-'  "fileName": "${relativePath}",\n
-'  "UUID": "b1b1b1b1-b1b1-b1b1-b1b1-b1b1b1b1b1b1"\n
-'}\n
-'VSCODE-META-END'`,
-      );
-      await vscode.workspace.applyEdit(edit);
+      console.log("State", state);
+
+      // Add selected file name to top of the file to save only if it is a viz file that is untitled
+      if (activeUri?.scheme === "untitled" && (uri.path.endsWith(".vs") || uri.path.endsWith(".vsc"))) {
+        const workspaceFolder = vscode.workspace.getWorkspaceFolder(uri);
+        const relativePath = workspaceFolder ? vscode.workspace.asRelativePath(uri) : uri.path;
+
+        const edit = new vscode.WorkspaceEdit();
+        edit.insert(
+          uri,
+          new vscode.Position(0, 0),
+          `'VSCODE-META-START
+'{
+'  "scenePath": "${scenePath}",
+'  "fileName": "${relativePath}",
+'  "UUID": "${randomUUID()}"
+'}
+'VSCODE-META-END'\n`,
+        );
+        await vscode.workspace.applyEdit(edit);
+      }
     }
   });
 
