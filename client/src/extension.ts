@@ -215,7 +215,17 @@ export function activate(context: vscode.ExtensionContext) {
       const relativePath = workspaceFolder ? vscode.workspace.asRelativePath(uri) : uri.path;
 
       const edit = new vscode.WorkspaceEdit();
-      edit.insert(uri, new vscode.Position(0, 0), `'VSCODE: ${relativePath}\n`);
+      edit.insert(
+        uri,
+        new vscode.Position(0, 0),
+        `'VSCODE-META-START
+'{\n
+'  "scenePath": "Onair/Test",\n
+'  "fileName": "${relativePath}",\n
+'  "UUID": "b1b1b1b1-b1b1-b1b1-b1b1-b1b1b1b1b1b1"\n
+'}\n
+'VSCODE-META-END'`,
+      );
       await vscode.workspace.applyEdit(edit);
     }
   });
