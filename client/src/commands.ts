@@ -24,7 +24,7 @@ import { diffWithActiveEditor } from "./showDiffWindow";
 import { showMessage } from "./showMessage";
 import { showPreviewWindow } from "./showPreviewWindow";
 import { showUntitledWindow } from "./showUntitledWindow";
-import { compileScript, compileScriptId, getVizScripts } from "./vizCommunication";
+import { compileScript, compileScriptId, getVizScripts, returnLayer } from "./vizCommunication";
 
 async function fileExists(uri: Uri): Promise<boolean> {
   try {
@@ -136,8 +136,9 @@ export async function getAndDisplayVizScript(
 export async function getAndPostVizScripts(
   context: ExtensionContext,
   sidebarProvider: SidebarProvider,
-  config?: { hostname: string; port: number },
+  config: { hostname: string; port: number; selectedLayer: number },
 ) {
+  console.log(config);
   try {
     await window.withProgress(
       {
@@ -152,7 +153,7 @@ export async function getAndPostVizScripts(
           const hostPort = config.port || connectionInfo.hostPort;
 
           //const connectionInfo = await getConfig();
-          const scripts = await getVizScripts(hostName, hostPort, context, progress);
+          const scripts = await getVizScripts(hostName, hostPort, config.selectedLayer, context, progress);
 
           sidebarProvider._view?.webview.postMessage({ type: "receiveScripts", value: scripts });
           return scripts;
@@ -214,7 +215,7 @@ export async function showVizScriptQuickPick(connectionInfo: VizScriptCompilerSe
   window.setStatusBarMessage("Getting viz scripts...", 5000);
 
   try {
-    const reply = await getVizScripts(connectionInfo.hostName, Number(connectionInfo.hostPort), context);
+    const reply = await getVizScripts(connectionInfo.hostName, 1, Number(connectionInfo.hostPort), context);
 
     let elements = reply.map((element: VizScriptObject) => {
       return {
@@ -236,9 +237,15 @@ export async function showVizScriptQuickPick(connectionInfo: VizScriptCompilerSe
 
 let compileMessage: StatusBarItem = window.createStatusBarItem(StatusBarAlignment.Left, 0);
 
-export async function compileCurrentScript(context: ExtensionContext, client: LanguageClient, vizId: string) {
+export async function compileCurrentScript(
+  context: ExtensionContext,
+  client: LanguageClient,
+  config: { vizId: string; hostname: string; port: number; selectedLayer: number },
+) {
   try {
-    const connectionString = await getConfig();
+    const connectionInfo = await getConfig();
+    const hostName = config.hostname || connectionInfo.hostName;
+    const hostPort = config.port || connectionInfo.hostPort;
     if (!window.activeTextEditor) {
       throw new Error("No active text editor.");
     }
@@ -252,9 +259,10 @@ export async function compileCurrentScript(context: ExtensionContext, client: La
     await compileScriptId(
       context,
       window.activeTextEditor.document.getText(),
-      connectionString.hostName,
-      connectionString.hostPort,
-      vizId,
+      hostName,
+      hostPort,
+      config.selectedLayer,
+      config.vizId,
     );
     window.showInformationMessage("Script set successfully in Viz!");
   } catch (error) {

@@ -81,8 +81,7 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand(
       "vizscript.fetchscripts",
-      async (config: { hostName: string; hostPort: Number }) =>
-        await Commands.getAndPostVizScripts.bind(this)(context, sidebarProvider, config),
+      async (config) => await Commands.getAndPostVizScripts.bind(this)(context, sidebarProvider, config),
     ),
   );
 
@@ -105,8 +104,8 @@ export function activate(context: vscode.ExtensionContext) {
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("vizscript.setscript", async (vizId: string) => {
-      await Commands.compileCurrentScript.bind(this)(context, client, vizId, true);
+    vscode.commands.registerCommand("vizscript.setscript", async (config) => {
+      await Commands.compileCurrentScript.bind(this)(context, client, config, true);
     }),
   );
 

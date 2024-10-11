@@ -16,10 +16,24 @@ function cleanString(str: string): string {
   return str.replace(/[\x00-\x1F\x7F]/g, "").trim();
 }
 
+export function returnLayer(selectedLayer: number): string {
+  switch (selectedLayer) {
+    case 0:
+      return "FRONT_SCENE";
+    case 1:
+      return "MAIN_SCENE";
+    case 2:
+      return "BACK_SCENE";
+    default:
+      return "MAIN_SCENE";
+  }
+}
+
 //Get all scripts from Viz Engine
 export function getVizScripts(
   host: string,
   port: number,
+  selectedLayer: number,
   context: ExtensionContext,
   progress?: Progress<{
     message?: string;
@@ -32,6 +46,8 @@ export function getVizScripts(
     let sceneScript = new Array<VizScriptObject>();
     let scriptObjects = new Array<VizScriptObject>();
 
+    let layer = returnLayer(selectedLayer);
+
     const socket = net.createConnection({ port: port, host: host }, () => {
       socket.write("1 MAIN IS_ON_AIR " + String.fromCharCode(0));
     });
@@ -41,12 +57,12 @@ export function getVizScripts(
       let answer = GetRegexResult(message, /^([^\s]+)(\s?)(.*)/gi);
 
       if (answer[1] == "1") {
-        socket.write("UUID MAIN_SCENE*UUID GET " + String.fromCharCode(0));
+        socket.write(`UUID ${layer}*UUID GET ` + String.fromCharCode(0));
       } else if (answer[1] == "UUID") {
         socket.write("PATH FILENAME_FROM_UUID GET " + answer[3] + String.fromCharCode(0));
       } else if (answer[1] == "PATH") {
         scenePath = answer[3];
-        socket.write("2 MAIN_SCENE*OBJECT_ID GET " + String.fromCharCode(0));
+        socket.write(`2 ${layer}*OBJECT_ID GET ` + String.fromCharCode(0));
       } else if (answer[1] == "2") {
         currentObjectId = answer[3];
         context.workspaceState.update("currentSceneId", currentObjectId);
@@ -343,6 +359,7 @@ export function compileScriptId(
   content: string,
   host: string,
   port: number,
+  selectedLayer: number,
   scriptId: string,
 ) {
   return new Promise((resolve, reject) => {
@@ -350,12 +367,14 @@ export function compileScriptId(
       reject("No viz script associated with this script");
     }
 
+    let layer = returnLayer(selectedLayer);
+
     /*     const socket = net.createConnection({ port: port, host: host }, () => {
       socket.write("1 MAIN*CONFIGURATION*COMMUNICATION*PROCESS_COMMANDS_ALWAYS GET " + String.fromCharCode(0));
     }); */
 
     const socket = net.createConnection({ port: port, host: host }, () => {
-      socket.write("1 MAIN_SCENE*OBJECT_ID GET " + String.fromCharCode(0));
+      socket.write(`1 ${layer}*OBJECT_ID GET ` + String.fromCharCode(0));
     });
 
     //check if the vizid is #c01, #c02, etc
@@ -382,7 +401,7 @@ export function compileScriptId(
 
           // Compile each script in the collection
           let compilePromises = vizIds.map((vizId) => {
-            return compileScriptId(context, content, host, port, vizId);
+            return compileScriptId(context, content, host, port, selectedLayer, vizId);
           });
 
           // Wait for all compilations to complete

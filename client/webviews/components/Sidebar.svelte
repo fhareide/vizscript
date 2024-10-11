@@ -15,7 +15,7 @@
 
   const handleGetScripts = async () => {
     tsvscode.postMessage({
-      type: "getscripts",
+      type: "fetchscripts",
       value: { hostname, port, selectedLayer },
     });
   };
@@ -48,7 +48,7 @@
 		if (!selectedScript) return;
 		tsvscode.postMessage({
 			type: "setScript",
-			value: selectedScript.vizId,
+			value: {vizId: selectedScript.vizId ,hostname, port,  selectedLayer},
 		});
 	};
 
