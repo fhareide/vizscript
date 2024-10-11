@@ -9,12 +9,14 @@
   let hostname = "localhost";
   let port = "6100";
 
+	let selectedLayer = 1;
+
   $: selectedScript = vizscripts.find((script) => script.vizId === selectedScriptId) || undefined;
 
   const handleGetScripts = async () => {
     tsvscode.postMessage({
       type: "getscripts",
-      value: { hostname, port },
+      value: { hostname, port, selectedLayer },
     });
   };
 
@@ -94,6 +96,21 @@
         <input type="Text" placeholder="Hostname" bind:value={hostname} class="w-1/2" />
         <input type="Text" placeholder="Port" bind:value={port} class="w-1/4" />
       </div>
+			<div class="flex gap-2 justify-between px-20">
+				Viz Layer:
+				<div class="flex gap-1">
+					<input type="radio" name="layer" value={0} bind:group={selectedLayer} />
+					<label for="layer">Front</label>
+				</div>
+				<div class="flex gap-1">
+					<input type="radio" name="layer" value={1} bind:group={selectedLayer} />
+					<label for="layer">Mid</label>
+				</div>
+				<div class="flex gap-1">
+					<input type="radio" name="layer" value={2} bind:group={selectedLayer} />
+					<label for="layer">Back</label>
+				</div>
+			</div>
 			<button on:click={handleGetScripts}>Get scripts from Viz</button>
     </div>
 
