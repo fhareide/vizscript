@@ -2,6 +2,14 @@
 
 > A complete language extension for Viz Script development in Visual Studio Code
 
+
+## New Features - Viz Script 0.5.0
+ * Initial beta support for the sidebar panel
+   * Get and list scripts from Viz engine in front, mid or back layer
+	 * Set current script
+	 * Double click to view read-only
+	 * Edit and diff
+
 ## New Features - Viz Script 0.4.0
  * Now supports Viz5
     * Activate by triggering `Change Language Mode` on Command Palette and choosing `Viz5SceneScript` / `Viz5ContainerScript` or by opening a supported filetype.

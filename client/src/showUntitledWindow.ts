@@ -1,25 +1,43 @@
-/* --------------------------------------------------------------------------------------------
- * Copyright (c) Fredrik Hareide. All rights reserved.
- * Licensed under the MIT License.
- * ------------------------------------------------------------------------------------------ */
+import * as vscode from "vscode";
 
-import { Position, Uri, ViewColumn, WorkspaceEdit, window, workspace, Range, ExtensionContext } from 'vscode';
+export function showUntitledWindow(
+  id: string,
+  name: string,
+  fileExtension: string,
+  content: string,
+  context: vscode.ExtensionContext,
+) {
+  // Create an untitled URI with the specified file extension
+  const uri = vscode.Uri.parse(`untitled:${name}${fileExtension}`);
 
-export function showUntitledWindow(id: string, fileExtension: string, content: string, context: ExtensionContext) {
-  const uri = Uri.parse(`untitled:Untitled${id}${fileExtension}`);
+  const filetype = fileExtension === ".vs" ? "viz" : "viz-con";
 
-  return workspace.openTextDocument(uri)
-    .then((textDocument) => {
-			const edit = new WorkspaceEdit();
-			const lastLine = textDocument.lineCount;
-			const lastChar = textDocument.lineAt(lastLine - 1).range.end.character;
-			edit.delete(<Uri>uri,new Range(0, 0, lastLine, lastChar));
-			edit.insert(<Uri>uri,new Position(0,0),content);
-      return Promise.all([<any>textDocument, workspace.applyEdit(edit)]);
-    })
-    .then(([textDocument]) => {
+  return (
+    vscode.workspace
+      .openTextDocument({ language: filetype, content: content })
+      /*     .then((textDocument) => {
+      const edit = new vscode.WorkspaceEdit();
+      edit.insert(textDocument.uri, new vscode.Position(0, 0), content);
+      return vscode.workspace.applyEdit(edit).then(() => textDocument);
+    }) */
+      .then((textDocument) => {
+        // Show the newly created text document
+        return vscode.window.showTextDocument(textDocument);
+      })
+      .then((editor) => {
+        // Listen for willSaveTextDocument event to trigger "Save As"
+        const disposable = vscode.workspace.onWillSaveTextDocument((event) => {
+          if (event.document.uri.scheme === "untitled") {
+            // Trigger "Save As" command for untitled documents
+            vscode.commands.executeCommand("workbench.action.files.saveAs", event.document.uri);
+            // Note: There's no need to call event.waitUntil() here.
+          }
+        });
 
-			return window.showTextDocument(<any>textDocument, ViewColumn.One, false);
-		})
-		.then(result =>{context.workspaceState.update(result.document.uri.toString(), id)});
+        // Ensure the event listener is disposed when no longer needed
+        context.subscriptions.push(disposable);
+
+        return editor;
+      })
+  );
 }

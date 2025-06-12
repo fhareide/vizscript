@@ -1,190 +1,350 @@
+import { PreviewFileSystemProvider } from "./previewFileSystemProvider";
+import { SidebarProvider } from "./sidebarProvider";
 /* --------------------------------------------------------------------------------------------
  * Copyright (c) Fredrik Hareide. All rights reserved.
  * Licensed under the MIT License.
  * ------------------------------------------------------------------------------------------ */
 
-import {showMessage} from './showMessage';
-import {showUntitledWindow} from './showUntitledWindow';
-import {ExtensionContext, QuickPickItem, TextEditor, window, Diagnostic, DiagnosticSeverity, Range, languages, commands, Uri, Position, Selection, workspace, StatusBarAlignment, StatusBarItem} from 'vscode';
-import {LanguageClient} from 'vscode-languageclient/node';
-import {VizScriptObject} from './vizScriptObject'
-import {ThemeColor} from 'vscode'
-import {getVizScripts, compileScript, compileScriptId} from './vizCommunication'
+import {
+  ExtensionContext,
+  ProgressLocation,
+  QuickPickItem,
+  Range,
+  Selection,
+  StatusBarAlignment,
+  StatusBarItem,
+  ThemeColor,
+  Uri,
+  window,
+  workspace,
+} from "vscode";
+import { LanguageClient } from "vscode-languageclient/node";
+import { VizScriptObject } from "./shared/types";
+import { diffWithActiveEditor } from "./showDiffWindow";
+import { showMessage } from "./showMessage";
+import { showPreviewWindow } from "./showPreviewWindow";
+import { showUntitledWindow } from "./showUntitledWindow";
+import { compileScript, compileScriptId, getVizScripts } from "./vizCommunication";
 
-let scriptObjects: Map<string, VizScriptObject> = new Map()
-
-export function displayScriptSelector(context: ExtensionContext) {
-	window.setStatusBarMessage('Fetching script list from Viz...',5000)
-		getConfig()
-		.then((connectionString) => {
-			return requestAllScripts(connectionString)
-		})
-		.then((selectedScript) => {
-			if (selectedScript === undefined) {
-				throw 0;
-			}
-				let elements = [];
-				let currentFileItem: QuickPickItem = {
-					description: "",
-					label: "Add script to current file",
-					detail: ""
-				}
-				let newFileItem: QuickPickItem = {
-					description: "",
-					label: "Open script in new file",
-					detail: ""
-				}
-				if(window.activeTextEditor == undefined){
-					elements = [newFileItem]
-				}else{
-					elements = [newFileItem, currentFileItem]
-				}
-
-
-				return Promise.all([
-					window.showQuickPick(elements, { matchOnDescription: true, matchOnDetail: false, placeHolder: 'Select your script'}),
-					selectedScript
-				])
-			})
-		.then(([selection, data]) => {
-			if (selection === undefined) {
-				throw 0;
-			}
-			//window.showInformationMessage(selection.label)
-			let vizId = "";
-			vizId = (<QuickPickItem>data).label;
-			vizId = vizId.replace("#","")
-			return Promise.all([scriptObjects.get((<QuickPickItem>data).label), vizId, scriptObjects.get((<QuickPickItem>data).label).extension, selection]);
-		})
-		.then(([object, vizId, extension, selection]): Thenable<any> => {
-			if(selection.label === "Add script to current file"){
-				context.workspaceState.update(window.activeTextEditor.document.uri.toString(), vizId)
-				return window.activeTextEditor.edit((builder) => {
-					const lastLine = window.activeTextEditor.document.lineCount;
-					const lastChar = window.activeTextEditor.document.lineAt(lastLine - 1).range.end.character;
-					builder.delete(new Range(0, 0, lastLine, lastChar));
-					builder.replace(new Position(0, 0), object.code);
-				});
-			}else if(selection.label === "Open script in new file"){
-				return Promise.resolve(showUntitledWindow( vizId, extension, object.code, context));
-			}
-		})
-		.then(undefined, showMessage)
+async function fileExists(uri: Uri): Promise<boolean> {
+  try {
+    await workspace.fs.stat(uri);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
-export function requestAllScripts(connectionInfo: VizScriptCompilerSettings){
-	return new Promise((resolve, reject) => {
-		window.setStatusBarMessage('Getting viz scripts...',
-			getVizScripts(connectionInfo.hostName, Number(connectionInfo.hostPort))
-			.then((reply) => {
-					scriptObjects = reply;
-					let elements = [];
-					reply.forEach(element =>{
-						let quickPickItem: QuickPickItem = {
-							description: ((element.children.length <= 0) ?element.type + " " + element.name : element.type + " " + element.name + " (+" + element.children.length + " cons)"),
-							label: element.vizId,
-							detail: element.code.substr(0, 100)
-						}
-						elements.push(quickPickItem)
-					})
-					resolve(window.showQuickPick(elements, {
-						matchOnDescription: true,
-						matchOnDetail: false,
-						placeHolder: 'Select your script'
-					}))
-				})
-			.catch((reason => reject(window.showErrorMessage(reason)))));
-	})
+export async function saveToStorage(context: ExtensionContext, data: any): Promise<void> {
+  try {
+    const content = JSON.stringify(data);
+    let filePath: Uri;
+
+    if (context.storageUri) {
+      filePath = Uri.joinPath(context.storageUri, "vizscriptData.json");
+    } else if (context.globalStorageUri) {
+      filePath = Uri.joinPath(context.globalStorageUri, "vizscriptData.json");
+    } else {
+      console.warn("No storageUri found in context.");
+      return;
+    }
+
+    await workspace.fs.writeFile(filePath, Buffer.from(content));
+  } catch (error) {
+    console.error("Failed to save data to storage:", error);
+  }
 }
 
-let compileMessage : StatusBarItem = window.createStatusBarItem(StatusBarAlignment.Left,0);
+export async function loadFromStorage(context: ExtensionContext): Promise<VizScriptObject[]> {
+  try {
+    let filePath: Uri;
 
-export function compileCurrentScript(context: ExtensionContext, client: LanguageClient, editor: TextEditor){
-	client.sendRequest('getVizConnectionInfo')
-	.then(result => {
-		let linkedId: string = context.workspaceState.get(window.activeTextEditor.document.uri.toString());
-		return compileScriptId(window.activeTextEditor.document.getText() ,result[0], Number(result[1]), result[2], linkedId, null)
-	})
-	.then((message) => client.sendRequest('showDiagnostics', message))
-	.then(([error, rangeString]) => {
-		if(error == "OK"){
-			
-			compileMessage.text = '$(check) Script successfully set in Viz. No errors';
-			compileMessage.backgroundColor = "";
-			showStatusMessage(compileMessage);
-		}else{
-			let rangesplit = (<string>rangeString).split("/");
-			let line = parseInt(rangesplit[0]);
-			let char = parseInt(rangesplit[1]);
-			let range = new Range(line-1, 0, line-1, char);
-			let editor = window.activeTextEditor;
-			editor.selection =  new Selection(range.start, range.end);
-			editor.revealRange(range);
- 
-			compileMessage.text = "$(error) " + error;
-			compileMessage.backgroundColor = new ThemeColor('statusBarItem.errorBackground');
-			showStatusMessage(compileMessage);
-		}
-	})
+    if (context.storageUri) {
+      filePath = Uri.joinPath(context.storageUri, "vizscriptData.json");
+    } else if (context.globalStorageUri) {
+      filePath = Uri.joinPath(context.globalStorageUri, "vizscriptData.json");
+    } else {
+      console.warn("No storageUri or storagePath found in context.");
+      return [];
+    }
+
+    const exists = await fileExists(filePath);
+    if (!exists) {
+      console.warn("File does not exist:", filePath.fsPath);
+      return [];
+    }
+
+    const content = await workspace.fs.readFile(filePath);
+    return JSON.parse(content.toString());
+  } catch (error) {
+    console.error("Failed to load data from storage:", error);
+    return [];
+  }
 }
 
-export function syntaxCheckCurrentScript(context: ExtensionContext, client: LanguageClient, editor: TextEditor){
-	client.sendRequest('getVizConnectionInfo')
-	.then(result => compileScript(window.activeTextEditor.document.getText() ,result[0], Number(result[1]), result[2]))
-	.then((message) => client.sendRequest('showDiagnostics', message))
-	.then(([error, rangeString]) => {
-		if(error == "OK"){
-			
-			compileMessage.text = '$(check) Compile OK';
-			compileMessage.backgroundColor = "";
-			showStatusMessage(compileMessage);
-		}else{
-			let rangesplit = (<string>rangeString).split("/");
-			let line = parseInt(rangesplit[0]);
-			let char = parseInt(rangesplit[1]);
-			let range = new Range(line-1, 0, line-1, char);
-			let editor = window.activeTextEditor;
-			editor.selection =  new Selection(range.start, range.end);
-			editor.revealRange(range);
- 
-			compileMessage.text = "$(error) " + error;
-			compileMessage.backgroundColor = new ThemeColor('statusBarItem.errorBackground');
-			showStatusMessage(compileMessage);
-		}
-	})
+export async function getAndDisplayVizScript(
+  context: ExtensionContext,
+  previewFileSystemProvider: PreviewFileSystemProvider,
+) {
+  window.setStatusBarMessage("Fetching script list from Viz...", 5000);
+
+  try {
+    const connectionString = await getConfig();
+    const selectedScript = await showVizScriptQuickPick(connectionString, context);
+
+    if (!selectedScript) {
+      throw new Error("No script selected.");
+    }
+
+    let options: QuickPickItem[] = [];
+    let currentFileItem: QuickPickItem = {
+      description: "",
+      label: "Add script to current file",
+      detail: "",
+    };
+    let newFileItem: QuickPickItem = {
+      description: "",
+      label: "Open script in new file",
+      detail: "",
+    };
+
+    if (window.activeTextEditor == undefined) {
+      options = [newFileItem];
+    } else {
+      options = [newFileItem, currentFileItem];
+    }
+
+    const selection = await window.showQuickPick(options, {
+      matchOnDescription: true,
+      matchOnDetail: false,
+      placeHolder: "Select option",
+    });
+
+    if (!selection) {
+      throw new Error("No selection made.");
+    }
+
+    let vizId = (<QuickPickItem>selectedScript).label;
+    const openInNewFile = selection.label === "Open script in new file";
+
+    await openScriptInTextEditor(context, vizId, openInNewFile);
+  } catch (error) {
+    showMessage(error);
+  }
+}
+
+export async function getAndPostVizScripts(
+  context: ExtensionContext,
+  sidebarProvider: SidebarProvider,
+  config?: { hostname: string; port: number; selectedLayer: string },
+) {
+  console.log(config);
+  try {
+    await window.withProgress(
+      {
+        location: ProgressLocation.Notification,
+        title: "Fetching scripts...",
+        cancellable: false,
+      },
+      async (progress, token) => {
+        try {
+          const connectionInfo = await getConfig();
+          const hostName = config.hostname || connectionInfo.hostName;
+          const hostPort = config.port || connectionInfo.hostPort;
+          const selectedLayer = config.selectedLayer || "MAIN_SCENE";
+          //const connectionInfo = await getConfig();
+          const scripts = await getVizScripts(hostName, hostPort, context, selectedLayer, progress);
+
+          sidebarProvider._view?.webview.postMessage({ type: "receiveScripts", value: scripts });
+          return scripts;
+        } catch (error) {
+          throw new Error("Error fetching scripts: \n" + error);
+        }
+      },
+    );
+  } catch (error) {
+    showMessage(error);
+  }
+}
+
+export async function openScriptInTextEditor(
+  context: ExtensionContext,
+  vizId: string,
+  newFile: boolean,
+  preview: boolean = false,
+) {
+  const state = await loadFromStorage(context);
+
+  const scriptObjects: VizScriptObject[] = state;
+
+  if (!scriptObjects) {
+    throw new Error("No script objects found.");
+  }
+  const scriptObject = scriptObjects.find((element) => element.vizId === vizId);
+
+  if (!scriptObject) {
+    throw new Error("No script object found.");
+  }
+
+  const vizIdStripped = vizId.replace("#", "");
+
+  if (preview) {
+    await showPreviewWindow(vizIdStripped, scriptObject.name, scriptObject.extension, scriptObject.code, context);
+  } else {
+    await showUntitledWindow(vizIdStripped, scriptObject.name, scriptObject.extension, scriptObject.code, context);
+  }
+}
+
+export async function openScriptInDiff(context: ExtensionContext, vizId: string) {
+  const state = await loadFromStorage(context);
+  const scriptObjects: VizScriptObject[] = state;
+  if (!scriptObjects) {
+    throw new Error("No script objects found.");
+  }
+  const scriptObject = scriptObjects.find((element) => element.vizId === vizId);
+  if (!scriptObject) {
+    throw new Error("No script object found.");
+  }
+
+  const vizIdStripped = vizId.replace("#", "");
+
+  await diffWithActiveEditor(vizIdStripped, scriptObject.name, scriptObject.extension, scriptObject.code, context);
+}
+
+export async function showVizScriptQuickPick(connectionInfo: VizScriptCompilerSettings, context: ExtensionContext) {
+  window.setStatusBarMessage("Getting viz scripts...", 5000);
+
+  try {
+    //TODO: Hardcoded layer MAIN_SCENE for now
+    const reply = await getVizScripts(connectionInfo.hostName, Number(connectionInfo.hostPort), context, "MAIN_SCENE");
+
+    let elements = reply.map((element: VizScriptObject) => {
+      return {
+        description: `${element.type} ${element.name}`,
+        label: element.vizId,
+        detail: element.code.slice(0, 100),
+      };
+    });
+
+    return window.showQuickPick(elements, {
+      matchOnDescription: true,
+      matchOnDetail: false,
+      placeHolder: "Select your script",
+    });
+  } catch (error) {
+    showMessage(error);
+  }
+}
+
+let compileMessage: StatusBarItem = window.createStatusBarItem(StatusBarAlignment.Left, 0);
+
+export async function compileCurrentScript(
+  context: ExtensionContext,
+  client: LanguageClient,
+  config: { vizId: string; hostname: string; port: number; selectedLayer: string },
+) {
+  try {
+    const connectionInfo = await getConfig();
+    const hostName = config.hostname || connectionInfo.hostName;
+    const hostPort = config.port || connectionInfo.hostPort;
+    const selectedLayer = config.selectedLayer || "MAIN_SCENE";
+    const vizId = config.vizId;
+    if (!window.activeTextEditor) {
+      throw new Error("No active text editor.");
+    }
+
+    try {
+      await syntaxCheckCurrentScript(context, client, selectedLayer);
+    } catch (error) {
+      throw new Error("Syntax error in script. Please correct before trying to set again.");
+    }
+
+    await compileScriptId(
+      context,
+      window.activeTextEditor.document.getText(),
+      hostName,
+      hostPort,
+      vizId,
+      selectedLayer,
+    );
+    window.showInformationMessage("Script set successfully in Viz!");
+  } catch (error) {
+    showMessage(error);
+  }
+}
+
+export async function resetScripts(context: ExtensionContext, client: LanguageClient) {
+  await saveToStorage(context, []);
+}
+
+export async function syntaxCheckCurrentScript(
+  context: ExtensionContext,
+  client: LanguageClient,
+  selectedLayer: string,
+): Promise<void> {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const connectionString = await getConfig();
+      if (!window.activeTextEditor) {
+        throw new Error("No active text editor.");
+      }
+      const scriptType = window.activeTextEditor.document.languageId === "viz" ? "Scene" : "Container";
+      const message = await compileScript(
+        window.activeTextEditor.document.getText(),
+        connectionString.hostName,
+        connectionString.hostPort,
+        scriptType,
+      );
+
+      const [error, rangeString]: [string, string] = await client.sendRequest("showDiagnostics", message);
+
+      if (error === "OK") {
+        compileMessage.text = "$(check) Compile OK";
+        compileMessage.backgroundColor = "";
+        showStatusMessage(compileMessage);
+        resolve();
+      } else {
+        const [line, char] = rangeString.split("/").map(Number);
+        const range = new Range(line - 1, 0, line - 1, char);
+        const editor = window.activeTextEditor;
+        editor.selection = new Selection(range.start, range.end);
+        editor.revealRange(range);
+
+        compileMessage.text = "$(error) " + error;
+        compileMessage.backgroundColor = new ThemeColor("statusBarItem.errorBackground");
+        showStatusMessage(compileMessage);
+        reject(new Error(error));
+      }
+    } catch (error) {
+      showMessage(error);
+      reject(error);
+    }
+  });
 }
 
 async function showStatusMessage(currentErrorMessage: StatusBarItem) {
   currentErrorMessage.show();
-	await delay(10000);
-	currentErrorMessage.hide();
+  await delay(10000);
+  currentErrorMessage.hide();
 }
 
-
-function delay(ms: number){
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-
-function GetRegexResult(line: string, regex: RegExp): string[] {
-	let RegexString: RegExp = regex;
-	return RegexString.exec(line);
+function delay(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 class VizScriptCompilerSettings {
-	hostName: string;
-	hostPort: number;
+  hostName: string;
+  hostPort: number;
 }
 
 function getConnectionSettings(): Promise<VizScriptCompilerSettings> {
-	let config = workspace.getConfiguration("vizscript.compiler")
-	let result = new VizScriptCompilerSettings;
-	result.hostName = config.get("hostName");
-	result.hostPort = config.get("hostPort");
-	return Promise.resolve(result)
+  let config = workspace.getConfiguration("vizscript.compiler");
+  let result = new VizScriptCompilerSettings();
+  result.hostName = config.get("hostName") || "localhost";
+  result.hostPort = config.get("hostPort") || 6100;
+  return Promise.resolve(result);
 }
 
-
-async function getConfig(): Promise<VizScriptCompilerSettings> {
-	return await getConnectionSettings();
+export async function getConfig(): Promise<VizScriptCompilerSettings> {
+  return await getConnectionSettings();
 }

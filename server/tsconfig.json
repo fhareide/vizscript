@@ -1,14 +1,15 @@
 {
-	"compilerOptions": {
-		"target": "es6",
-		"module": "commonjs",
-		"moduleResolution": "node",
-		"sourceMap": true,
-		"outDir": "out",
-		"resolveJsonModule": true,
-		"rootDir": "src",
-		"lib": ["es6"]
-	},
-	"include": ["src"],
-	"exclude": ["node_modules", ".vscode-test"]
+  "compilerOptions": {
+    "target": "es6",
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "sourceMap": true,
+    "outDir": "out",
+    "resolveJsonModule": true,
+    "rootDir": "src",
+    "lib": ["es6"],
+    "composite": true
+  },
+  "include": ["./src/**/*", "./src/**/*.json"],
+  "exclude": ["node_modules", ".vscode-test"]
 }
