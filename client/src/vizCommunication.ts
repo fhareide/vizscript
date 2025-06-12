@@ -39,7 +39,6 @@ export function getVizScripts(
 
     socket.on("data", async (data) => {
       let message = data.toString().replace(String.fromCharCode(0), "");
-      console.log("Message: ", message);
       let answer = GetRegexResult(message, /^([^\s]+)(\s?)(.*)/gi);
 
       if (answer[1] == "1") {
@@ -174,7 +173,6 @@ export function getVizScripts(
           scriptObjects = finalScriptObjects;
 
           // Do something with scriptObjects, e.g., send them back to the client
-          console.log(scriptObjects);
           await saveToStorage(context, scriptObjects);
 
           socket.end();

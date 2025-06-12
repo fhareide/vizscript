@@ -7,7 +7,7 @@
   let selectedScript: VizScriptObject | undefined;
 
   let hostname = "localhost";
-  let port = "6100";
+  let port = 6100;
 
 	let selectedLayer = "MAIN_SCENE";
   let previousLayer = selectedLayer;
@@ -16,6 +16,8 @@
 
   const handleGetScripts = async () => {
     console.log('Getting scripts for layer:', selectedLayer);
+		console.log('Hostname:', hostname);
+		console.log('Port:', port);
     tsvscode.postMessage({
       type: "fetchscripts",
       value: { hostname, port, selectedLayer },

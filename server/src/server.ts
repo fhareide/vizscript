@@ -1302,7 +1302,7 @@ function CollectSymbols(document: TextDocument): VizSymbol[] {
 
   metadataProcessor.extractMetadata(lines);
   currentMetaJson = metadataProcessor.getCurrentMetaJson();
-  connection.console.info("Current Meta: " + JSON.stringify(currentMetaJson));
+  //connection.console.info("Current Meta: " + JSON.stringify(currentMetaJson));
 
   for (var i = 0; i < lines.length; i++) {
     let line = lines[i];
