@@ -3,5 +3,6 @@
 </script>
 
 <div class="h-full w-full">
-	Controls here
+
+	
 </div>

@@ -54,14 +54,6 @@
 			{
 				"command": "vizscript.diff",
 				"title": "Viz Script: Diff script with Viz"
-			},
-			{
-				"command": "vizscript.addmetadata",
-				"title": "Viz Script: Add metadata to script"
-			},
-			{
-				"command": "vizscript.removemetadata",
-				"title": "Viz Script: Remove metadata from script"
 			}
 		],
 		"menus": {
@@ -285,7 +277,7 @@
 			"activitybar": [
 				{
 					"id": "vizscript-sidebar-view",
-					"title": "Viz Script Tools",
+					"title": "Viz Script Sidebar",
 					"icon": "images/vizicon.png",
 					"order": 1
 				}

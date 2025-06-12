@@ -81,6 +81,10 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           vscode.commands.executeCommand("vizscript.setscript", data.value);
           break;
         }
+        case "resetScripts": {
+          vscode.commands.executeCommand("vizscript.resetscripts");
+          break;
+        }
         case "getSettings": {
           const settings = vscode.workspace.getConfiguration("vizscript");
           const compilerSettings = settings.compiler;

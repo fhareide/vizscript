@@ -136,7 +136,7 @@ export async function getAndDisplayVizScript(
 export async function getAndPostVizScripts(
   context: ExtensionContext,
   sidebarProvider: SidebarProvider,
-  config?: { hostname: string; port: number },
+  config?: { hostname: string; port: number; selectedLayer: string },
 ) {
   try {
     await window.withProgress(
@@ -150,9 +150,9 @@ export async function getAndPostVizScripts(
           const connectionInfo = await getConfig();
           const hostName = config.hostname || connectionInfo.hostName;
           const hostPort = config.port || connectionInfo.hostPort;
-
+          const selectedLayer = config.selectedLayer || "MAIN_SCENE";
           //const connectionInfo = await getConfig();
-          const scripts = await getVizScripts(hostName, hostPort, context, progress);
+          const scripts = await getVizScripts(hostName, hostPort, context, selectedLayer, progress);
 
           sidebarProvider._view?.webview.postMessage({ type: "receiveScripts", value: scripts });
           return scripts;
@@ -214,7 +214,8 @@ export async function showVizScriptQuickPick(connectionInfo: VizScriptCompilerSe
   window.setStatusBarMessage("Getting viz scripts...", 5000);
 
   try {
-    const reply = await getVizScripts(connectionInfo.hostName, Number(connectionInfo.hostPort), context);
+    //TODO: Hardcoded layer MAIN_SCENE for now
+    const reply = await getVizScripts(connectionInfo.hostName, Number(connectionInfo.hostPort), context, "MAIN_SCENE");
 
     let elements = reply.map((element: VizScriptObject) => {
       return {
@@ -236,15 +237,24 @@ export async function showVizScriptQuickPick(connectionInfo: VizScriptCompilerSe
 
 let compileMessage: StatusBarItem = window.createStatusBarItem(StatusBarAlignment.Left, 0);
 
-export async function compileCurrentScript(context: ExtensionContext, client: LanguageClient, vizId: string) {
+export async function compileCurrentScript(
+  context: ExtensionContext,
+  client: LanguageClient,
+  vizId: string,
+  selectedLayer: string,
+) {
   try {
     const connectionString = await getConfig();
     if (!window.activeTextEditor) {
       throw new Error("No active text editor.");
     }
 
+    console.log("Compile Current Script");
+    console.log("Selected layer", selectedLayer);
+    console.log("Viz ID", vizId);
+
     try {
-      await syntaxCheckCurrentScript(context, client);
+      await syntaxCheckCurrentScript(context, client, selectedLayer);
     } catch (error) {
       throw new Error("Syntax error in script. Please correct before trying to set again.");
     }
@@ -255,6 +265,7 @@ export async function compileCurrentScript(context: ExtensionContext, client: La
       connectionString.hostName,
       connectionString.hostPort,
       vizId,
+      selectedLayer,
     );
     window.showInformationMessage("Script set successfully in Viz!");
   } catch (error) {
@@ -262,7 +273,15 @@ export async function compileCurrentScript(context: ExtensionContext, client: La
   }
 }
 
-export async function syntaxCheckCurrentScript(context: ExtensionContext, client: LanguageClient): Promise<void> {
+export async function resetScripts(context: ExtensionContext, client: LanguageClient) {
+  await saveToStorage(context, []);
+}
+
+export async function syntaxCheckCurrentScript(
+  context: ExtensionContext,
+  client: LanguageClient,
+  selectedLayer: string,
+): Promise<void> {
   return new Promise(async (resolve, reject) => {
     try {
       const connectionString = await getConfig();

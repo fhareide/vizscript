@@ -81,8 +81,9 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand(
       "vizscript.fetchscripts",
-      async (config: { hostName: string; hostPort: Number }) =>
-        await Commands.getAndPostVizScripts.bind(this)(context, sidebarProvider, config),
+      async (config: { hostname: string; port: number; selectedLayer: string }) => {
+        await Commands.getAndPostVizScripts.bind(this)(context, sidebarProvider, config);
+      },
     ),
   );
 
@@ -105,8 +106,14 @@ export function activate(context: vscode.ExtensionContext) {
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("vizscript.setscript", async (vizId: string) => {
-      await Commands.compileCurrentScript.bind(this)(context, client, vizId, true);
+    vscode.commands.registerCommand("vizscript.setscript", async (config: { vizId: string; selectedLayer: string }) => {
+      await Commands.compileCurrentScript.bind(this)(context, client, config.vizId, config.selectedLayer);
+    }),
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("vizscript.resetscripts", async () => {
+      await Commands.resetScripts.bind(this)(context, client);
     }),
   );
 
@@ -205,6 +212,9 @@ export function activate(context: vscode.ExtensionContext) {
     const {
       document: { uri },
     } = event;
+
+    //TODO: Implement this
+    return;
 
     //TODO: Change this to check for VSCODE-META tags and send request to server to add to file
 

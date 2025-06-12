@@ -9,11 +9,13 @@
   let hostname = "localhost";
   let port = "6100";
 
-	let selectedLayer = 1;
+	let selectedLayer = "MAIN_SCENE";
+  let previousLayer = selectedLayer;
 
   $: selectedScript = vizscripts.find((script) => script.vizId === selectedScriptId) || undefined;
 
   const handleGetScripts = async () => {
+    console.log('Getting scripts for layer:', selectedLayer);
     tsvscode.postMessage({
       type: "getscripts",
       value: { hostname, port, selectedLayer },
@@ -48,8 +50,38 @@
 		if (!selectedScript) return;
 		tsvscode.postMessage({
 			type: "setScript",
-			value: selectedScript.vizId,
+			value: { vizId: selectedScript.vizId, selectedLayer},
 		});
+	};
+
+	const handleResetScripts = () => {
+		tsvscode.postMessage({
+			type: "resetScripts",
+		});
+	};
+
+	const handleLayerChange = (event: Event) => {
+		const target = event.target as HTMLInputElement;
+		console.log("Target", target);
+		const currentState = tsvscode.getState() || {};
+
+		const previousLayer = currentState.selectedLayer;
+		const newLayer = target.value;
+
+		if (previousLayer !== newLayer) {
+			vizscripts = [];
+			selectedScriptId = '';
+			handleResetScripts();
+		};
+
+		const updatedState = {
+			...currentState,
+			selectedLayer: target.value
+		};
+
+		console.log("Updated state", updatedState);
+
+		tsvscode.setState(updatedState);
 	};
 
   const handleMessage = (event: any) => {
@@ -77,8 +109,11 @@
     tsvscode.postMessage({ type: "loadState" });
 
 		const currentState = tsvscode.getState() || {};
+		console.log("Current state", currentState);
 
 		selectedScriptId = currentState.selectedScriptId;
+		selectedLayer = currentState.selectedLayer || "MAIN_SCENE";
+		previousLayer = selectedLayer;
 
 
     window.addEventListener("message", handleMessage);
@@ -99,16 +134,16 @@
 			<div class="flex gap-2 justify-between px-20">
 				Viz Layer:
 				<div class="flex gap-1">
-					<input type="radio" name="layer" value={0} bind:group={selectedLayer} />
-					<label for="layer">Front</label>
+					<input type="radio" id="front-layer" name="layer" value="FRONT_SCENE" bind:group={selectedLayer} on:change={handleLayerChange} />
+					<label for="front-layer">Front</label>
 				</div>
 				<div class="flex gap-1">
-					<input type="radio" name="layer" value={1} bind:group={selectedLayer} />
-					<label for="layer">Mid</label>
+					<input type="radio" id="main-layer" name="layer" value="MAIN_SCENE" bind:group={selectedLayer} on:change={handleLayerChange} />
+					<label for="main-layer">Mid</label>
 				</div>
 				<div class="flex gap-1">
-					<input type="radio" name="layer" value={2} bind:group={selectedLayer} />
-					<label for="layer">Back</label>
+					<input type="radio" id="back-layer" name="layer" value="BACK_SCENE" bind:group={selectedLayer} on:change={handleLayerChange} />
+					<label for="back-layer">Back</label>
 				</div>
 			</div>
 			<button on:click={handleGetScripts}>Get scripts from Viz</button>

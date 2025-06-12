@@ -21,6 +21,7 @@ export function getVizScripts(
   host: string,
   port: number,
   context: ExtensionContext,
+  layer: string,
   progress?: Progress<{
     message?: string;
     increment?: number;
@@ -38,16 +39,32 @@ export function getVizScripts(
 
     socket.on("data", async (data) => {
       let message = data.toString().replace(String.fromCharCode(0), "");
+      console.log("Message: ", message);
       let answer = GetRegexResult(message, /^([^\s]+)(\s?)(.*)/gi);
 
       if (answer[1] == "1") {
-        socket.write("UUID MAIN_SCENE*UUID GET " + String.fromCharCode(0));
+        socket.write("UUID " + layer + "*UUID GET " + String.fromCharCode(0));
       } else if (answer[1] == "UUID") {
+        if (answer[3].startsWith("ERROR")) {
+          console.log("No scene found in " + layer);
+          socket.end();
+          return;
+        }
         socket.write("PATH FILENAME_FROM_UUID GET " + answer[3] + String.fromCharCode(0));
       } else if (answer[1] == "PATH") {
+        if (answer[3].startsWith("ERROR")) {
+          console.log("No UUID found in " + layer);
+          socket.end();
+          return;
+        }
         scenePath = answer[3];
-        socket.write("2 MAIN_SCENE*OBJECT_ID GET " + String.fromCharCode(0));
+        socket.write("2 " + layer + "*OBJECT_ID GET " + String.fromCharCode(0));
       } else if (answer[1] == "2") {
+        if (answer[3].startsWith("ERROR")) {
+          console.log("No object ID found in " + layer);
+          socket.end();
+          return;
+        }
         currentObjectId = answer[3];
         context.workspaceState.update("currentSceneId", currentObjectId);
         try {
@@ -66,7 +83,7 @@ export function getVizScripts(
           };
           sceneScript.push(script);
           progress &&
-            progress.report({ increment: 10, message: "Scene script fetched. Fetching container scripts..." });
+            progress.report({ increment: 10, message: "Scene script fetched. Searching for container scripts..." });
           socket.write(
             "3 " + currentObjectId + "*TREE SEARCH_FOR_CONTAINER_WITH_PROPERTY SCRIPT " + String.fromCharCode(0),
           );
@@ -344,6 +361,7 @@ export function compileScriptId(
   host: string,
   port: number,
   scriptId: string,
+  selectedLayer: string,
 ) {
   return new Promise((resolve, reject) => {
     if (scriptId == undefined) {
@@ -355,7 +373,7 @@ export function compileScriptId(
     }); */
 
     const socket = net.createConnection({ port: port, host: host }, () => {
-      socket.write("1 MAIN_SCENE*OBJECT_ID GET " + String.fromCharCode(0));
+      socket.write("1 " + selectedLayer + "*OBJECT_ID GET " + String.fromCharCode(0));
     });
 
     //check if the vizid is #c01, #c02, etc
@@ -382,7 +400,7 @@ export function compileScriptId(
 
           // Compile each script in the collection
           let compilePromises = vizIds.map((vizId) => {
-            return compileScriptId(context, content, host, port, vizId);
+            return compileScriptId(context, content, host, port, vizId, selectedLayer);
           });
 
           // Wait for all compilations to complete
