@@ -4,11 +4,12 @@
 
 
 ## New Features - Viz Script 0.5.0
- * Initial beta support for the sidebar panel
-   * Get and list scripts from Viz engine in front, mid or back layer
-	 * Set current script
-	 * Double click to view read-only
-	 * Edit and diff
+* Initial beta support for the sidebar panel
+  * Get and list scripts from Viz engine in front, mid or back layer
+  * Edit, diff and set current script in Viz
+  * Double click to view read-only
+
+  !["Sidebar"](images/sidepanel_1.png)
 
 ## New Features - Viz Script 0.4.0
  * Now supports Viz5
