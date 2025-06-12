@@ -61,7 +61,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           webviewView.webview.postMessage({ type: "receiveState", value: state });
 
           break;
-        case "getscripts": {
+        case "fetchscripts": {
           vscode.commands.executeCommand("vizscript.fetchscripts", data.value);
           break;
         }

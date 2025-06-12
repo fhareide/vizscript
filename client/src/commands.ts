@@ -138,6 +138,7 @@ export async function getAndPostVizScripts(
   sidebarProvider: SidebarProvider,
   config?: { hostname: string; port: number; selectedLayer: string },
 ) {
+  console.log(config);
   try {
     await window.withProgress(
       {
@@ -240,18 +241,17 @@ let compileMessage: StatusBarItem = window.createStatusBarItem(StatusBarAlignmen
 export async function compileCurrentScript(
   context: ExtensionContext,
   client: LanguageClient,
-  vizId: string,
-  selectedLayer: string,
+  config: { vizId: string; hostname: string; port: number; selectedLayer: string },
 ) {
   try {
-    const connectionString = await getConfig();
+    const connectionInfo = await getConfig();
+    const hostName = config.hostname || connectionInfo.hostName;
+    const hostPort = config.port || connectionInfo.hostPort;
+    const selectedLayer = config.selectedLayer || "MAIN_SCENE";
+    const vizId = config.vizId;
     if (!window.activeTextEditor) {
       throw new Error("No active text editor.");
     }
-
-    console.log("Compile Current Script");
-    console.log("Selected layer", selectedLayer);
-    console.log("Viz ID", vizId);
 
     try {
       await syntaxCheckCurrentScript(context, client, selectedLayer);
@@ -262,8 +262,8 @@ export async function compileCurrentScript(
     await compileScriptId(
       context,
       window.activeTextEditor.document.getText(),
-      connectionString.hostName,
-      connectionString.hostPort,
+      hostName,
+      hostPort,
       vizId,
       selectedLayer,
     );

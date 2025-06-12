@@ -106,9 +106,12 @@ export function activate(context: vscode.ExtensionContext) {
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("vizscript.setscript", async (config: { vizId: string; selectedLayer: string }) => {
-      await Commands.compileCurrentScript.bind(this)(context, client, config.vizId, config.selectedLayer);
-    }),
+    vscode.commands.registerCommand(
+      "vizscript.setscript",
+      async (config: { vizId: string; selectedLayer: string; hostname: string; port: number }) => {
+        await Commands.compileCurrentScript.bind(this)(context, client, config);
+      },
+    ),
   );
 
   context.subscriptions.push(
