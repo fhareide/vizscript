@@ -18,7 +18,8 @@
       "port": 6009,
       "address": "127.0.0.1",
       "restart": true,
-      "outFiles": ["${workspaceRoot}/server/out/**/*.js"]
+      "outFiles": ["${workspaceRoot}/server/out/**/*.js"],
+      "sourceMaps": true
     }
   ],
   "compounds": [

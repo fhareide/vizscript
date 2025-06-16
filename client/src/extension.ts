@@ -11,6 +11,7 @@ import { LanguageClient, LanguageClientOptions, ServerOptions, TransportKind } f
 import { PreviewContentProvider } from "./previewContentProvider";
 import { SidebarProvider } from "./sidebarProvider";
 import { VizScriptObject } from "./shared/types";
+import { MetadataService } from "./metadataService";
 import { randomUUID } from "crypto";
 
 let client: LanguageClient;
@@ -30,6 +31,93 @@ function registerCommands(client: LanguageClient, context: vscode.ExtensionConte
 
 function registerNotifications(client: LanguageClient) {
   client.onNotification("requestCompile", () => vscode.commands.executeCommand("vizscript.compile"));
+}
+
+/**
+ * Handles document save events to automatically update filePath in metadata
+ */
+async function handleDocumentSave(document: vscode.TextDocument, client: LanguageClient): Promise<void> {
+  // Only process Viz script files
+  const vizLanguages = ["viz", "viz-con", "viz4", "viz4-con", "viz5", "viz5-con"];
+  if (!vizLanguages.includes(document.languageId)) {
+    return;
+  }
+
+  // Skip untitled documents
+  if (document.isUntitled) {
+    return;
+  }
+
+  try {
+    const metadataService = new MetadataService(client);
+    const content = document.getText();
+    const lines = content.split(/\r?\n/g);
+
+    // Check if document has metadata
+    const hasMetadata = detectMetadataInLines(lines);
+    if (!hasMetadata) {
+      return;
+    }
+
+    // Get the relative path from workspace root
+    const workspaceFolder = vscode.workspace.getWorkspaceFolder(document.uri);
+    if (!workspaceFolder) {
+      return;
+    }
+
+    const relativePath = vscode.workspace.asRelativePath(document.uri);
+
+    // Extract current metadata
+    const metadataResult = await metadataService.extractMetadataFromContent(content);
+    if (!metadataResult.success || !metadataResult.metadata) {
+      return;
+    }
+
+    const currentMetadata = metadataResult.metadata;
+
+    // Check if filePath needs to be updated
+    if (currentMetadata.filePath === relativePath) {
+      return; // No update needed
+    }
+
+    // Update the filePath
+    const updatedMetadata = { ...currentMetadata, filePath: relativePath };
+    const updateResult = await metadataService.updateMetadataInContent(content, updatedMetadata);
+
+    if (updateResult.success) {
+      // Apply the updated content to the document
+      const edit = new vscode.WorkspaceEdit();
+      const fullRange = new vscode.Range(document.positionAt(0), document.positionAt(content.length));
+      edit.replace(document.uri, fullRange, updateResult.content);
+      await vscode.workspace.applyEdit(edit);
+
+      console.log(`Updated filePath to "${relativePath}" in metadata for ${document.fileName}`);
+    }
+  } catch (error) {
+    console.error("Error updating filePath in metadata:", error);
+  }
+}
+
+/**
+ * Helper function to detect metadata in content lines
+ */
+function detectMetadataInLines(lines: string[]): boolean {
+  let hasStart = false;
+  let hasEnd = false;
+
+  for (const line of lines) {
+    if (line.includes("VSCODE-META-START")) {
+      hasStart = true;
+    }
+    if (line.includes("VSCODE-META-END")) {
+      hasEnd = true;
+    }
+    if (hasStart && hasEnd) {
+      return true;
+    }
+  }
+
+  return hasStart && hasEnd;
 }
 
 export function activate(context: vscode.ExtensionContext) {
@@ -95,13 +183,13 @@ export function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     vscode.commands.registerCommand("vizscript.previewscript", async (vizId: string) => {
-      await Commands.openScriptInTextEditor.bind(this)(context, vizId, true, true);
+      await Commands.openScriptInTextEditor.bind(this)(context, client, vizId, true, true);
     }),
   );
 
   context.subscriptions.push(
     vscode.commands.registerCommand("vizscript.editscript", async (vizId: string) => {
-      await Commands.openScriptInTextEditor.bind(this)(context, vizId, true);
+      await Commands.openScriptInTextEditor.bind(this)(context, client, vizId, true);
     }),
   );
 
@@ -139,10 +227,41 @@ export function activate(context: vscode.ExtensionContext) {
   );
 
   context.subscriptions.push(
+    vscode.commands.registerCommand("vizscript.splitscriptgroup", async (groupVizId: string) => {
+      await Commands.splitScriptGroup.bind(this)(context, groupVizId);
+    }),
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("vizscript.mergescripts", async () => {
+      await Commands.showMergeScriptsQuickPick.bind(this)(context);
+    }),
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("vizscript.mergeselectedscripts", async (vizIds: string[]) => {
+      await Commands.mergeScriptsIntoGroup.bind(this)(context, vizIds);
+    }),
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("vizscript.refreshsidebar", async () => {
+      await Commands.refreshSidebar.bind(this)(context, sidebarProvider);
+    }),
+  );
+
+  context.subscriptions.push(
     vscode.window.onDidChangeActiveTextEditor((editor) => {
       if (editor != undefined) {
         client.sendRequest("setDocumentUri", editor.document.uri.toString());
       }
+    }),
+  );
+
+  // Handle document saves to automatically update filePath in metadata
+  context.subscriptions.push(
+    vscode.workspace.onDidSaveTextDocument(async (document) => {
+      await handleDocumentSave(document, client);
     }),
   );
 

@@ -91,6 +91,18 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           webviewView.webview.postMessage({ type: "receiveSettings", value: compilerSettings });
           break;
         }
+        case "splitGroup": {
+          vscode.commands.executeCommand("vizscript.splitscriptgroup", data.value);
+          break;
+        }
+        case "mergeScripts": {
+          vscode.commands.executeCommand("vizscript.mergescripts");
+          break;
+        }
+        case "mergeSelectedScripts": {
+          vscode.commands.executeCommand("vizscript.mergeselectedscripts", data.value);
+          break;
+        }
       }
     });
   }

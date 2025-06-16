@@ -12,7 +12,7 @@ import * as data4 from "./viz_completions4.json";
 import * as data5 from "./viz_completions5.json";
 import * as vizevent from "./vizevent_completions.json";
 import { DefinitionLink } from "vscode-languageserver";
-import { MetadataProcessor } from "./metadataProcessor";
+import { MetadataProcessor, VizScriptObject } from "./metadataProcessor";
 
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
@@ -138,6 +138,22 @@ documents.onDidOpen((event) => {
   documentUri = event.document.uri;
   cacheConfiguration(event.document);
   SetScriptType(event.document.languageId);
+
+  // Process metadata when document opens
+  try {
+    const lines = event.document.getText().split(/\r?\n/g);
+    const hasMetadata = metadataProcessor.detectMetadataExistence(lines);
+
+    if (hasMetadata) {
+      metadataProcessor.extractMetadata(lines);
+      currentMetaJson = metadataProcessor.getCurrentMetaJson();
+      console.log("Metadata detected and extracted for:", event.document.uri);
+    } else {
+      console.log("No metadata found in:", event.document.uri);
+    }
+  } catch (error) {
+    console.error("Error processing metadata on document open:", error);
+  }
 });
 
 // a document has closed: clear all diagnostics
@@ -365,7 +381,7 @@ function removeBeforeOpenBracket(mystring) {
       let last = stack.pop();
       bracketpos.pop();
 
-      //If the popped element from the stack, which is the last opening brace doesn’t match the corresponding closing brace in the map, then return false
+      //If the popped element from the stack, which is the last opening brace doesn't match the corresponding closing brace in the map, then return false
       if (mystring[i] !== map[last]) {
         return mystring;
       }
@@ -401,7 +417,7 @@ function getOpenBracketPosition(mystring) {
       let last = stack.pop();
       bracketpos.pop();
 
-      //If the popped element from the stack, which is the last opening brace doesn’t match the corresponding closing brace in the map, then return false
+      //If the popped element from the stack, which is the last opening brace doesn't match the corresponding closing brace in the map, then return false
       if (mystring[i] !== map[last]) {
         return -1;
       }
@@ -2337,6 +2353,7 @@ function ClearDiagnostics(uri: string) {
 // Metadata logic start
 connection.onRequest("addMetaDataItem", () => {
   // Example: Add a new key-value pair to metadata
+  connection.console.log("addMetaDataItem");
   metadataProcessor.setMetaValue("newKey", "newValue");
 
   // Optionally, update the document content based on the new metadata
@@ -2369,6 +2386,186 @@ connection.onRequest("setMetadata", (metadata: string) => {
 
 connection.onRequest("getMetadata", () => {
   return currentMetaJson;
+});
+
+// Enhanced metadata request handlers for Phase 1
+connection.onRequest("detectMetadata", (params: { uri?: string }) => {
+  try {
+    const uri = params?.uri || documentUri;
+    const document = documents.get(uri);
+
+    if (!document) {
+      return { hasMetadata: false, error: "Document not found" };
+    }
+
+    const lines = document.getText().split(/\r?\n/g);
+    const hasMetadata = metadataProcessor.detectMetadataExistence(lines);
+
+    // If metadata exists, extract it
+    if (hasMetadata) {
+      metadataProcessor.extractMetadata(lines);
+      currentMetaJson = metadataProcessor.getCurrentMetaJson();
+    }
+
+    return {
+      hasMetadata,
+      metadata: hasMetadata ? currentMetaJson : null,
+    };
+  } catch (error) {
+    return { hasMetadata: false, error: error.message };
+  }
+});
+
+connection.onRequest("updateMetadata", (params: { metadata: object; uri?: string }) => {
+  try {
+    const uri = params?.uri || documentUri;
+    const document = documents.get(uri);
+
+    if (!document) {
+      throw new Error("Document not found");
+    }
+
+    const lines = document.getText().split(/\r?\n/g);
+    const newLines = metadataProcessor.updateMetadataInLines(lines, params.metadata);
+    const newText = newLines.join("\n");
+
+    // Apply edits to the document
+    connection.workspace.applyEdit({
+      changes: {
+        [document.uri]: [
+          {
+            range: {
+              start: { line: 0, character: 0 },
+              end: { line: lines.length, character: 0 },
+            },
+            newText: newText,
+          },
+        ],
+      },
+    });
+
+    // Update current metadata
+    currentMetaJson = params.metadata;
+
+    return { success: true, metadata: params.metadata };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+connection.onRequest("getMetadataStatus", (params: { uri?: string }) => {
+  try {
+    const uri = params?.uri || documentUri;
+    const document = documents.get(uri);
+
+    if (!document) {
+      return {
+        status: "error",
+        hasMetadata: false,
+        isValid: false,
+        errors: ["Document not found"],
+      };
+    }
+
+    const lines = document.getText().split(/\r?\n/g);
+    const hasMetadata = metadataProcessor.detectMetadataExistence(lines);
+
+    if (!hasMetadata) {
+      return {
+        status: "missing",
+        hasMetadata: false,
+        isValid: false,
+        errors: [],
+      };
+    }
+
+    // Extract and validate metadata
+    metadataProcessor.extractMetadata(lines);
+    const metadata = metadataProcessor.getCurrentMetaJson();
+    const validation = metadataProcessor.validateMetadata(metadata);
+
+    return {
+      status: validation.isValid ? "valid" : "invalid",
+      hasMetadata: true,
+      isValid: validation.isValid,
+      errors: validation.errors,
+      metadata: metadata,
+    };
+  } catch (error) {
+    return {
+      status: "error",
+      hasMetadata: false,
+      isValid: false,
+      errors: [error.message],
+    };
+  }
+});
+
+connection.onRequest("injectDefaultMetadata", (params: { scriptObject?: VizScriptObject; uri?: string }) => {
+  try {
+    const uri = params?.uri || documentUri;
+    const document = documents.get(uri);
+
+    if (!document) {
+      throw new Error("Document not found");
+    }
+
+    const lines = document.getText().split(/\r?\n/g);
+    const result = metadataProcessor.injectMetadataIfMissing(lines, params.scriptObject);
+
+    if (result.wasInjected) {
+      const newText = result.lines.join("\n");
+
+      // Apply edits to the document
+      connection.workspace.applyEdit({
+        changes: {
+          [document.uri]: [
+            {
+              range: {
+                start: { line: 0, character: 0 },
+                end: { line: lines.length, character: 0 },
+              },
+              newText: newText,
+            },
+          ],
+        },
+      });
+
+      // Extract the newly injected metadata
+      metadataProcessor.extractMetadata(result.lines);
+      currentMetaJson = metadataProcessor.getCurrentMetaJson();
+    }
+
+    return {
+      success: true,
+      wasInjected: result.wasInjected,
+      metadata: currentMetaJson,
+    };
+  } catch (error) {
+    return { success: false, error: error.message, wasInjected: false };
+  }
+});
+
+// New request handler for injecting metadata into content (without requiring an open document)
+connection.onRequest("injectMetadataIntoContent", (params: { content: string; scriptObject?: VizScriptObject }) => {
+  try {
+    const lines = params.content.split(/\r?\n/g);
+    const result = metadataProcessor.injectMetadataIfMissing(lines, params.scriptObject);
+
+    return {
+      success: true,
+      wasInjected: result.wasInjected,
+      content: result.lines.join("\n"),
+      metadata: result.wasInjected ? metadataProcessor.createDefaultMetadata(params.scriptObject) : null,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message,
+      wasInjected: false,
+      content: params.content,
+    };
+  }
 });
 
 // Metadata logic end

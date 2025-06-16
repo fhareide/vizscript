@@ -54,6 +54,18 @@
 			{
 				"command": "vizscript.diff",
 				"title": "Viz Script: Diff script with Viz"
+			},
+			{
+				"command": "vizscript.addmetadata",
+				"title": "Viz Script: Add metadata"
+			},
+			{
+				"command": "vizscript.splitscriptgroup",
+				"title": "Viz Script: Split script group"
+			},
+			{
+				"command": "vizscript.mergescripts",
+				"title": "Viz Script: Merge scripts into group"
 			}
 		],
 		"menus": {

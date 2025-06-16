@@ -6,6 +6,7 @@
 import * as net from "net";
 import { ExtensionContext, Progress, window } from "vscode";
 import { loadFromStorage, saveToStorage } from "./commands";
+import { TreeService } from "./treeService";
 import type { VizScriptObject } from "./shared/types";
 
 let sceneId = "";
@@ -16,7 +17,7 @@ function cleanString(str: string): string {
   return str.replace(/[\x00-\x1F\x7F]/g, "").trim();
 }
 
-//Get all scripts from Viz Engine
+//Get all scripts from Viz Engine with tree structure
 export function getVizScripts(
   host: string,
   port: number,
@@ -159,6 +160,7 @@ export function getVizScripts(
                 code: scriptMap.get(vizIds[0]).code, // Use the code of the first script as an example
                 scenePath: scenePath,
                 children: vizIds,
+                isGroup: true, // Mark as a group
               };
               finalScriptObjects.push(collectionScript);
               collectionIndex++; // Increment the collection index after creating a collection
@@ -171,6 +173,15 @@ export function getVizScripts(
 
           // Replace scriptObjects with the final list
           scriptObjects = finalScriptObjects;
+
+          // Enrich scripts with tree paths for future stability
+          try {
+            const treeService = new TreeService();
+            scriptObjects = await treeService.enrichScriptObjectsWithTreePaths(scriptObjects, host, port, layer);
+            console.log("Scripts enriched with tree paths");
+          } catch (error) {
+            console.warn("Failed to enrich scripts with tree paths:", error);
+          }
 
           // Do something with scriptObjects, e.g., send them back to the client
           await saveToStorage(context, scriptObjects);

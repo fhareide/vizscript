@@ -5,6 +5,7 @@
   let vizscripts: VizScriptObject[] = [];
   let selectedScriptId: string;
   let selectedScript: VizScriptObject | undefined;
+  let selectedScriptIds: string[] = []; // For multi-selection
 
   let hostname = "localhost";
   let port = 6100;
@@ -62,6 +63,10 @@
 		});
 	};
 
+
+
+
+
 	const handleLayerChange = (event: Event) => {
 		const target = event.target as HTMLInputElement;
 		console.log("Target", target);
@@ -104,6 +109,32 @@
   const handleScriptDoubleClick = (event: CustomEvent) => {
     selectedScriptId = event.detail.script.vizId;
     handleScriptPreview();
+  };
+
+  const handleScriptSelection = (event: CustomEvent) => {
+    const { script, isShiftClick } = event.detail;
+    
+    if (isShiftClick && script.type === "Container" && !script.isGroup) {
+      // Multi-select for container scripts only
+      if (selectedScriptIds.includes(script.vizId)) {
+        // Deselect if already selected
+        selectedScriptIds = selectedScriptIds.filter(id => id !== script.vizId);
+      } else {
+        // Add to selection
+        selectedScriptIds = [...selectedScriptIds, script.vizId];
+      }
+    } else {
+      // Single selection - clear multi-selection
+      selectedScriptIds = [];
+      selectedScriptId = script.vizId;
+      
+      const currentState = tsvscode.getState() || {};
+      const updatedState = {
+        ...currentState,
+        selectedScriptId: script.vizId
+      };
+      tsvscode.setState(updatedState);
+    }
   };
 
   onMount(() => {
@@ -157,7 +188,14 @@
           <div class="flex items-center justify-center h-full text-vscode-descriptionForeground">No scripts found</div>
         {:else}
           {#each Object.values(vizscripts) as script}
-            <ScriptItem {script} bind:selectedScriptId on:doubleClick={handleScriptDoubleClick} />
+            <ScriptItem 
+              {script} 
+              {vizscripts}
+              {selectedScriptId}
+              {selectedScriptIds}
+              on:doubleClick={handleScriptDoubleClick}
+              on:scriptSelected={handleScriptSelection}
+            />
           {/each}
         {/if}
       </div>
@@ -169,6 +207,14 @@
               <div class="text-vscode-descriptionForeground">{selectedScript.type}</div>
             </div>
 						<div>{selectedScript.scenePath}</div>
+						{#if selectedScript.treePath}
+							<div class="text-vscode-textLink-foreground">
+								Tree: {Array.isArray(selectedScript.treePath) ? selectedScript.treePath.join(', ') : selectedScript.treePath}
+							</div>
+						{/if}
+						{#if selectedScript.isGroup}
+							<div class="text-yellow-400">Group ({selectedScript.children.length} scripts)</div>
+						{/if}
             <div class="items-center justify-end h-[24px] flex overflow-hidden pr-[7px]">
               {selectedScript.extension}
             </div>
@@ -177,6 +223,7 @@
               <button on:click={handleScriptPreview}>Preview</button>
               <button on:click={handleScriptDiff}>Diff</button>
 							<button on:click={handleScriptSet}>Set script in Viz</button>
+
             </div>
           </div>
         </div>
