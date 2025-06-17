@@ -207,11 +207,7 @@
               <div class="text-vscode-descriptionForeground">{selectedScript.type}</div>
             </div>
 						<div>{selectedScript.scenePath}</div>
-						{#if selectedScript.treePath}
-							<div class="text-vscode-textLink-foreground">
-								Tree: {Array.isArray(selectedScript.treePath) ? selectedScript.treePath.join(', ') : selectedScript.treePath}
-							</div>
-						{/if}
+
 						{#if selectedScript.isGroup}
 							<div class="text-yellow-400">Group ({selectedScript.children.length} scripts)</div>
 						{/if}

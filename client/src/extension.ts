@@ -251,6 +251,27 @@ export function activate(context: vscode.ExtensionContext) {
   );
 
   context.subscriptions.push(
+    vscode.commands.registerTextEditorCommand(
+      "vizscript.setscript.main",
+      Commands.setScriptInMainLayer.bind(this, context, client),
+    ),
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerTextEditorCommand(
+      "vizscript.setscript.front",
+      Commands.setScriptInFrontLayer.bind(this, context, client),
+    ),
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerTextEditorCommand(
+      "vizscript.setscript.back",
+      Commands.setScriptInBackLayer.bind(this, context, client),
+    ),
+  );
+
+  context.subscriptions.push(
     vscode.window.onDidChangeActiveTextEditor((editor) => {
       if (editor != undefined) {
         client.sendRequest("setDocumentUri", editor.document.uri.toString());

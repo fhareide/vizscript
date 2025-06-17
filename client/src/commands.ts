@@ -6,6 +6,7 @@ import { SidebarProvider } from "./sidebarProvider";
  * ------------------------------------------------------------------------------------------ */
 
 import * as vscode from "vscode";
+import * as path from "path";
 import {
   ExtensionContext,
   ProgressLocation,
@@ -165,29 +166,7 @@ export async function getAndPostVizScripts(
           const hostPort = config.port || connectionInfo.hostPort;
           const selectedLayer = config.selectedLayer || "MAIN_SCENE";
 
-          // First, try to resolve stored scripts with current tree structure
-          progress.report({ increment: 10, message: "Resolving existing scripts..." });
-          const storedScripts = await loadFromStorage(context);
-          if (storedScripts && storedScripts.length > 0) {
-            try {
-              const treeService = new TreeService();
-              const resolvedScripts = await treeService.resolveVizIdsFromTreePaths(
-                storedScripts,
-                hostName,
-                hostPort,
-                selectedLayer,
-              );
-
-              // Update storage with resolved scripts
-              await saveToStorage(context, resolvedScripts);
-              progress.report({ increment: 20, message: "Scripts resolved from tree paths." });
-
-              // Send resolved scripts to sidebar first for immediate display
-              sidebarProvider._view?.webview.postMessage({ type: "receiveScripts", value: resolvedScripts });
-            } catch (error) {
-              console.warn("Failed to resolve scripts from tree paths:", error);
-            }
-          }
+          progress.report({ increment: 10, message: "Loading existing scripts..." });
 
           // Then fetch fresh scripts from Viz Engine
           progress.report({ increment: 30, message: "Fetching fresh scripts from Viz Engine..." });
@@ -235,7 +214,7 @@ export async function openScriptInTextEditor(
       const fileService = new FileService();
       await fileService.openFile(processedScript.localFileUri);
     } else {
-      // Open as untitled or preview as usual
+      // Open as untitled, preview, or add to current file
       if (preview) {
         await showPreviewWindow(
           vizIdStripped,
@@ -244,7 +223,21 @@ export async function openScriptInTextEditor(
           processedScript.content,
           context,
         );
+      } else if (!newFile && window.activeTextEditor) {
+        // Replace entire content of current file
+        const editor = window.activeTextEditor;
+        const document = editor.document;
+
+        // Replace the entire document content
+        await editor.edit((editBuilder) => {
+          const fullRange = new Range(document.positionAt(0), document.positionAt(document.getText().length));
+          editBuilder.replace(fullRange, processedScript.content);
+        });
+
+        // Show success message
+        window.showInformationMessage(`Current file replaced with script "${scriptObject.name}"`);
       } else {
+        // Create new untitled file
         await showUntitledWindow(
           vizIdStripped,
           scriptObject.name,
@@ -387,17 +380,25 @@ async function processScriptWithMetadata(
     const hasMetadata = detectMetadataInLines(lines);
 
     if (!hasMetadata) {
-      // No metadata found - only ask to add it if not in preview mode
+      // No metadata found - check if metadata is enabled and handle accordingly
       if (!options.preview) {
-        const shouldInject = await showMetadataInjectionDialog(scriptObject.name);
+        const config = vscode.workspace.getConfiguration("vizscript.metadata");
+        const metadataEnabled = config.get<boolean>("enabled", true);
+        const autoUpdate = config.get<boolean>("autoUpdate", false);
 
-        if (shouldInject) {
+        if (!metadataEnabled) {
+          // Metadata disabled, just return content without prompting
+          return { content: originalContent };
+        }
+
+        if (autoUpdate) {
+          // Auto-update enabled, inject metadata without prompting
           try {
             const result = await metadataService.injectMetadataIntoContent(originalContent, scriptObject);
             if (result.success && result.wasInjected) {
               return {
-                content: result.content, // Use the modified content with metadata
-                message: `Metadata added to "${scriptObject.name}"`,
+                content: result.content,
+                message: `Metadata auto-added to "${scriptObject.name}"`,
               };
             } else {
               console.warn("Failed to inject metadata:", result.error);
@@ -408,46 +409,125 @@ async function processScriptWithMetadata(
             return { content: originalContent };
           }
         } else {
-          return { content: originalContent };
+          // Show prompt with "don't ask again" options
+          const dialogResult = await showMetadataInjectionDialog(scriptObject.name);
+
+          if (dialogResult.dontAskAgain) {
+            // Update the autoUpdate setting based on user choice
+            await config.update("autoUpdate", dialogResult.inject, vscode.ConfigurationTarget.Global);
+          }
+
+          if (dialogResult.inject) {
+            try {
+              const result = await metadataService.injectMetadataIntoContent(originalContent, scriptObject);
+              if (result.success && result.wasInjected) {
+                return {
+                  content: result.content,
+                  message: `Metadata added to "${scriptObject.name}"`,
+                };
+              } else {
+                console.warn("Failed to inject metadata:", result.error);
+                return { content: originalContent };
+              }
+            } catch (error) {
+              console.error("Error injecting metadata:", error);
+              return { content: originalContent };
+            }
+          } else {
+            return { content: originalContent };
+          }
         }
       } else {
         // In preview mode, just return the content without prompting
         return { content: originalContent };
       }
     } else {
-      // Metadata exists - check if it needs validation/update
+      // Metadata exists - check if it needs validation/update or completion
       try {
-        const status = await metadataService.getMetadataStatus();
+        // First extract the existing metadata from content
+        const metadataResult = await metadataService.extractMetadataFromContent(originalContent);
 
-        if (!status.isValid && !options.preview) {
-          // Invalid metadata - ask user how to handle (only if not in preview mode)
-          const action = await showMetadataValidationErrors(status.errors, scriptObject.name);
+        if (!metadataResult.success || !metadataResult.metadata) {
+          console.warn("Failed to extract metadata:", metadataResult.error);
+          return { content: originalContent };
+        }
 
-          if (action === "fix") {
-            const suggestedMetadata = metadataService.createDefaultMetadata(scriptObject);
-            const mergedMetadata = metadataService.mergeMetadata(status.metadata || {}, suggestedMetadata);
+        const existingMetadata = metadataResult.metadata;
 
-            // First update the metadata in the content, then we can open it
-            const fixResult = await metadataService.injectMetadataIntoContent(originalContent, scriptObject);
-            if (fixResult.success) {
+        // Check if metadata is complete by creating default metadata and comparing
+        const suggestedMetadata = metadataService.createDefaultMetadata(scriptObject);
+
+        // Define required fields (scenePath is optional for containers)
+        const requiredFields = ["UUID", "fileName", "scriptType", "lastModified"];
+        if (scriptObject.type === "Scene") {
+          requiredFields.push("scenePath");
+        }
+
+        // Check for missing or empty required fields
+        const missingFields: string[] = [];
+        for (const field of requiredFields) {
+          if (
+            !existingMetadata[field] ||
+            (typeof existingMetadata[field] === "string" && existingMetadata[field].trim() === "")
+          ) {
+            missingFields.push(field);
+          }
+        }
+
+        if (missingFields.length > 0) {
+          // Metadata is incomplete - auto-complete it
+          const config = vscode.workspace.getConfiguration("vizscript.metadata");
+          const metadataEnabled = config.get<boolean>("enabled", true);
+          const autoUpdate = config.get<boolean>("autoUpdate", false);
+
+          if (!metadataEnabled) {
+            // Metadata disabled, just continue with existing content
+            return { content: originalContent };
+          }
+
+          if (autoUpdate || options.preview) {
+            // Auto-complete missing fields
+            const mergedMetadata = metadataService.mergeMetadata(existingMetadata, suggestedMetadata);
+            const updateResult = await metadataService.updateMetadataInContent(originalContent, mergedMetadata);
+
+            if (updateResult.success) {
               return {
-                content: fixResult.content, // Use the fixed content
-                message: `Metadata fixed for "${scriptObject.name}"`,
+                content: updateResult.content,
+                message: options.preview
+                  ? undefined
+                  : `Metadata auto-completed for "${scriptObject.name}". Added: ${missingFields.join(", ")}`,
               };
             }
-          } else if (action === "cancel") {
-            throw new Error("Script opening cancelled due to metadata issues");
-          }
-          // If "ignore", continue with existing content
-        } else {
-          // Valid metadata - check if user wants to update with current script info
-          const currentMetadata = status.metadata;
-          const suggestedMetadata = metadataService.createDefaultMetadata(scriptObject);
+          } else {
+            // Show prompt for incomplete metadata
+            const choice = await vscode.window.showInformationMessage(
+              `Metadata is incomplete for "${scriptObject.name}". Missing: ${missingFields.join(", ")}`,
+              "Auto-complete",
+              "Continue anyway",
+              "Cancel",
+            );
 
+            if (choice === "Auto-complete") {
+              const mergedMetadata = metadataService.mergeMetadata(existingMetadata, suggestedMetadata);
+              const updateResult = await metadataService.updateMetadataInContent(originalContent, mergedMetadata);
+
+              if (updateResult.success) {
+                return {
+                  content: updateResult.content,
+                  message: `Metadata auto-completed for "${scriptObject.name}". Added: ${missingFields.join(", ")}`,
+                };
+              }
+            } else if (choice === "Cancel") {
+              throw new Error("Script opening cancelled due to incomplete metadata");
+            }
+            // If "Continue anyway", fall through to return original content
+          }
+        } else {
+          // Metadata is complete - check if user wants to update with current script info
           // Only prompt if there are meaningful differences and not in preview mode
-          if (shouldPromptForMetadataUpdate(currentMetadata, suggestedMetadata) && !options.preview) {
+          if (shouldPromptForMetadataUpdate(existingMetadata, suggestedMetadata) && !options.preview) {
             const dialogOptions: MetadataDialogOptions = {
-              currentMetadata,
+              currentMetadata: existingMetadata,
               suggestedMetadata,
               scriptName: scriptObject.name,
             };
@@ -471,18 +551,18 @@ async function processScriptWithMetadata(
               const suggestedPath = fileService.generateSuggestedFilePath(
                 scriptObject.name,
                 scriptObject.type,
-                currentMetadata.scenePath || "",
+                existingMetadata.scenePath || "",
               );
 
               const newFilePath = await showFilePathDialog(
-                currentMetadata.filePath || "",
+                existingMetadata.filePath || "",
                 scriptObject.name,
                 suggestedPath,
               );
 
               if (newFilePath) {
                 // Update metadata with new filePath
-                const updatedMetadata = { ...currentMetadata, filePath: newFilePath };
+                const updatedMetadata = { ...existingMetadata, filePath: newFilePath };
                 const updateResult = await metadataService.updateMetadataInContent(originalContent, updatedMetadata);
                 if (updateResult.success) {
                   return {
@@ -535,7 +615,7 @@ function shouldPromptForMetadataUpdate(current: any, suggested: any): boolean {
   if (!current || !suggested) return false;
 
   // Check for meaningful differences (ignore lastModified and minor fields)
-  const importantFields = ["scenePath", "vizId", "scriptType", "fileName"];
+  const importantFields = ["scenePath", "scriptType", "fileName"];
 
   for (const field of importantFields) {
     if (current[field] !== suggested[field]) {
@@ -569,11 +649,91 @@ async function validateAndHandleMetadataForScriptSetting(
       const metadataResult = await metadataService.extractMetadataFromContent(content);
       if (metadataResult.success && metadataResult.metadata) {
         const metadata = metadataResult.metadata;
+        let needsUpdate = false;
+        let updatedMetadata = { ...metadata };
+
+        // Get script objects to find current script info for completing missing fields
+        const scriptObjects = await loadFromStorage(context);
+        const currentScript = scriptObjects.find((s) => s.vizId === vizId);
+
+        // Determine script type first to know which fields are required
+        let scriptType = updatedMetadata.scriptType;
+        if (!scriptType) {
+          const languageId = vscode.window.activeTextEditor?.document.languageId;
+          if (languageId === "viz" || languageId === "viz4" || languageId === "viz5") {
+            scriptType = "Scene";
+          } else if (languageId === "viz-con" || languageId === "viz4-con" || languageId === "viz5-con") {
+            scriptType = "Container";
+          } else {
+            scriptType = currentScript?.type || "Scene";
+          }
+          updatedMetadata.scriptType = scriptType;
+        }
+
+        // Check and add missing required fields
+        const requiredFields = ["UUID", "scriptType", "fileName"];
+        // scenePath is only required for Scene scripts
+        if (scriptType === "Scene") {
+          requiredFields.push("scenePath");
+        }
+
+        const missingFields: string[] = [];
+
+        for (const field of requiredFields) {
+          if (
+            !updatedMetadata[field] ||
+            (typeof updatedMetadata[field] === "string" && updatedMetadata[field].trim() === "")
+          ) {
+            missingFields.push(field);
+            needsUpdate = true;
+
+            // Auto-complete missing fields based on current script info
+            switch (field) {
+              case "scenePath":
+                updatedMetadata.scenePath = currentScript?.scenePath || "";
+                break;
+              case "UUID":
+                updatedMetadata.UUID = metadataService.generateUUID();
+                break;
+              case "scriptType":
+                updatedMetadata.scriptType = scriptType;
+                break;
+              case "fileName":
+                updatedMetadata.fileName = currentScript?.name || "untitled";
+                break;
+            }
+          }
+        }
+
+        // Update lastModified if any fields were added
+        if (needsUpdate) {
+          updatedMetadata.lastModified = metadataService.formatLocalDateTime(new Date());
+
+          // Sort the metadata to ensure consistent field order
+          updatedMetadata = metadataService.mergeMetadata({}, updatedMetadata);
+
+          console.log(`Auto-completing missing metadata fields: ${missingFields.join(", ")}`);
+
+          const updateResult = await metadataService.updateMetadataInContent(content, updatedMetadata);
+          if (updateResult.success) {
+            // Apply updated content to the active document
+            const editor = vscode.window.activeTextEditor;
+            if (editor) {
+              const edit = new vscode.WorkspaceEdit();
+              const fullRange = new vscode.Range(
+                editor.document.positionAt(0),
+                editor.document.positionAt(content.length),
+              );
+              edit.replace(editor.document.uri, fullRange, updateResult.content);
+              await vscode.workspace.applyEdit(edit);
+            }
+          }
+        }
 
         // Validate scene path if present
-        if (metadata.scenePath) {
+        if (updatedMetadata.scenePath) {
           const sceneValidation = await treeService.validateScenePath(
-            metadata.scenePath,
+            updatedMetadata.scenePath,
             hostName,
             hostPort,
             selectedLayer,
@@ -595,10 +755,13 @@ async function validateAndHandleMetadataForScriptSetting(
               throw new Error("Script setting cancelled due to scene path mismatch");
             } else if (choice === "Update Metadata") {
               // Update metadata with current scene path
-              metadata.scenePath = sceneValidation.currentScenePath || "";
-              metadata.lastModified = new Date().toISOString();
+              updatedMetadata.scenePath = sceneValidation.currentScenePath || "";
+              updatedMetadata.lastModified = metadataService.formatLocalDateTime(new Date());
 
-              const updateResult = await metadataService.updateMetadataInContent(content, metadata);
+              // Sort the metadata to ensure consistent field order
+              updatedMetadata = metadataService.mergeMetadata({}, updatedMetadata);
+
+              const updateResult = await metadataService.updateMetadataInContent(content, updatedMetadata);
               if (updateResult.success) {
                 // Apply updated content to the active document
                 const editor = vscode.window.activeTextEditor;
@@ -617,75 +780,8 @@ async function validateAndHandleMetadataForScriptSetting(
           }
         }
 
-        // Validate tree path for container scripts
-        if (metadata.scriptType === "Container" && metadata.treePath) {
-          const currentTreePath = await treeService.findTreePathForVizId(vizId, hostName, hostPort, selectedLayer);
-
-          if (currentTreePath && currentTreePath !== metadata.treePath) {
-            const choice = await vscode.window.showWarningMessage(
-              `Tree path mismatch detected for container script!`,
-              {
-                modal: true,
-                detail: `Expected tree path: ${metadata.treePath}\nCurrent tree path: ${currentTreePath}\n\nThis script may be targeting a different container location.`,
-              },
-              "Continue Anyway",
-              "Update Tree Path",
-              "Cancel",
-            );
-
-            if (choice === "Cancel") {
-              throw new Error("Script setting cancelled due to tree path mismatch");
-            } else if (choice === "Update Tree Path") {
-              metadata.treePath = currentTreePath;
-              metadata.lastModified = new Date().toISOString();
-
-              const updateResult = await metadataService.updateMetadataInContent(content, metadata);
-              if (updateResult.success) {
-                // Apply updated content to the active document
-                const editor = vscode.window.activeTextEditor;
-                if (editor) {
-                  const edit = new vscode.WorkspaceEdit();
-                  const fullRange = new vscode.Range(
-                    editor.document.positionAt(0),
-                    editor.document.positionAt(content.length),
-                  );
-                  edit.replace(editor.document.uri, fullRange, updateResult.content);
-                  await vscode.workspace.applyEdit(edit);
-                }
-              }
-            }
-            // If "Continue Anyway" was selected, don't update metadata
-          }
-        }
-
-        // Update vizId and tree path if vizId changed
-        if (metadata.vizId !== vizId) {
-          metadata.vizId = vizId;
-          metadata.lastModified = new Date().toISOString();
-
-          // Only update treePath for container scripts
-          if (metadata.scriptType === "Container") {
-            const treePath = await treeService.findTreePathForVizId(vizId, hostName, hostPort, selectedLayer);
-            if (treePath) {
-              metadata.treePath = treePath;
-            }
-          }
-
-          const updateResult = await metadataService.updateMetadataInContent(content, metadata);
-          if (updateResult.success) {
-            // Apply updated content to the active document
-            const editor = vscode.window.activeTextEditor;
-            if (editor) {
-              const edit = new vscode.WorkspaceEdit();
-              const fullRange = new vscode.Range(
-                editor.document.positionAt(0),
-                editor.document.positionAt(content.length),
-              );
-              edit.replace(editor.document.uri, fullRange, updateResult.content);
-              await vscode.workspace.applyEdit(edit);
-            }
-          }
-        }
+        // Note: We no longer store vizId in metadata since it changes frequently
+        // UUID is the stable identifier used for script resolution
       }
     } catch (error) {
       console.error("Error validating metadata:", error);
@@ -709,12 +805,6 @@ async function validateAndHandleMetadataForScriptSetting(
         const currentScript = scriptObjects.find((s) => s.vizId === vizId);
 
         if (currentScript) {
-          // Add tree path to the script object only for containers
-          if (currentScript.type === "Container") {
-            const treePath = await treeService.findTreePathForVizId(vizId, hostName, hostPort, selectedLayer);
-            currentScript.treePath = treePath || "";
-          }
-
           const injectionResult = await metadataService.injectMetadataIntoContent(content, currentScript);
           if (injectionResult.success) {
             // Apply updated content to the active document
@@ -786,14 +876,23 @@ let compileMessage: StatusBarItem = window.createStatusBarItem(StatusBarAlignmen
 export async function compileCurrentScript(
   context: ExtensionContext,
   client: LanguageClient,
-  config: { vizId: string; hostname: string; port: number; selectedLayer: string },
+  config?: {
+    vizId?: string;
+    hostname?: string;
+    port?: number;
+    selectedLayer?: string;
+    scriptCount?: number;
+    currentIndex?: number;
+  },
 ) {
   try {
     const connectionInfo = await getConfig();
-    const hostName = config.hostname || connectionInfo.hostName;
-    const hostPort = config.port || connectionInfo.hostPort;
-    const selectedLayer = config.selectedLayer || "MAIN_SCENE";
-    const vizId = config.vizId;
+    const hostName = config?.hostname || connectionInfo.hostName;
+    const hostPort = config?.port || connectionInfo.hostPort;
+    const selectedLayer = config?.selectedLayer || "MAIN_SCENE";
+
+    // Refetch scene information to ensure we have current scene data
+    await refetchSceneData(context, hostName, hostPort, selectedLayer);
 
     if (!window.activeTextEditor) {
       throw new Error("No active text editor.");
@@ -802,8 +901,39 @@ export async function compileCurrentScript(
     const document = window.activeTextEditor.document;
     const content = document.getText();
 
+    // Extract metadata from current script to resolve vizId
+    const metadataService = new MetadataService(client);
+    const metadataResult = await metadataService.extractMetadataFromContent(content);
+
+    let vizId = config?.vizId;
+
+    if (metadataResult.success && metadataResult.metadata) {
+      // Resolve UUID to current vizId if UUID exists
+      const resolvedVizId = await resolveScriptVizIdByUUID(
+        metadataResult.metadata,
+        hostName,
+        hostPort,
+        selectedLayer,
+        context,
+        client,
+      );
+
+      if (resolvedVizId) {
+        vizId = resolvedVizId;
+      }
+    }
+
+    if (!vizId) {
+      throw new Error(
+        "No viz script associated with this script. Please add metadata with UUID or select a script from the sidebar first.",
+      );
+    }
+
     // Enhanced validation and metadata handling
     await validateAndHandleMetadataForScriptSetting(content, client, hostName, hostPort, selectedLayer, vizId, context);
+
+    // Get the updated content after metadata processing
+    const updatedContent = window.activeTextEditor?.document.getText() || content;
 
     try {
       await syntaxCheckCurrentScript(context, client, selectedLayer);
@@ -811,10 +941,58 @@ export async function compileCurrentScript(
       throw new Error("Syntax error in script. Please correct before trying to set again.");
     }
 
-    await compileScriptId(context, content, hostName, hostPort, vizId, selectedLayer);
-    window.showInformationMessage("Script set successfully in Viz!");
+    await compileScriptId(context, updatedContent, hostName, hostPort, vizId, selectedLayer);
+
+    // Create success message with count if multiple scripts are being set
+    let successMessage = "Script set successfully in Viz!";
+    if (config?.scriptCount && config.scriptCount > 1) {
+      const currentIndex = config.currentIndex || 1;
+      successMessage = `Script ${currentIndex} of ${config.scriptCount} set successfully in Viz!`;
+    }
+
+    window.showInformationMessage(successMessage);
   } catch (error) {
     showMessage(error);
+  }
+}
+
+/**
+ * Set script in main layer (MAIN_SCENE)
+ */
+export async function setScriptInMainLayer(context: ExtensionContext, client: LanguageClient) {
+  await compileCurrentScript(context, client, { selectedLayer: "MAIN_SCENE" });
+}
+
+/**
+ * Set script in front layer (FRONT_LAYER)
+ */
+export async function setScriptInFrontLayer(context: ExtensionContext, client: LanguageClient) {
+  await compileCurrentScript(context, client, { selectedLayer: "FRONT_LAYER" });
+}
+
+/**
+ * Set script in back layer (BACK_LAYER)
+ */
+export async function setScriptInBackLayer(context: ExtensionContext, client: LanguageClient) {
+  await compileCurrentScript(context, client, { selectedLayer: "BACK_LAYER" });
+}
+
+/**
+ * Refetch scene data to ensure current scene information is available
+ */
+async function refetchSceneData(
+  context: ExtensionContext,
+  hostName: string,
+  hostPort: number,
+  selectedLayer: string,
+): Promise<void> {
+  try {
+    // Fetch current scene information from Viz to update scene path
+    await getVizScripts(hostName, hostPort, context, selectedLayer);
+    console.log("Scene data refetched successfully");
+  } catch (error) {
+    console.warn("Failed to refetch scene data:", error);
+    // Don't throw here - let the script setting continue with cached data
   }
 }
 
@@ -917,7 +1095,6 @@ export async function splitScriptGroup(context: ExtensionContext, groupVizId: st
 
     for (let i = 0; i < group.children.length; i++) {
       const childVizId = group.children[i];
-      const treePath = Array.isArray(group.treePath) ? group.treePath[i] : "";
 
       const individualScript: VizScriptObject = {
         vizId: childVizId,
@@ -927,7 +1104,6 @@ export async function splitScriptGroup(context: ExtensionContext, groupVizId: st
         code: group.code, // All children have the same code
         scenePath: group.scenePath,
         children: [],
-        treePath: treePath,
         isGroup: false,
       };
 
@@ -1002,7 +1178,6 @@ export async function mergeScriptsIntoGroup(context: ExtensionContext, vizIds: s
 
     // Create the new group
     const collectionIndex = scriptObjects.filter((s) => s.isGroup).length;
-    const treePaths = scriptsToMerge.map((script) => script.treePath as string).filter(Boolean);
 
     const groupScript: VizScriptObject = {
       vizId: `#c${collectionIndex}`,
@@ -1012,7 +1187,6 @@ export async function mergeScriptsIntoGroup(context: ExtensionContext, vizIds: s
       code: firstScript.code,
       scenePath: firstScript.scenePath,
       children: scriptsToMerge.map((script) => script.vizId),
-      treePath: treePaths,
       isGroup: true,
     };
 
@@ -1049,6 +1223,50 @@ export async function refreshSidebar(context: ExtensionContext, sidebarProvider:
     }
   } catch (error) {
     console.error("Error refreshing sidebar:", error);
+  }
+}
+
+/**
+ * Resolves script vizId by matching UUID from metadata with current scripts in Viz
+ */
+async function resolveScriptVizIdByUUID(
+  metadata: any,
+  hostName: string,
+  hostPort: number,
+  selectedLayer: string,
+  context: ExtensionContext,
+  client: LanguageClient,
+): Promise<string | null> {
+  if (!metadata.UUID) {
+    return null; // No UUID to match against
+  }
+
+  try {
+    // Fetch current scripts from Viz
+    const currentScripts = await getVizScripts(hostName, hostPort, context, selectedLayer);
+
+    // Find script with matching UUID
+    const metadataService = new MetadataService(client);
+    let matchingScript: VizScriptObject | undefined;
+
+    for (const script of currentScripts) {
+      // Check if script has metadata with matching UUID
+      const scriptMetadata = await metadataService.extractMetadataFromContent(script.code);
+      if (scriptMetadata.success && scriptMetadata.metadata && scriptMetadata.metadata.UUID === metadata.UUID) {
+        matchingScript = script;
+        break;
+      }
+    }
+
+    if (matchingScript) {
+      console.log(`Resolved script UUID ${metadata.UUID} to current vizId: ${matchingScript.vizId}`);
+      return matchingScript.vizId;
+    }
+
+    return null;
+  } catch (error) {
+    console.warn("Failed to resolve script by UUID:", error);
+    return null;
   }
 }
 

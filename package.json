@@ -66,6 +66,18 @@
 			{
 				"command": "vizscript.mergescripts",
 				"title": "Viz Script: Merge scripts into group"
+			},
+			{
+				"command": "vizscript.setscript.main",
+				"title": "Viz Script: Set script in main layer"
+			},
+			{
+				"command": "vizscript.setscript.front",
+				"title": "Viz Script: Set script in front layer"
+			},
+			{
+				"command": "vizscript.setscript.back",
+				"title": "Viz Script: Set script in back layer"
 			}
 		],
 		"menus": {
@@ -76,6 +88,18 @@
 				},
 				{
 					"command": "vizscript.compile.currentscript",
+					"when": "editorLangId == viz || editorLangId == viz-con || editorLangId == viz4 || editorLangId == viz4-con || editorLangId == viz5 || editorLangId == viz5-con"
+				},
+				{
+					"command": "vizscript.setscript.main",
+					"when": "editorLangId == viz || editorLangId == viz-con || editorLangId == viz4 || editorLangId == viz4-con || editorLangId == viz5 || editorLangId == viz5-con"
+				},
+				{
+					"command": "vizscript.setscript.front",
+					"when": "editorLangId == viz || editorLangId == viz-con || editorLangId == viz4 || editorLangId == viz4-con || editorLangId == viz5 || editorLangId == viz5-con"
+				},
+				{
+					"command": "vizscript.setscript.back",
 					"when": "editorLangId == viz || editorLangId == viz-con || editorLangId == viz4 || editorLangId == viz4-con || editorLangId == viz5 || editorLangId == viz5-con"
 				},
 				{
@@ -282,6 +306,18 @@
 					],
 					"default": "off",
 					"description": "Traces the communication between VS Code and the Viz language server."
+				},
+				"vizscript.metadata.enabled": {
+					"type": "boolean",
+					"default": true,
+					"description": "Enable metadata functionality for scripts",
+					"scope": "resource"
+				},
+				"vizscript.metadata.autoUpdate": {
+					"type": "boolean",
+					"default": false,
+					"description": "Automatically inject/update metadata without prompting",
+					"scope": "resource"
 				}
 			}
 		},

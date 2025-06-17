@@ -2352,30 +2352,127 @@ function ClearDiagnostics(uri: string) {
 
 // Metadata logic start
 connection.onRequest("addMetaDataItem", () => {
-  // Example: Add a new key-value pair to metadata
   connection.console.log("addMetaDataItem");
-  metadataProcessor.setMetaValue("newKey", "newValue");
 
-  // Optionally, update the document content based on the new metadata
-  let document = documents.get(documentUri);
-  let lines = document.getText().split(/\r?\n/g);
-  let newLines = metadataProcessor.writeMetadataBack(lines);
-  let newText = newLines.join("\n");
+  try {
+    const document = documents.get(documentUri);
+    if (!document) {
+      connection.window.showErrorMessage("No active document found. Please open a script file first.");
+      return Promise.resolve();
+    }
 
-  // Apply edits to the document
-  connection.workspace.applyEdit({
-    changes: {
-      [document.uri]: [
-        {
-          range: {
-            start: { line: 0, character: 0 },
-            end: { line: lines.length, character: 0 },
-          },
-          newText: newText,
+    // Check if it's a Viz script file
+    const vizLanguages = ["viz", "viz-con", "viz4", "viz4-con", "viz5", "viz5-con"];
+    if (!vizLanguages.includes(document.languageId)) {
+      connection.window.showErrorMessage("Current file is not a Viz script. Please open a .vs or .vsc file.");
+      return Promise.resolve();
+    }
+
+    const lines = document.getText().split(/\r?\n/g);
+    const hasMetadata = metadataProcessor.detectMetadataExistence(lines);
+
+    // Create a basic script object for metadata operations
+    const fileName = document.uri.split("/").pop() || "Unknown Script";
+    const baseName = fileName.replace(/\.(vs|vsc|viz|vizc|vs4|vs4c|viz4|viz4c|vs5|vs5c|viz5|viz5c)$/i, "");
+    const isContainer = document.languageId.includes("con");
+
+    const scriptObject: VizScriptObject = {
+      vizId: "", // Will be empty, user needs to set it
+      type: isContainer ? "Container" : "Scene",
+      extension: isContainer ? ".vsc" : ".vs",
+      name: baseName,
+      code: document.getText(),
+      scenePath: "", // Will be empty for containers, user needs to set it for scenes
+      children: [],
+      isGroup: false,
+    };
+
+    let newText: string;
+    let wasModified = false;
+    let actionMessage = "";
+
+    if (hasMetadata) {
+      // Extract existing metadata and check if it's complete
+      metadataProcessor.extractMetadata(lines);
+      const existingMetadata = metadataProcessor.getCurrentMetaJson();
+
+      // Always create complete metadata and merge with existing
+      const completeMetadata = metadataProcessor.createDefaultMetadata(scriptObject);
+
+      // Preserve existing non-empty fields, only add missing ones
+      const mergedMetadata = { ...completeMetadata };
+      for (const [key, value] of Object.entries(existingMetadata)) {
+        // Only preserve existing values that are not empty/null/undefined
+        if (value !== null && value !== undefined && value !== "") {
+          mergedMetadata[key] = value;
+        }
+      }
+
+      // Check if the merged metadata is different from existing
+      const hasChanges = JSON.stringify(existingMetadata) !== JSON.stringify(mergedMetadata);
+
+      if (!hasChanges) {
+        connection.window.showInformationMessage("This script already has complete and valid metadata.");
+        return Promise.resolve();
+      }
+
+      // Update the metadata in the document
+      const updatedLines = metadataProcessor.updateMetadataInLines(lines, mergedMetadata);
+      newText = updatedLines.join("\n");
+      wasModified = true;
+
+      // Find which fields were added
+      const addedFields = Object.keys(mergedMetadata).filter(
+        (key) =>
+          !existingMetadata.hasOwnProperty(key) ||
+          existingMetadata[key] === null ||
+          existingMetadata[key] === undefined ||
+          existingMetadata[key] === "",
+      );
+
+      actionMessage = `Metadata auto-completed! Added missing fields: ${addedFields.join(", ")}`;
+    } else {
+      // No metadata exists, inject new metadata
+      const result = metadataProcessor.injectMetadataIfMissing(lines, scriptObject);
+
+      if (result.wasInjected) {
+        newText = result.lines.join("\n");
+        wasModified = true;
+        actionMessage = "Metadata added successfully!";
+      }
+    }
+
+    if (wasModified) {
+      // Apply edits to the document
+      connection.workspace.applyEdit({
+        changes: {
+          [document.uri]: [
+            {
+              range: {
+                start: { line: 0, character: 0 },
+                end: { line: lines.length, character: 0 },
+              },
+              newText: newText,
+            },
+          ],
         },
-      ],
-    },
-  });
+      });
+
+      // Extract the updated metadata
+      const updatedLines = newText.split(/\r?\n/g);
+      metadataProcessor.extractMetadata(updatedLines);
+      currentMetaJson = metadataProcessor.getCurrentMetaJson();
+
+      connection.window.showInformationMessage(actionMessage);
+    } else {
+      connection.window.showWarningMessage(
+        "Failed to add or update metadata. There may have been an error processing the document.",
+      );
+    }
+  } catch (error) {
+    connection.console.error(`Error in addMetaDataItem: ${error.message}`);
+    connection.window.showErrorMessage(`Failed to add metadata: ${error.message}`);
+  }
 
   return Promise.resolve();
 });

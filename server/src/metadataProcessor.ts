@@ -6,7 +6,6 @@ export type VizScriptObject = {
   code: string;
   scenePath: string;
   vizId: string;
-  treePath?: string | string[]; // Stable tree path - string for individual scripts, array for groups
   children: string[];
   isGroup?: boolean; // Flag to identify if this is a grouped collection
 };
@@ -139,34 +138,24 @@ export class MetadataProcessor {
    * Creates default metadata from script object properties
    */
   public createDefaultMetadata(scriptObject?: VizScriptObject): object {
-    const now = new Date().toISOString();
+    const now = this.formatLocalDateTime(new Date());
     const uuid = this.generateUUID();
 
     const defaultMetadata: any = {
+      UUID: uuid,
       scenePath: scriptObject?.scenePath || "",
       filePath: "", // Will be set when file is saved locally
       fileName: scriptObject?.name || "untitled",
-      UUID: uuid,
       scriptType: scriptObject?.type || "Scene",
-      vizId: scriptObject?.vizId || "",
       lastModified: now,
-      version: "1.0.0",
-      author: process.env.USERNAME || process.env.USER || "unknown",
-      description: `Auto-generated metadata for ${scriptObject?.name || "script"}`,
     };
 
-    // Only add treePath for container scripts
-    if (scriptObject?.type === "Container" && scriptObject?.treePath) {
-      defaultMetadata.treePath = scriptObject.treePath;
-    }
-
-    // Add treePath array for group collections
-    if (scriptObject?.isGroup && scriptObject?.treePath) {
-      defaultMetadata.treePath = scriptObject.treePath;
+    // Add group flag for collections
+    if (scriptObject?.isGroup) {
       defaultMetadata.isGroup = true;
     }
 
-    return defaultMetadata;
+    return this.sortMetadata(defaultMetadata);
   }
 
   /**
@@ -174,7 +163,7 @@ export class MetadataProcessor {
    */
   public validateMetadata(metadata: object): { isValid: boolean; errors: string[] } {
     const errors: string[] = [];
-    const requiredFields = ["scenePath", "UUID", "scriptType", "vizId"];
+    const requiredFields = ["UUID", "scriptType", "fileName", "lastModified"];
 
     if (!metadata || typeof metadata !== "object") {
       errors.push("Metadata must be a valid object");
@@ -185,6 +174,16 @@ export class MetadataProcessor {
     for (const field of requiredFields) {
       if (!metadata[field] || (typeof metadata[field] === "string" && metadata[field].trim() === "")) {
         errors.push(`Required field '${field}' is missing or empty`);
+      }
+    }
+
+    // scenePath is required for Scene scripts but optional for Container scripts
+    if (metadata["scriptType"] === "Scene") {
+      if (
+        !metadata["scenePath"] ||
+        (typeof metadata["scenePath"] === "string" && metadata["scenePath"].trim() === "")
+      ) {
+        errors.push("scenePath is required for Scene scripts");
       }
     }
 
@@ -202,9 +201,7 @@ export class MetadataProcessor {
       errors.push("UUID must be a string");
     }
 
-    if (metadata["lastModified"] && !this.isValidISO8601(metadata["lastModified"])) {
-      errors.push("lastModified must be a valid ISO 8601 date string");
-    }
+    // Note: We no longer validate lastModified format since we're using a custom local format
 
     return {
       isValid: errors.length === 0,
@@ -225,9 +222,9 @@ export class MetadataProcessor {
     }
 
     // Always update lastModified when merging
-    merged["lastModified"] = new Date().toISOString();
+    merged["lastModified"] = this.formatLocalDateTime(new Date());
 
-    return merged;
+    return this.sortMetadata(merged);
   }
 
   /**
@@ -327,5 +324,40 @@ export class MetadataProcessor {
     } catch {
       return false;
     }
+  }
+
+  private formatLocalDateTime(date: Date): string {
+    const day = String(date.getDate()).padStart(2, "0");
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const year = date.getFullYear();
+    const hours = String(date.getHours()).padStart(2, "0");
+    const minutes = String(date.getMinutes()).padStart(2, "0");
+
+    return `${day}/${month}/${year} ${hours}:${minutes}`;
+  }
+
+  /**
+   * Sorts metadata fields in the desired order
+   */
+  private sortMetadata(metadata: any): any {
+    const fieldOrder = ["UUID", "scenePath", "filePath", "fileName", "scriptType", "lastModified"];
+
+    const sorted: any = {};
+
+    // Add fields in the specified order
+    for (const field of fieldOrder) {
+      if (metadata.hasOwnProperty(field)) {
+        sorted[field] = metadata[field];
+      }
+    }
+
+    // Add any remaining fields that weren't in the ordered list
+    for (const [key, value] of Object.entries(metadata)) {
+      if (!fieldOrder.includes(key)) {
+        sorted[key] = value;
+      }
+    }
+
+    return sorted;
   }
 }

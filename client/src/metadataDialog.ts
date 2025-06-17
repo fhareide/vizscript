@@ -172,7 +172,9 @@ function createDetailedChanges(current: any, suggested: any): string {
 /**
  * Shows a simple confirmation dialog for metadata injection
  */
-export async function showMetadataInjectionDialog(scriptName: string): Promise<boolean> {
+export async function showMetadataInjectionDialog(
+  scriptName: string,
+): Promise<{ inject: boolean; dontAskAgain: boolean }> {
   const choice = await vscode.window.showInformationMessage(
     `No metadata found for "${scriptName}". Add default metadata?`,
     {
@@ -180,9 +182,17 @@ export async function showMetadataInjectionDialog(scriptName: string): Promise<b
     },
     "Add Metadata",
     "Skip",
+    "Always Add",
   );
 
-  return choice === "Add Metadata";
+  switch (choice) {
+    case "Add Metadata":
+      return { inject: true, dontAskAgain: false };
+    case "Always Add":
+      return { inject: true, dontAskAgain: true };
+    default:
+      return { inject: false, dontAskAgain: false };
+  }
 }
 
 /**
@@ -222,7 +232,7 @@ export async function showFilePathDialog(
 export async function showMetadataValidationErrors(
   errors: string[],
   scriptName: string,
-): Promise<"fix" | "ignore" | "cancel"> {
+): Promise<{ action: "fix" | "ignore" | "cancel"; dontAskAgain: boolean }> {
   const choice = await vscode.window.showWarningMessage(
     `Metadata validation errors found in "${scriptName}":`,
     {
@@ -231,15 +241,21 @@ export async function showMetadataValidationErrors(
     },
     "Fix Automatically",
     "Ignore Errors",
+    "Always Fix",
+    "Always Ignore",
     "Cancel",
   );
 
   switch (choice) {
     case "Fix Automatically":
-      return "fix";
+      return { action: "fix", dontAskAgain: false };
     case "Ignore Errors":
-      return "ignore";
+      return { action: "ignore", dontAskAgain: false };
+    case "Always Fix":
+      return { action: "fix", dontAskAgain: true };
+    case "Always Ignore":
+      return { action: "ignore", dontAskAgain: true };
     default:
-      return "cancel";
+      return { action: "cancel", dontAskAgain: false };
   }
 }

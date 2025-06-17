@@ -342,39 +342,29 @@ export class MetadataService {
    * Creates default metadata object for client-side operations
    */
   createDefaultMetadata(scriptObject: VizScriptObject): any {
-    const now = new Date().toISOString();
+    const now = this.formatLocalDateTime(new Date());
 
     const metadata: any = {
+      UUID: this.generateUUID(),
       scenePath: scriptObject.scenePath || "",
       filePath: "", // Will be set when file is saved locally
       fileName: scriptObject.name || "untitled",
-      UUID: this.generateUUID(),
       scriptType: scriptObject.type || "Scene",
-      vizId: scriptObject.vizId || "",
       lastModified: now,
-      version: "1.0.0",
-      author: "VSCode User",
-      description: `Auto-generated metadata for ${scriptObject.name || "script"}`,
     };
 
-    // Only add treePath for container scripts
-    if (scriptObject.type === "Container" && scriptObject.treePath) {
-      metadata.treePath = scriptObject.treePath;
-    }
-
-    // Add treePath array for group collections
-    if (scriptObject.isGroup && scriptObject.treePath) {
-      metadata.treePath = scriptObject.treePath;
+    // Add group flag for collections
+    if (scriptObject.isGroup) {
       metadata.isGroup = true;
     }
 
-    return metadata;
+    return this.sortMetadata(metadata);
   }
 
   /**
    * Generates a simple UUID for client-side use
    */
-  private generateUUID(): string {
+  public generateUUID(): string {
     return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
       const r = (Math.random() * 16) | 0;
       const v = c === "x" ? r : (r & 0x3) | 0x8;
@@ -395,8 +385,46 @@ export class MetadataService {
     }
 
     // Always update lastModified when merging
-    merged["lastModified"] = new Date().toISOString();
+    merged["lastModified"] = this.formatLocalDateTime(new Date());
 
-    return merged;
+    return this.sortMetadata(merged);
+  }
+
+  /**
+   * Formats date in local timezone as DD/MM/YYYY HH:mm
+   */
+  public formatLocalDateTime(date: Date): string {
+    const day = String(date.getDate()).padStart(2, "0");
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const year = date.getFullYear();
+    const hours = String(date.getHours()).padStart(2, "0");
+    const minutes = String(date.getMinutes()).padStart(2, "0");
+
+    return `${day}/${month}/${year} ${hours}:${minutes}`;
+  }
+
+  /**
+   * Sorts metadata fields in the desired order
+   */
+  private sortMetadata(metadata: any): any {
+    const fieldOrder = ["UUID", "scenePath", "filePath", "fileName", "scriptType", "lastModified"];
+
+    const sorted: any = {};
+
+    // Add fields in the specified order
+    for (const field of fieldOrder) {
+      if (metadata.hasOwnProperty(field)) {
+        sorted[field] = metadata[field];
+      }
+    }
+
+    // Add any remaining fields that weren't in the ordered list
+    for (const [key, value] of Object.entries(metadata)) {
+      if (!fieldOrder.includes(key)) {
+        sorted[key] = value;
+      }
+    }
+
+    return sorted;
   }
 }

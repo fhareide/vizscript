@@ -67,6 +67,7 @@ export function getVizScripts(
         }
         currentObjectId = answer[3];
         context.workspaceState.update("currentSceneId", currentObjectId);
+        context.workspaceState.update("currentScenePath", scenePath);
         try {
           const scriptContent = await getVizScriptContent(host, port, currentObjectId);
           const cleanName = cleanString(scriptContent[1]);
@@ -174,14 +175,7 @@ export function getVizScripts(
           // Replace scriptObjects with the final list
           scriptObjects = finalScriptObjects;
 
-          // Enrich scripts with tree paths for future stability
-          try {
-            const treeService = new TreeService();
-            scriptObjects = await treeService.enrichScriptObjectsWithTreePaths(scriptObjects, host, port, layer);
-            console.log("Scripts enriched with tree paths");
-          } catch (error) {
-            console.warn("Failed to enrich scripts with tree paths:", error);
-          }
+          console.log("Scripts fetched successfully without tree path enrichment");
 
           // Do something with scriptObjects, e.g., send them back to the client
           await saveToStorage(context, scriptObjects);
@@ -435,14 +429,55 @@ export function compileScriptId(
       replyCode = answer[1];
 
       if (replyCode == "1") {
-        const currentSceneId = context.workspaceState.get("currentSceneId");
-        if (currentSceneId !== answer[3]) {
-          window.showErrorMessage("Scene ID mismatch. Please try again.");
+        // Get the current scene UUID from the targeted layer
+        if (answer[3].startsWith("ERROR") || answer[3] === "<00000000-0000-0000-0000000000000000>") {
+          window.showErrorMessage(`No scene loaded in ${selectedLayer}. Please load a scene first.`);
           socket.end();
           return;
         }
-        socket.write("-1 " + scriptId + "*SCRIPT*PLUGIN STOP " + String.fromCharCode(0));
-        socket.write("3 " + scriptId + "*SCRIPT*PLUGIN*SOURCE_CODE SET " + text + " " + String.fromCharCode(0));
+
+        // Get scene path from the current scene in the targeted layer
+        socket.write("PATH FILENAME_FROM_UUID GET " + answer[3] + String.fromCharCode(0));
+      } else if (replyCode == "PATH") {
+        if (answer[3].startsWith("ERROR")) {
+          window.showErrorMessage("Unable to get scene path from the current scene. Please try again.");
+          socket.end();
+          return;
+        }
+
+        // The current scene path in the targeted layer
+        const currentScenePath = answer[3];
+
+        // Get the expected scene path from script metadata if available
+        const cachedScenePath = context.workspaceState.get("currentScenePath");
+
+        console.log(`Scene validation - Cached: "${cachedScenePath}", Current: "${currentScenePath}"`);
+
+        // Only validate if we have both scene paths and they're different
+        if (cachedScenePath && currentScenePath && cachedScenePath !== currentScenePath) {
+          window
+            .showWarningMessage(
+              `Scene mismatch detected!`,
+              {
+                modal: true,
+                detail: `Script was fetched from: ${cachedScenePath}\nCurrent scene in ${selectedLayer}: ${currentScenePath}\n\nDo you want to continue anyway?`,
+              },
+              "Continue Anyway",
+              "Cancel",
+            )
+            .then((choice) => {
+              if (choice !== "Continue Anyway") {
+                socket.end();
+                return;
+              }
+
+              socket.write("-1 " + scriptId + "*SCRIPT*PLUGIN STOP " + String.fromCharCode(0));
+              socket.write("3 " + scriptId + "*SCRIPT*PLUGIN*SOURCE_CODE SET " + text + " " + String.fromCharCode(0));
+            });
+        } else {
+          socket.write("-1 " + scriptId + "*SCRIPT*PLUGIN STOP " + String.fromCharCode(0));
+          socket.write("3 " + scriptId + "*SCRIPT*PLUGIN*SOURCE_CODE SET " + text + " " + String.fromCharCode(0));
+        }
       } else if (replyCode == "3") {
         socket.write("4 " + scriptId + "*SCRIPT*PLUGIN COMPILE " + String.fromCharCode(0));
       } else if (replyCode == "4") {
