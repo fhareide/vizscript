@@ -133,40 +133,218 @@ export async function getAndDisplayVizScript(
       throw new Error("No script selected.");
     }
 
-    let options: QuickPickItem[] = [];
-    let currentFileItem: QuickPickItem = {
-      description: "",
-      label: "Add script to current file",
-      detail: "",
-    };
-    let newFileItem: QuickPickItem = {
-      description: "",
-      label: "Open script in new file",
-      detail: "",
-    };
+    // Get the script object from storage to check for local file
+    const state = await loadFromStorage(context);
+    const scriptObjects: VizScriptObject[] = state;
+    if (!scriptObjects) {
+      throw new Error("No script objects found.");
+    }
 
-    if (window.activeTextEditor == undefined) {
-      options = [newFileItem];
+    const vizId = (<QuickPickItem>selectedScript).label;
+    const scriptObject = scriptObjects.find((element) => element.vizId === vizId);
+    if (!scriptObject) {
+      throw new Error("No script object found.");
+    }
+
+    // Check if a local file exists for this script
+    const fileService = new FileService();
+    let fileSearchResult = null;
+    let fileStatus = "";
+
+    // Try to find file using metadata if available
+    const metadataService = new MetadataService(client);
+    const metadataResult = await metadataService.extractMetadataFromContent(scriptObject.code);
+
+    if (metadataResult.success && metadataResult.metadata?.filePath) {
+      fileSearchResult = await fileService.findFileWithPreferences(metadataResult.metadata.filePath);
+    }
+
+    // If no file found via metadata, try to find it by suggested name
+    if (!fileSearchResult?.found) {
+      const suggestedPath = fileService.generateSuggestedFilePath(
+        scriptObject.name,
+        scriptObject.type,
+        scriptObject.scenePath,
+      );
+      fileSearchResult = await fileService.findFileWithPreferences(suggestedPath);
+    }
+
+    // Prepare menu options based on file existence
+    let options: QuickPickItem[] = [];
+
+    if (fileSearchResult?.found && fileSearchResult.uri) {
+      // File exists - check if content matches
+      const diffResult = await fileService.compareFileContent(fileSearchResult.uri, scriptObject.code);
+
+      if (diffResult.isDifferent) {
+        // Debug: Log the differences to help troubleshoot
+        console.log("Files detected as different, debugging...");
+        await fileService.debugContentDifferences(fileSearchResult.uri, scriptObject.code);
+
+        fileStatus = `📄 Local file found: ${fileSearchResult.relativePath || fileSearchResult.absolutePath} (Content differs)`;
+
+        // File exists but content is different
+        options = [
+          {
+            label: "Open in new file",
+            description: "Create new untitled file with Viz script content",
+            detail: "Opens the script from Viz in a new untitled editor tab",
+          },
+          {
+            label: "Compare and open existing file",
+            description: "Show diff then choose local or Viz version",
+            detail: "Compare local file with Viz script and choose which to keep",
+          },
+          {
+            label: "Open local file",
+            description: "Open the existing local file",
+            detail: `Opens: ${fileSearchResult.relativePath || fileSearchResult.absolutePath}`,
+          },
+        ];
+      } else {
+        fileStatus = `📄 Local file found: ${fileSearchResult.relativePath || fileSearchResult.absolutePath} (Content matches)`;
+
+        // File exists and content matches
+        options = [
+          {
+            label: "Open existing file",
+            description: "Open the local file (content matches Viz)",
+            detail: `Opens: ${fileSearchResult.relativePath || fileSearchResult.absolutePath}`,
+          },
+          {
+            label: "Open in new file",
+            description: "Create new untitled file anyway",
+            detail: "Opens the script from Viz in a new untitled editor tab",
+          },
+        ];
+      }
     } else {
-      options = [newFileItem, currentFileItem];
+      fileStatus = "📄 No local file found";
+
+      // No file exists
+      options = [
+        {
+          label: "Open in new file",
+          description: "Create new untitled file with Viz script content",
+          detail: "Opens the script from Viz in a new untitled editor tab",
+        },
+      ];
+    }
+
+    // Add current file option if there's an active editor
+    if (window.activeTextEditor) {
+      options.push({
+        label: "Add script to current file",
+        description: "Replace current file content with Viz script",
+        detail: "Replaces the content of the currently active editor",
+      });
     }
 
     const selection = await window.showQuickPick(options, {
       matchOnDescription: true,
       matchOnDetail: false,
-      placeHolder: "Select option",
+      placeHolder: fileStatus,
     });
 
     if (!selection) {
       throw new Error("No selection made.");
     }
 
-    let vizId = (<QuickPickItem>selectedScript).label;
-    const openInNewFile = selection.label === "Open script in new file";
+    // Handle the selection
+    switch (selection.label) {
+      case "Open in new file":
+        await openScriptInTextEditor(context, client, vizId, true);
+        break;
 
-    await openScriptInTextEditor(context, client, vizId, openInNewFile);
+      case "Add script to current file":
+        await openScriptInTextEditor(context, client, vizId, false);
+        break;
+
+      case "Open existing file":
+      case "Open local file":
+        if (fileSearchResult?.uri) {
+          await fileService.openFile(fileSearchResult.uri);
+        }
+        break;
+
+      case "Compare and open existing file":
+        if (fileSearchResult?.uri) {
+          await handleCompareAndOpen(context, client, fileService, fileSearchResult.uri, scriptObject, vizId);
+        }
+        break;
+    }
   } catch (error) {
     showMessage(error);
+  }
+}
+
+/**
+ * Handles the compare and open workflow
+ */
+async function handleCompareAndOpen(
+  context: ExtensionContext,
+  client: LanguageClient,
+  fileService: FileService,
+  localFileUri: vscode.Uri,
+  scriptObject: VizScriptObject,
+  vizId: string,
+): Promise<void> {
+  try {
+    // First show the diff
+    const localDoc = await vscode.workspace.openTextDocument(localFileUri);
+    const localContent = localDoc.getText();
+
+    await fileService.showDiff(
+      localContent,
+      scriptObject.code,
+      `Local: ${path.basename(localFileUri.fsPath)}`,
+      `Viz: ${scriptObject.name}${scriptObject.extension}`,
+      `Compare ${scriptObject.name}`,
+    );
+
+    // Show choice dialog
+    const choice = await vscode.window.showInformationMessage(
+      `Files differ. Which version would you like to keep?`,
+      {
+        modal: true,
+        detail: `Local file: ${vscode.workspace.asRelativePath(localFileUri)}\nViz script: ${scriptObject.name}`,
+      },
+      "Keep Local Version",
+      "Use Viz Version",
+      "Merge Manually",
+      "Cancel",
+    );
+
+    switch (choice) {
+      case "Keep Local Version":
+        // Just open the local file
+        await fileService.openFile(localFileUri);
+        break;
+
+      case "Use Viz Version":
+        // Replace local file content with Viz version
+        const edit = new vscode.WorkspaceEdit();
+        const fullRange = new vscode.Range(localDoc.positionAt(0), localDoc.positionAt(localDoc.getText().length));
+        edit.replace(localFileUri, fullRange, scriptObject.code);
+        await vscode.workspace.applyEdit(edit);
+        await fileService.openFile(localFileUri);
+        vscode.window.showInformationMessage("Local file updated with Viz script content");
+        break;
+
+      case "Merge Manually":
+        // Open both files side by side for manual merging
+        await fileService.openFile(localFileUri, { viewColumn: vscode.ViewColumn.One });
+        await openScriptInTextEditor(context, client, vizId, true);
+        await vscode.commands.executeCommand("workbench.action.focusSecondEditorGroup");
+        vscode.window.showInformationMessage("Files opened side by side for manual merging");
+        break;
+
+      default:
+        // Cancel - do nothing
+        break;
+    }
+  } catch (error) {
+    vscode.window.showErrorMessage(`Error during compare and open: ${error.message}`);
   }
 }
 

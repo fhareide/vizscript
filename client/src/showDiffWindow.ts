@@ -9,6 +9,7 @@ import {
   commands,
   TextDocument,
 } from "vscode";
+import { FileService } from "./fileService";
 
 export async function diffWithActiveEditor(
   id: string,
@@ -25,22 +26,22 @@ export async function diffWithActiveEditor(
   }
 
   try {
-    // Normalize and URI-encode the provided content
-    const normalizeContent = (text: string) => encodeURIComponent(text.replace(/\r\n/g, "\n").trim());
+    const fileService = new FileService();
 
-    const normalizedContent = normalizeContent(content);
-    const encodedContent = encodeURIComponent(content);
-    const diffUri = Uri.parse(`diff:${name}${fileExtension}?${encodedContent}`);
-
-    // Normalize and URI-encode the active editor content
+    // Use the enhanced normalization for comparison
+    const normalizedContent = fileService.normalizeForComparison(content);
     const activeEditorContent = activeEditor.document.getText();
-    const encodedActiveEditorContent = normalizeContent(activeEditorContent);
+    const normalizedActiveContent = fileService.normalizeForComparison(activeEditorContent);
 
-    // Compare the encoded contents
-    if (normalizedContent === encodedActiveEditorContent) {
+    // Compare the normalized contents
+    if (normalizedContent === normalizedActiveContent) {
       window.showInformationMessage("Scripts are identical");
       return;
     }
+
+    // For the actual diff display, use the original content
+    const encodedContent = encodeURIComponent(content);
+    const diffUri = Uri.parse(`diff:${name}${fileExtension}?${encodedContent}`);
 
     // Temporarily set the `diffEditor.renderSideBySide` setting to `true`
     const configuration = workspace.getConfiguration("diffEditor");

@@ -7,6 +7,7 @@ import * as net from "net";
 import { ExtensionContext, Progress, window } from "vscode";
 import { loadFromStorage, saveToStorage } from "./commands";
 import { SceneService } from "./sceneService";
+import { FileService } from "./fileService";
 import type { VizScriptObject } from "./shared/types";
 
 let sceneId = "";
@@ -121,22 +122,26 @@ export function getVizScripts(
           // Map to store scripts by vizId
           const scriptMap = new Map<string, VizScriptObject>();
 
-          // Map to group script vizIds by content
-          const contentMap = new Map<string, string[]>(); // Map from script content to array of vizIds
+          // Map to group script vizIds by normalized content
+          const contentMap = new Map<string, string[]>(); // Map from normalized script content to array of vizIds
+
+          // Create FileService instance for content normalization
+          const fileService = new FileService();
 
           // Iterate over scriptObjects to populate scriptMap and contentMap
           for (const script of scriptObjects) {
             const vizId = script.vizId;
-            const scriptContent = script.code;
+            // Normalize the script content for proper comparison
+            const normalizedContent = fileService.normalizeForComparison(script.code);
 
             // Store script in scriptMap
             scriptMap.set(vizId, script);
 
-            // Update contentMap to group vizIds by content
-            if (contentMap.has(scriptContent)) {
-              contentMap.get(scriptContent).push(vizId);
+            // Update contentMap to group vizIds by normalized content
+            if (contentMap.has(normalizedContent)) {
+              contentMap.get(normalizedContent).push(vizId);
             } else {
-              contentMap.set(scriptContent, [vizId]);
+              contentMap.set(normalizedContent, [vizId]);
             }
           }
 

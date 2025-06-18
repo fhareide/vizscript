@@ -104,7 +104,11 @@ export class FileService {
       const localDocument = await vscode.workspace.openTextDocument(localUri);
       const localContent = localDocument.getText();
 
-      const isDifferent = localContent.trim() !== remoteContent.trim();
+      // Normalize both contents for comparison
+      const normalizedLocal = this.normalizeContentForComparison(localContent);
+      const normalizedRemote = this.normalizeContentForComparison(remoteContent);
+
+      const isDifferent = normalizedLocal !== normalizedRemote;
 
       return {
         isDifferent,
@@ -120,6 +124,74 @@ export class FileService {
         filePath: localUri.fsPath,
       };
     }
+  }
+
+  /**
+   * Normalizes content for comparison by handling line endings, whitespace, and metadata timestamps
+   */
+  private normalizeContentForComparison(content: string): string {
+    // Step 1: Normalize line endings to LF
+    let normalized = content.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+
+    // Step 2: Remove metadata sections that might have changing timestamps
+    normalized = this.removeChangingMetadata(normalized);
+
+    // Step 3: Normalize whitespace - trim each line and remove empty lines at start/end
+    const lines = normalized.split("\n").map((line) => line.trimEnd()); // Remove trailing whitespace from each line
+
+    // Remove empty lines from start and end
+    while (lines.length > 0 && lines[0].trim() === "") {
+      lines.shift();
+    }
+    while (lines.length > 0 && lines[lines.length - 1].trim() === "") {
+      lines.pop();
+    }
+
+    return lines.join("\n");
+  }
+
+  /**
+   * Removes or normalizes metadata that frequently changes (like timestamps)
+   */
+  private removeChangingMetadata(content: string): string {
+    const lines = content.split("\n");
+    const result: string[] = [];
+    let inMetadata = false;
+
+    for (const line of lines) {
+      if (line.includes("VSCODE-META-START")) {
+        inMetadata = true;
+        result.push(line);
+        continue;
+      }
+
+      if (line.includes("VSCODE-META-END")) {
+        inMetadata = false;
+        result.push(line);
+        continue;
+      }
+
+      if (inMetadata) {
+        // Skip or normalize changing metadata fields
+        const cleanLine = line.startsWith("'") ? line.substring(1).trim() : line.trim();
+
+        // Skip timestamp fields that frequently change
+        if (
+          cleanLine.includes('"lastUpdated"') ||
+          cleanLine.includes('"createdAt"') ||
+          cleanLine.includes('"timestamp"')
+        ) {
+          // Skip this line entirely or replace with normalized version
+          continue;
+        }
+
+        result.push(line);
+      } else {
+        result.push(line);
+      }
+    }
+
+    return result.join("\n");
   }
 
   /**
@@ -448,5 +520,79 @@ export class FileService {
     }
 
     return relativePath;
+  }
+
+  /**
+   * Debug method to show exactly what differences exist between two contents
+   */
+  async debugContentDifferences(localUri: vscode.Uri, remoteContent: string): Promise<void> {
+    try {
+      const localDocument = await vscode.workspace.openTextDocument(localUri);
+      const localContent = localDocument.getText();
+
+      console.log("=== CONTENT COMPARISON DEBUG ===");
+      console.log("Local file:", localUri.fsPath);
+      console.log("Local content length:", localContent.length);
+      console.log("Remote content length:", remoteContent.length);
+
+      // Check basic trimmed comparison
+      const basicEqual = localContent.trim() === remoteContent.trim();
+      console.log("Basic trim comparison equal:", basicEqual);
+
+      // Check normalized comparison
+      const normalizedLocal = this.normalizeContentForComparison(localContent);
+      const normalizedRemote = this.normalizeContentForComparison(remoteContent);
+      const normalizedEqual = normalizedLocal === normalizedRemote;
+      console.log("Normalized comparison equal:", normalizedEqual);
+
+      if (!normalizedEqual) {
+        console.log("Normalized local length:", normalizedLocal.length);
+        console.log("Normalized remote length:", normalizedRemote.length);
+
+        // Find first difference
+        const minLength = Math.min(normalizedLocal.length, normalizedRemote.length);
+        for (let i = 0; i < minLength; i++) {
+          if (normalizedLocal[i] !== normalizedRemote[i]) {
+            console.log(`First difference at position ${i}:`);
+            console.log(`Local char: "${normalizedLocal[i]}" (code: ${normalizedLocal.charCodeAt(i)})`);
+            console.log(`Remote char: "${normalizedRemote[i]}" (code: ${normalizedRemote.charCodeAt(i)})`);
+            console.log(`Context: "${normalizedLocal.substring(Math.max(0, i - 10), i + 10)}"`);
+            break;
+          }
+        }
+
+        if (normalizedLocal.length !== normalizedRemote.length) {
+          console.log("Length difference detected");
+          if (normalizedLocal.length > normalizedRemote.length) {
+            console.log("Local has extra content:", normalizedLocal.substring(normalizedRemote.length));
+          } else {
+            console.log("Remote has extra content:", normalizedRemote.substring(normalizedLocal.length));
+          }
+        }
+      }
+
+      // Check line ending differences
+      const localHasCRLF = localContent.includes("\r\n");
+      const remoteHasCRLF = remoteContent.includes("\r\n");
+      console.log("Local has CRLF:", localHasCRLF);
+      console.log("Remote has CRLF:", remoteHasCRLF);
+
+      // Check for metadata differences
+      const localHasMetadata = localContent.includes("VSCODE-META-START");
+      const remoteHasMetadata = remoteContent.includes("VSCODE-META-START");
+      console.log("Local has metadata:", localHasMetadata);
+      console.log("Remote has metadata:", remoteHasMetadata);
+
+      console.log("=== END DEBUG ===");
+    } catch (error) {
+      console.error("Error in debug method:", error);
+    }
+  }
+
+  /**
+   * Public method to normalize content for comparison - can be used by other modules
+   */
+  normalizeForComparison(content: string): string {
+    return this.normalizeContentForComparison(content);
   }
 }
