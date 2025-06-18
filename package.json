@@ -318,6 +318,30 @@
 					"default": false,
 					"description": "Automatically inject/update metadata without prompting",
 					"scope": "resource"
+				},
+				"vizscript.files.preferLocalFiles": {
+					"type": "boolean",
+					"default": true,
+					"description": "When opening scripts, prefer local files if they exist and content matches",
+					"scope": "resource"
+				},
+				"vizscript.files.promptOnDifference": {
+					"type": "boolean",
+					"default": true,
+					"description": "Prompt user when local file exists but content differs from Viz script",
+					"scope": "resource"
+				},
+				"vizscript.files.useAbsolutePaths": {
+					"type": "boolean",
+					"default": false,
+					"description": "Use absolute file paths instead of workspace-relative paths in metadata",
+					"scope": "resource"
+				},
+				"vizscript.files.alwaysPromptFileChoice": {
+					"type": "boolean",
+					"default": false,
+					"description": "Always prompt user to choose between local and remote when both exist",
+					"scope": "resource"
 				}
 			}
 		},

@@ -2,10 +2,10 @@ import * as net from "net";
 import { VizScriptObject } from "./shared/types";
 
 /**
- * TreeService handles tree structure validation and scene path operations
+ * SceneService handles scene structure validation and scene path operations
  * Simplified for UUID-based system - treePath functionality removed
  */
-export class TreeService {
+export class SceneService {
   /**
    * Validates that a script's scene path matches the current scene
    */

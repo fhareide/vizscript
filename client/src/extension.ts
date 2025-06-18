@@ -12,6 +12,7 @@ import { PreviewContentProvider } from "./previewContentProvider";
 import { SidebarProvider } from "./sidebarProvider";
 import { VizScriptObject } from "./shared/types";
 import { MetadataService } from "./metadataService";
+import { FileService } from "./fileService";
 import { randomUUID } from "crypto";
 
 let client: LanguageClient;
@@ -49,50 +50,8 @@ async function handleDocumentSave(document: vscode.TextDocument, client: Languag
   }
 
   try {
-    const metadataService = new MetadataService(client);
-    const content = document.getText();
-    const lines = content.split(/\r?\n/g);
-
-    // Check if document has metadata
-    const hasMetadata = detectMetadataInLines(lines);
-    if (!hasMetadata) {
-      return;
-    }
-
-    // Get the relative path from workspace root
-    const workspaceFolder = vscode.workspace.getWorkspaceFolder(document.uri);
-    if (!workspaceFolder) {
-      return;
-    }
-
-    const relativePath = vscode.workspace.asRelativePath(document.uri);
-
-    // Extract current metadata
-    const metadataResult = await metadataService.extractMetadataFromContent(content);
-    if (!metadataResult.success || !metadataResult.metadata) {
-      return;
-    }
-
-    const currentMetadata = metadataResult.metadata;
-
-    // Check if filePath needs to be updated
-    if (currentMetadata.filePath === relativePath) {
-      return; // No update needed
-    }
-
-    // Update the filePath
-    const updatedMetadata = { ...currentMetadata, filePath: relativePath };
-    const updateResult = await metadataService.updateMetadataInContent(content, updatedMetadata);
-
-    if (updateResult.success) {
-      // Apply the updated content to the document
-      const edit = new vscode.WorkspaceEdit();
-      const fullRange = new vscode.Range(document.positionAt(0), document.positionAt(content.length));
-      edit.replace(document.uri, fullRange, updateResult.content);
-      await vscode.workspace.applyEdit(edit);
-
-      console.log(`Updated filePath to "${relativePath}" in metadata for ${document.fileName}`);
-    }
+    const fileService = new FileService();
+    await fileService.updateFilePathInMetadata(document);
   } catch (error) {
     console.error("Error updating filePath in metadata:", error);
   }

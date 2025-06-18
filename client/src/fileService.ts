@@ -6,6 +6,8 @@ export interface FileSearchResult {
   uri?: vscode.Uri;
   relativePath?: string;
   workspaceFolder?: vscode.WorkspaceFolder;
+  isInWorkspace?: boolean;
+  absolutePath?: string;
 }
 
 export interface FileDiffResult {
@@ -201,11 +203,186 @@ export class FileService {
   }
 
   /**
+   * Shows a choice dialog when local file exists (even if content matches)
+   */
+  async showFileFoundChoice(
+    filePath: string,
+    fileName: string,
+    contentMatches: boolean,
+  ): Promise<"openLocal" | "openRemote" | "showDiff" | "cancel"> {
+    const matchText = contentMatches ? "Content matches" : "Content differs";
+    const choice = await vscode.window.showInformationMessage(
+      `Found local file "${fileName}". ${matchText}.`,
+      {
+        modal: true,
+        detail: `Local file: ${filePath}\n\nWhat would you like to do?`,
+      },
+      "Open Local File",
+      "Open Viz Script",
+      ...(contentMatches ? [] : ["Show Diff First"]),
+      "Cancel",
+    );
+
+    switch (choice) {
+      case "Open Local File":
+        return "openLocal";
+      case "Open Viz Script":
+        return "openRemote";
+      case "Show Diff First":
+        return "showDiff";
+      default:
+        return "cancel";
+    }
+  }
+
+  /**
+   * Checks if the current workspace has any folders or if files are opened directly
+   */
+  isInWorkspace(): boolean {
+    return !!(vscode.workspace.workspaceFolders && vscode.workspace.workspaceFolders.length > 0);
+  }
+
+  /**
+   * Gets the appropriate file path based on user preferences
+   */
+  getPreferredFilePath(uri: vscode.Uri, useAbsolute?: boolean): string {
+    const config = vscode.workspace.getConfiguration("vizscript.files");
+    const shouldUseAbsolute = useAbsolute ?? config.get<boolean>("useAbsolutePaths", false);
+
+    if (shouldUseAbsolute || !this.isInWorkspace()) {
+      return uri.fsPath;
+    } else {
+      return vscode.workspace.asRelativePath(uri);
+    }
+  }
+
+  /**
+   * Enhanced file search that respects user preferences and workspace context
+   */
+  async findFileWithPreferences(filePath: string): Promise<FileSearchResult> {
+    const searchResult = await this.findFileInWorkspace(filePath);
+
+    if (searchResult.found && searchResult.uri) {
+      const isInWorkspace = this.isInWorkspace() && !!vscode.workspace.getWorkspaceFolder(searchResult.uri);
+      const absolutePath = searchResult.uri.fsPath;
+
+      return {
+        ...searchResult,
+        isInWorkspace,
+        absolutePath,
+      };
+    }
+
+    return searchResult;
+  }
+
+  /**
    * Updates the filePath in metadata when a file is saved
    */
   async updateFilePathInMetadata(document: vscode.TextDocument): Promise<void> {
-    // This will be implemented when we add save event handling
-    // For now, this is a placeholder for future enhancement
+    try {
+      // Check if the document contains viz script metadata
+      const content = document.getText();
+      const lines = content.split(/\r?\n/g);
+
+      // Simple check for metadata existence
+      const hasMetadata = lines.some((line) => line.includes("VSCODE-META-START"));
+      if (!hasMetadata) {
+        return; // No metadata to update
+      }
+
+      // Get the preferred file path
+      const preferredPath = this.getPreferredFilePath(document.uri);
+
+      // Extract current metadata
+      let inMetaSection = false;
+      const metadataLines: string[] = [];
+
+      for (const line of lines) {
+        if (line.includes("VSCODE-META-START")) {
+          inMetaSection = true;
+          continue;
+        }
+        if (line.includes("VSCODE-META-END")) {
+          inMetaSection = false;
+          break;
+        }
+        if (inMetaSection) {
+          const cleanLine = line.startsWith("'") ? line.substring(1) : line;
+          metadataLines.push(cleanLine);
+        }
+      }
+
+      if (metadataLines.length === 0) {
+        return; // No valid metadata found
+      }
+
+      try {
+        const metadataJson = metadataLines.join("\n");
+        const metadata = JSON.parse(metadataJson);
+
+        // Update the filePath if it's different
+        if (metadata.filePath !== preferredPath) {
+          metadata.filePath = preferredPath;
+          metadata.lastUpdated = new Date().toISOString();
+
+          // Update the metadata in the document
+          await this.updateMetadataInDocument(document, metadata);
+        }
+      } catch (error) {
+        console.warn("Error updating metadata filePath:", error);
+      }
+    } catch (error) {
+      console.warn("Error in updateFilePathInMetadata:", error);
+    }
+  }
+
+  /**
+   * Updates metadata in a document
+   */
+  private async updateMetadataInDocument(document: vscode.TextDocument, metadata: any): Promise<void> {
+    const workspaceEdit = new vscode.WorkspaceEdit();
+    const content = document.getText();
+    const lines = content.split(/\r?\n/g);
+
+    // Find metadata section and replace it
+    let startLine = -1;
+    let endLine = -1;
+
+    for (let i = 0; i < lines.length; i++) {
+      if (lines[i].includes("VSCODE-META-START")) {
+        startLine = i;
+      }
+      if (lines[i].includes("VSCODE-META-END")) {
+        endLine = i;
+        break;
+      }
+    }
+
+    if (startLine !== -1 && endLine !== -1) {
+      const newMetadataLines = this.generateMetadataBlock(metadata);
+      const range = new vscode.Range(startLine, 0, endLine + 1, 0);
+      workspaceEdit.replace(document.uri, range, newMetadataLines.join("\n") + "\n");
+      await vscode.workspace.applyEdit(workspaceEdit);
+    }
+  }
+
+  /**
+   * Generates metadata block lines
+   */
+  private generateMetadataBlock(metadata: any): string[] {
+    const lines: string[] = [];
+    lines.push("' VSCODE-META-START");
+
+    const jsonString = JSON.stringify(metadata, null, 2);
+    const jsonLines = jsonString.split("\n");
+
+    for (const line of jsonLines) {
+      lines.push(`'${line}`);
+    }
+
+    lines.push("' VSCODE-META-END");
+    return lines;
   }
 
   /**
@@ -240,7 +417,7 @@ export class FileService {
   }
 
   /**
-   * Generates a suggested file path for a script
+   * Generates a suggested file path for a script based on user preferences
    */
   generateSuggestedFilePath(scriptName: string, scriptType: string, scenePath: string): string {
     // Clean the script name for file system
@@ -251,7 +428,25 @@ export class FileService {
 
     // Create a suggested path structure
     const sceneFolder = scenePath ? path.basename(scenePath) : "scripts";
+    const relativePath = path.join(sceneFolder, `${cleanName}${extension}`);
 
-    return path.join(sceneFolder, `${cleanName}${extension}`);
+    // Check if we should use absolute paths
+    const config = vscode.workspace.getConfiguration("vizscript.files");
+    const useAbsolutePaths = config.get<boolean>("useAbsolutePaths", false);
+
+    if (useAbsolutePaths || !this.isInWorkspace()) {
+      // For absolute paths, we need a base directory
+      const workspaceFolders = vscode.workspace.workspaceFolders;
+      if (workspaceFolders && workspaceFolders.length > 0) {
+        const baseUri = workspaceFolders[0].uri;
+        const fullPath = vscode.Uri.joinPath(baseUri, relativePath);
+        return fullPath.fsPath;
+      } else {
+        // No workspace, use relative path anyway
+        return relativePath;
+      }
+    }
+
+    return relativePath;
   }
 }

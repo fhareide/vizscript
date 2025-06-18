@@ -6,7 +6,7 @@
 import * as net from "net";
 import { ExtensionContext, Progress, window } from "vscode";
 import { loadFromStorage, saveToStorage } from "./commands";
-import { TreeService } from "./treeService";
+import { SceneService } from "./sceneService";
 import type { VizScriptObject } from "./shared/types";
 
 let sceneId = "";

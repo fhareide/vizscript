@@ -29,7 +29,7 @@ import { showUntitledWindow } from "./showUntitledWindow";
 import { compileScript, compileScriptId, getVizScripts } from "./vizCommunication";
 import { MetadataService } from "./metadataService";
 import { FileService } from "./fileService";
-import { TreeService } from "./treeService";
+import { SceneService } from "./sceneService";
 import {
   showMetadataUpdateDialog,
   showMetadataInjectionDialog,
@@ -270,45 +270,63 @@ async function processScriptWithLocalFileIntegration(
   const fileService = new FileService();
   const metadataService = new MetadataService(client);
 
+  // Get user preferences for file handling
+  const config = vscode.workspace.getConfiguration("vizscript.files");
+  const preferLocalFiles = config.get<boolean>("preferLocalFiles", true);
+  const promptOnDifference = config.get<boolean>("promptOnDifference", true);
+  const alwaysPromptFileChoice = config.get<boolean>("alwaysPromptFileChoice", false);
+
+  // Skip local file checking if user preferences or options indicate so
+  if (!preferLocalFiles || options.forceRemote || options.preview) {
+    return await processScriptWithMetadata(context, client, scriptObject, options);
+  }
+
   // First, check if the script has metadata with filePath
   const originalContent = scriptObject.code;
   const lines = originalContent.split(/\r?\n/g);
   const hasMetadata = detectMetadataInLines(lines);
 
-  if (hasMetadata && !options.forceRemote) {
+  if (hasMetadata) {
     try {
       // Extract metadata to check for filePath
       const metadataResult = await metadataService.injectMetadataIntoContent(originalContent, scriptObject);
       if (metadataResult.success && metadataResult.metadata && metadataResult.metadata.filePath) {
         const filePath = metadataResult.metadata.filePath;
 
-        // Try to find the local file
-        const searchResult = await fileService.findFileInWorkspace(filePath);
+        // Try to find the local file with enhanced search
+        const searchResult = await fileService.findFileWithPreferences(filePath);
 
         if (searchResult.found && searchResult.uri) {
           // Compare content
           const diffResult = await fileService.compareFileContent(searchResult.uri, originalContent);
+          const contentMatches = !diffResult.isDifferent;
 
-          if (!diffResult.isDifferent) {
-            // Content is the same, open local file directly
+          // Determine appropriate file path for display
+          const displayPath = searchResult.relativePath || searchResult.absolutePath || searchResult.uri.fsPath;
+
+          // Handle based on content match and user preferences
+          if (contentMatches && !alwaysPromptFileChoice) {
+            // Content matches and user doesn't want to be prompted - open local file
             return {
               content: originalContent,
-              message: `Opening local file: ${searchResult.relativePath}`,
+              message: `Opening local file: ${displayPath}`,
               openLocalFile: true,
               localFileUri: searchResult.uri,
             };
+          } else if (!contentMatches && !promptOnDifference) {
+            // Content differs but user doesn't want prompts - continue with remote
+            console.log(`Local file differs but prompting disabled, using remote content for ${scriptObject.name}`);
           } else {
-            // Content differs, ask user what to do
-            const choice = await fileService.showFileDifferenceChoice(
-              searchResult.relativePath || searchResult.uri.fsPath,
-              scriptObject.name,
-            );
+            // Either content differs and prompting is enabled, or user wants to always choose
+            const choice = alwaysPromptFileChoice
+              ? await fileService.showFileFoundChoice(displayPath, scriptObject.name, contentMatches)
+              : await fileService.showFileDifferenceChoice(displayPath, scriptObject.name);
 
             switch (choice) {
               case "openLocal":
                 return {
                   content: diffResult.localContent || originalContent,
-                  message: `Opening local file: ${searchResult.relativePath}`,
+                  message: `Opening local file: ${displayPath}`,
                   openLocalFile: true,
                   localFileUri: searchResult.uri,
                 };
@@ -334,7 +352,7 @@ async function processScriptWithLocalFileIntegration(
                 if (afterDiffChoice === "Local File") {
                   return {
                     content: diffResult.localContent || originalContent,
-                    message: `Opening local file: ${searchResult.relativePath}`,
+                    message: `Opening local file: ${displayPath}`,
                     openLocalFile: true,
                     localFileUri: searchResult.uri,
                   };
@@ -639,7 +657,7 @@ async function validateAndHandleMetadataForScriptSetting(
   context: ExtensionContext,
 ): Promise<void> {
   const metadataService = new MetadataService(client);
-  const treeService = new TreeService();
+  const sceneService = new SceneService();
   const lines = content.split(/\r?\n/g);
   const hasMetadata = detectMetadataInLines(lines);
 
@@ -732,7 +750,7 @@ async function validateAndHandleMetadataForScriptSetting(
 
         // Validate scene path if present
         if (updatedMetadata.scenePath) {
-          const sceneValidation = await treeService.validateScenePath(
+          const sceneValidation = await sceneService.validateScenePath(
             updatedMetadata.scenePath,
             hostName,
             hostPort,
