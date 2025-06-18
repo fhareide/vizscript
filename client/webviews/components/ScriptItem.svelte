@@ -21,10 +21,6 @@
       isShiftClick: event.shiftKey
     });
 
-    // If preview on single click is enabled, also dispatch preview
-    if (sidebarSettings?.previewOnSingleClick) {
-      dispatch('preview', { script });
-    }
   };
 
 	const handleDoubleClick = () => {
@@ -49,7 +45,7 @@
 <!-- svelte-ignore a11y-no-static-element-interactions -->
 
 <div
-  title={sidebarSettings?.previewOnSingleClick ? 'Single-click to preview, double-click to edit' : (sidebarSettings?.doubleClickAction ? `Double-click ${sidebarSettings.doubleClickAction === 'edit' ? 'to edit' : 'to preview'}` : '')}
+  title={sidebarSettings?.doubleClickAction ? `Double-click ${sidebarSettings.doubleClickAction === 'edit' ? 'to edit' : 'to preview'}` : ''}
   on:click={handleScriptSelected}
 	on:dblclick={handleDoubleClick}
   on:contextmenu={handleRightClick}

@@ -414,12 +414,6 @@
 					"default": "edit",
 					"description": "Action to perform when double-clicking a script in the sidebar",
 					"scope": "resource"
-				},
-				"vizscript.sidebar.previewOnSingleClick": {
-					"type": "boolean",
-					"default": true,
-					"description": "Enable preview on single click (in addition to selection)",
-					"scope": "resource"
 				}
 			}
 		},
