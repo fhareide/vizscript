@@ -10,6 +10,7 @@
   let hostname = "localhost";
   let port = 6100;
   let sidebarSettings: any = {};
+  let useGlobalSettings = true; // Default to using global settings
 
 	let selectedLayer = "MAIN_SCENE";
   let previousLayer = selectedLayer;
@@ -74,10 +75,6 @@
 		});
 	};
 
-
-
-
-
 	const handleLayerChange = (event: Event) => {
 		const target = event.target as HTMLInputElement;
 		console.log("Target", target);
@@ -109,9 +106,15 @@
       vizscripts = [...message.value];
     } else if (message.type === "receiveSettings") {
       console.log("Settings received", message.value);
-      hostname = message.value.hostName;
-      port = message.value.hostPort;
+      
+      // Always update the settings object
       sidebarSettings = message.value.sidebar || {};
+      
+      // Only update hostname/port if using global settings
+      if (useGlobalSettings) {
+        hostname = message.value.hostName;
+        port = message.value.hostPort;
+      }
     } else if (message.type === "receiveState") {
       console.log("State received", message.value);
       vizscripts = [...message.value];
@@ -183,9 +186,41 @@
     }
   };
 
+  // Handle toggling between global settings and manual input
+  const handleGlobalSettingsToggle = (event: Event) => {
+    const target = event.target as HTMLInputElement;
+    useGlobalSettings = target.checked;
+    
+    if (useGlobalSettings) {
+      // Request current settings from extension
+      tsvscode.postMessage({ type: "getSettings" });
+    }
+    
+    // Save the preference in state
+    saveCurrentState();
+  };
 
+  // Save manual hostname/port changes to state when not using global settings
+  const handleManualConnectionChange = () => {
+    if (!useGlobalSettings) {
+      saveCurrentState();
+    }
+  };
+
+  // Helper function to save current state
+  const saveCurrentState = () => {
+    const currentState = tsvscode.getState() || {};
+    const updatedState = {
+      ...currentState,
+      useGlobalSettings,
+      manualHostname: useGlobalSettings ? undefined : hostname,
+      manualPort: useGlobalSettings ? undefined : port,
+    };
+    tsvscode.setState(updatedState);
+  };
 
   onMount(() => {
+    // Always get settings to populate the sidebar settings and conditionally the connection info
     tsvscode.postMessage({ type: "getSettings" });
     tsvscode.postMessage({ type: "loadState" });
 
@@ -196,6 +231,16 @@
 		selectedLayer = currentState.selectedLayer || "MAIN_SCENE";
 		previousLayer = selectedLayer;
 
+    // Restore the global settings preference if saved in state
+    if (currentState.useGlobalSettings !== undefined) {
+      useGlobalSettings = currentState.useGlobalSettings;
+    }
+
+    // If not using global settings, restore manual values from state
+    if (!useGlobalSettings && currentState.manualHostname && currentState.manualPort) {
+      hostname = currentState.manualHostname;
+      port = currentState.manualPort;
+    }
 
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
@@ -208,9 +253,33 @@
 <div class="h-full relative whitespace-nowrap w-full overflow-hidden">
   <div class="h-full overflow-hidden">
     <div class="p-2 flex flex-col gap-2">
+      <div class="flex items-center gap-2 mb-1">
+        <input 
+          type="checkbox" 
+          id="use-global-settings" 
+          bind:checked={useGlobalSettings} 
+          on:change={handleGlobalSettingsToggle}
+          class="rounded"
+        />
+        <label for="use-global-settings" class="text-sm">Use global connection settings</label>
+      </div>
       <div class="flex gap-2">
-        <input type="Text" placeholder="Hostname" bind:value={hostname} class="w-1/2" />
-        <input type="Text" placeholder="Port" bind:value={port} class="w-1/4" />
+        <input 
+					type="Text" 
+					placeholder="Hostname" 
+					bind:value={hostname} 
+					disabled={useGlobalSettings}
+					on:change={handleManualConnectionChange}
+					class="w-1/2 bg-vscode-input-background text-vscode-input-foreground border border-vscode-input-border px-2 py-1 rounded text-sm focus:outline-none focus:border-vscode-focusBorder disabled:opacity-50 disabled:cursor-not-allowed" 
+				/>
+        <input 
+					type="Text" 
+					placeholder="Port" 
+					bind:value={port} 
+					disabled={useGlobalSettings}
+					on:change={handleManualConnectionChange}
+					class="w-1/4 bg-vscode-input-background text-vscode-input-foreground border border-vscode-input-border px-2 py-1 rounded text-sm focus:outline-none focus:border-vscode-focusBorder disabled:opacity-50 disabled:cursor-not-allowed" 
+				/>
       </div>
 			<div class="flex gap-2 justify-between px-20">
 				Viz Layer:
@@ -227,7 +296,12 @@
 					<label for="back-layer">Back</label>
 				</div>
 			</div>
-			<button on:click={handleGetScripts}>Get scripts from Viz</button>
+			<button 
+				on:click={handleGetScripts}
+				class="w-full bg-vscode-button-background text-vscode-button-foreground border-0 px-4 py-2 rounded cursor-pointer hover:bg-vscode-button-hoverBackground focus:outline-none focus:bg-vscode-button-hoverBackground transition-colors duration-150"
+			>
+				Get scripts from Viz
+			</button>
 			
     </div>
 
@@ -265,11 +339,27 @@
               {selectedScript.extension}
             </div>
             <div class="w-full flex flex-col gap-2">
-              <button on:click={handleScriptEdit}>Edit</button>
-              <button on:click={handleScriptPreview}>Preview</button>
-              <button on:click={handleScriptDiff}>Diff</button>
-							<button on:click={handleScriptSet}>Set script in Viz</button>
+							<div class="flex gap-2">
+								<button 
+								on:click={handleScriptEdit}
+								class="w-full bg-vscode-button-background text-vscode-button-foreground border-0 px-3 py-1.5 rounded text-md cursor-pointer hover:bg-vscode-button-hoverBackground focus:outline-none focus:bg-vscode-button-hoverBackground transition-colors duration-150"
+								>
+								Edit
+							</button>
+              <button 
+							on:click={handleScriptPreview}
+							class="w-full bg-vscode-button-background text-vscode-button-foreground border-0 px-3 py-1.5 rounded text-md cursor-pointer hover:bg-vscode-button-hoverBackground focus:outline-none focus:bg-vscode-button-hoverBackground transition-colors duration-150"
+							>
+							Preview
+						</button>
 
+				</div>
+							<button 
+								on:click={handleScriptSet}
+								class="w-full bg-vscode-button-background text-vscode-button-foreground border-0 px-3 py-1.5 rounded text-md cursor-pointer hover:bg-vscode-button-hoverBackground focus:outline-none focus:bg-vscode-button-hoverBackground transition-colors duration-150"
+							>
+								Set script in Viz
+							</button>
             </div>
           </div>
         </div>

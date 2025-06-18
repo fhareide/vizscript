@@ -1,5 +1,6 @@
 import { LanguageClient } from "vscode-languageclient/node";
 import { VizScriptObject } from "./shared/types";
+import * as vscode from "vscode";
 
 export interface MetadataStatus {
   status: "missing" | "valid" | "invalid" | "error";
@@ -72,27 +73,40 @@ export class MetadataService {
   }
 
   /**
-   * Injects metadata into provided content and returns the modified content
-   * This is useful for processing content before opening a new document
+   * Injects metadata into content with context information
    */
   async injectMetadataIntoContent(
     content: string,
-    scriptObject?: VizScriptObject,
-  ): Promise<{
-    success: boolean;
-    wasInjected: boolean;
-    content: string;
-    metadata?: any;
-    error?: string;
-  }> {
+    scriptObject: VizScriptObject,
+    sourceContext: "viz" | "local" = "local",
+  ): Promise<{ success: boolean; content: string; message?: string }> {
     try {
-      return await this.client.sendRequest("injectMetadataIntoContent", { content, scriptObject });
+      const lines = content.split(/\r?\n/g);
+      const hasMetadata = this.detectMetadataInLines(lines);
+
+      if (hasMetadata) {
+        return { success: false, content, message: "Metadata already exists in content" };
+      }
+
+      // Create metadata for the script
+      const metadata = this.createDefaultMetadata(scriptObject);
+
+      // Generate metadata block with appropriate context
+      const metadataBlock = this.generateMetadataBlock(metadata, { sourceContext });
+
+      // Insert metadata at the beginning
+      const newContent = [...metadataBlock, "", ...lines].join("\n");
+
+      return {
+        success: true,
+        content: newContent,
+        message: `Metadata injected using ${sourceContext === "viz" ? "minified" : "standard"} format`,
+      };
     } catch (error) {
       return {
         success: false,
-        error: error.message,
-        wasInjected: false,
         content,
+        message: `Failed to inject metadata: ${error.message}`,
       };
     }
   }
@@ -184,7 +198,7 @@ export class MetadataService {
       if (line.includes("VSCODE-META-START")) {
         inMetaSection = true;
         // Add the new metadata block
-        newLines.push(...this.generateMetadataBlock(newMetadata));
+        newLines.push(...this.generateMetadataBlock(newMetadata, { sourceContext: "local" }));
         metadataReplaced = true;
         continue;
       }
@@ -201,7 +215,7 @@ export class MetadataService {
 
     // If no metadata was found and replaced, add it at the beginning
     if (!metadataReplaced) {
-      const metadataBlock = this.generateMetadataBlock(newMetadata);
+      const metadataBlock = this.generateMetadataBlock(newMetadata, { sourceContext: "local" });
       return [...metadataBlock, "", ...lines];
     }
 
@@ -211,18 +225,51 @@ export class MetadataService {
   /**
    * Generates properly formatted metadata block as string array
    */
-  private generateMetadataBlock(metadata: any): string[] {
-    const lines: string[] = [];
-    lines.push("'VSCODE-META-START");
+  private generateMetadataBlock(metadata: any, options?: { minify?: boolean; sourceContext?: string }): string[] {
+    const config = vscode.workspace.getConfiguration("vizscript.metadata");
+    const minifyFormat = config.get<string>("minifyFormat", "none");
 
-    const jsonString = JSON.stringify(metadata, null, 2);
-    const jsonLines = jsonString.split("\n");
+    let formatType = "multiline";
 
-    for (const line of jsonLines) {
-      lines.push(`'${line}`);
+    // Determine format type based on configuration and context
+    switch (minifyFormat) {
+      case "both":
+        formatType = "oneline";
+        break;
+      case "vizOnly":
+        formatType = options?.sourceContext === "viz" ? "oneline" : "multiline";
+        break;
+      case "compact":
+        formatType = "compact";
+        break;
+      case "none":
+      default:
+        formatType = "multiline";
+        break;
     }
 
-    lines.push("'VSCODE-META-END");
+    const lines: string[] = [];
+    const jsonString = JSON.stringify(metadata);
+
+    if (formatType === "oneline") {
+      // True single-line format: everything on one line
+      lines.push(`'VSCODE-META-START${jsonString}VSCODE-META-END`);
+    } else if (formatType === "compact") {
+      // Compact 3-line format
+      lines.push("'VSCODE-META-START");
+      lines.push(`'${jsonString}`);
+      lines.push("'VSCODE-META-END");
+    } else {
+      // Multi-line format (existing behavior)
+      lines.push("'VSCODE-META-START");
+      const prettyJsonString = JSON.stringify(metadata, null, 2);
+      const jsonLines = prettyJsonString.split("\n");
+
+      for (const line of jsonLines) {
+        lines.push(`'${line}`);
+      }
+      lines.push("'VSCODE-META-END");
+    }
 
     return lines;
   }

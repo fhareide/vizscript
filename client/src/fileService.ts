@@ -256,18 +256,18 @@ export class FileService {
         modal: true,
         detail: `Local file: ${filePath}\n\nWhat would you like to do?`,
       },
-      "Open Local File",
-      "Open Viz Script",
-      "Show Diff First",
+      "Local File",
+      "Viz Script",
+      "Show Diff",
       "Cancel",
     );
 
     switch (choice) {
-      case "Open Local File":
+      case "Local File":
         return "openLocal";
-      case "Open Viz Script":
+      case "Viz Script":
         return "openRemote";
-      case "Show Diff First":
+      case "Show Diff":
         return "showDiff";
       default:
         return "cancel";
@@ -289,18 +289,18 @@ export class FileService {
         modal: true,
         detail: `Local file: ${filePath}\n\nWhat would you like to do?`,
       },
-      "Open Local File",
-      "Open Viz Script",
-      ...(contentMatches ? [] : ["Show Diff First"]),
+      "Local File",
+      "Viz Script",
+      ...(contentMatches ? [] : ["Show Diff"]),
       "Cancel",
     );
 
     switch (choice) {
-      case "Open Local File":
+      case "Local File":
         return "openLocal";
-      case "Open Viz Script":
+      case "Viz Script":
         return "openRemote";
-      case "Show Diff First":
+      case "Show Diff":
         return "showDiff";
       default:
         return "cancel";
@@ -432,7 +432,7 @@ export class FileService {
     }
 
     if (startLine !== -1 && endLine !== -1) {
-      const newMetadataLines = this.generateMetadataBlock(metadata);
+      const newMetadataLines = this.generateMetadataBlock(metadata, "local");
       const range = new vscode.Range(startLine, 0, endLine + 1, 0);
       workspaceEdit.replace(document.uri, range, newMetadataLines.join("\n") + "\n");
       await vscode.workspace.applyEdit(workspaceEdit);
@@ -440,20 +440,54 @@ export class FileService {
   }
 
   /**
-   * Generates metadata block lines
+   * Generates metadata block lines with support for minified format
    */
-  private generateMetadataBlock(metadata: any): string[] {
-    const lines: string[] = [];
-    lines.push("' VSCODE-META-START");
+  private generateMetadataBlock(metadata: any, sourceContext: "viz" | "local" = "local"): string[] {
+    const config = vscode.workspace.getConfiguration("vizscript.metadata");
+    const minifyFormat = config.get<string>("minifyFormat", "none");
 
-    const jsonString = JSON.stringify(metadata, null, 2);
-    const jsonLines = jsonString.split("\n");
+    let formatType = "multiline";
 
-    for (const line of jsonLines) {
-      lines.push(`'${line}`);
+    // Determine format type based on configuration and context
+    switch (minifyFormat) {
+      case "both":
+        formatType = "oneline";
+        break;
+      case "vizOnly":
+        formatType = sourceContext === "viz" ? "oneline" : "multiline";
+        break;
+      case "compact":
+        formatType = "compact";
+        break;
+      case "none":
+      default:
+        formatType = "multiline";
+        break;
     }
 
-    lines.push("' VSCODE-META-END");
+    const lines: string[] = [];
+    const jsonString = JSON.stringify(metadata);
+
+    if (formatType === "oneline") {
+      // True single-line format: everything on one line
+      lines.push(`' VSCODE-META-START${jsonString}VSCODE-META-END`);
+    } else if (formatType === "compact") {
+      // Compact 3-line format
+      lines.push("' VSCODE-META-START");
+      lines.push(`'${jsonString}`);
+      lines.push("' VSCODE-META-END");
+    } else {
+      // Multi-line format (existing behavior)
+      lines.push("' VSCODE-META-START");
+      const prettyJsonString = JSON.stringify(metadata, null, 2);
+      const jsonLines = prettyJsonString.split("\n");
+
+      for (const line of jsonLines) {
+        lines.push(`'${line}`);
+      }
+      lines.push("' VSCODE-META-END");
+    }
+
     return lines;
   }
 

@@ -309,19 +309,19 @@ async function handleCompareAndOpen(
         modal: true,
         detail: `Local file: ${vscode.workspace.asRelativePath(localFileUri)}\nViz script: ${scriptObject.name}`,
       },
-      "Keep Local Version",
-      "Use Viz Version",
+      "Local File",
+      "Viz Script",
       "Merge Manually",
       "Cancel",
     );
 
     switch (choice) {
-      case "Keep Local Version":
+      case "Local File":
         // Just open the local file
         await fileService.openFile(localFileUri);
         break;
 
-      case "Use Viz Version":
+      case "Viz Script":
         // Replace local file content with Viz version
         const edit = new vscode.WorkspaceEdit();
         const fullRange = new vscode.Range(localDoc.positionAt(0), localDoc.positionAt(localDoc.getText().length));
@@ -620,14 +620,14 @@ async function processScriptWithMetadata(
         if (autoUpdate) {
           // Auto-update enabled, inject metadata without prompting
           try {
-            const result = await metadataService.injectMetadataIntoContent(originalContent, scriptObject);
-            if (result.success && result.wasInjected) {
+            const result = await metadataService.injectMetadataIntoContent(originalContent, scriptObject, "viz");
+            if (result.success) {
               return {
                 content: result.content,
-                message: `Metadata auto-added to "${scriptObject.name}"`,
+                message: result.message || `Metadata auto-added to "${scriptObject.name}"`,
               };
             } else {
-              console.warn("Failed to inject metadata:", result.error);
+              console.warn("Failed to inject metadata:", result.message);
               return { content: originalContent };
             }
           } catch (error) {
@@ -645,14 +645,14 @@ async function processScriptWithMetadata(
 
           if (dialogResult.inject) {
             try {
-              const result = await metadataService.injectMetadataIntoContent(originalContent, scriptObject);
-              if (result.success && result.wasInjected) {
+              const result = await metadataService.injectMetadataIntoContent(originalContent, scriptObject, "viz");
+              if (result.success) {
                 return {
                   content: result.content,
-                  message: `Metadata added to "${scriptObject.name}"`,
+                  message: result.message || `Metadata added to "${scriptObject.name}"`,
                 };
               } else {
-                console.warn("Failed to inject metadata:", result.error);
+                console.warn("Failed to inject metadata:", result.message);
                 return { content: originalContent };
               }
             } catch (error) {
@@ -1031,7 +1031,7 @@ async function validateAndHandleMetadataForScriptSetting(
         const currentScript = scriptObjects.find((s) => s.vizId === vizId);
 
         if (currentScript) {
-          const injectionResult = await metadataService.injectMetadataIntoContent(content, currentScript);
+          const injectionResult = await metadataService.injectMetadataIntoContent(content, currentScript, "local");
           if (injectionResult.success) {
             // Apply updated content to the active document
             const editor = vscode.window.activeTextEditor;

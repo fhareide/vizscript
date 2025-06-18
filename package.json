@@ -57,7 +57,7 @@
 			},
 			{
 				"command": "vizscript.addmetadata",
-				"title": "Viz Script: Add metadata"
+				"title": "Viz Script: Update metadata"
 			},
 			{
 				"command": "vizscript.splitscriptgroup",
@@ -379,6 +379,18 @@
 					"type": "boolean",
 					"default": false,
 					"description": "Automatically inject/update metadata without prompting",
+					"scope": "resource"
+				},
+				"vizscript.metadata.minifyFormat": {
+					"type": "string",
+					"enum": [
+						"none",
+						"compact",
+						"vizOnly",
+						"both"
+					],
+					"default": "none",
+					"description": "Metadata format: 'none': multi-line, 'compact': 3-line minified, 'vizOnly': single-line for Viz scripts only, 'both': always single-line",
 					"scope": "resource"
 				},
 				"vizscript.files.preferLocalFiles": {

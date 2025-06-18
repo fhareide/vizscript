@@ -155,6 +155,57 @@ function detectMetadataInLines(lines: string[]): boolean {
   return hasStart && hasEnd;
 }
 
+/**
+ * Detects the current format of metadata in the content
+ */
+function detectMetadataFormat(lines: string[]): "single-line" | "compact" | "traditional" {
+  for (const line of lines) {
+    if (line.includes("VSCODE-META-START") && line.includes("VSCODE-META-END")) {
+      // Single-line format: 'VSCODE-META-START{json}VSCODE-META-END
+      return "single-line";
+    }
+    if (line.includes("VSCODE-META-START") && !line.includes("VSCODE-META-END")) {
+      // Multi-line format, need to check if compact or traditional
+      let metadataLineCount = 0;
+      let foundEnd = false;
+
+      for (let i = lines.indexOf(line) + 1; i < lines.length; i++) {
+        if (lines[i].includes("VSCODE-META-END")) {
+          foundEnd = true;
+          break;
+        }
+        metadataLineCount++;
+      }
+
+      if (foundEnd) {
+        return metadataLineCount <= 3 ? "compact" : "traditional";
+      }
+    }
+  }
+  return "traditional"; // Default fallback
+}
+
+/**
+ * Gets the desired metadata format based on current VSCode settings
+ */
+async function getDesiredMetadataFormat(): Promise<"single-line" | "compact" | "traditional"> {
+  const config = vscode.workspace.getConfiguration("vizscript.metadata");
+  const minifyFormat = config.get<string>("minifyFormat", "none");
+
+  switch (minifyFormat) {
+    case "both":
+      return "single-line";
+    case "compact":
+      return "compact";
+    case "vizOnly":
+      // For local operations (Update metadata command), this should be traditional
+      return "traditional";
+    case "none":
+    default:
+      return "traditional";
+  }
+}
+
 export function activate(context: vscode.ExtensionContext) {
   // The server is implemented in node
   let serverModule = context.asAbsolutePath(path.join("server", "out", "server.js"));
@@ -257,7 +308,142 @@ export function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     vscode.commands.registerCommand("vizscript.addmetadata", async () => {
-      await client.sendRequest("addMetaDataItem");
+      try {
+        const activeEditor = vscode.window.activeTextEditor;
+        if (!activeEditor) {
+          vscode.window.showErrorMessage("No active editor found. Please open a script file first.");
+          return;
+        }
+
+        // Check if it's a Viz script file
+        const vizLanguages = ["viz", "viz-con", "viz4", "viz4-con", "viz5", "viz5-con"];
+        if (!vizLanguages.includes(activeEditor.document.languageId)) {
+          vscode.window.showErrorMessage("Current file is not a Viz script. Please open a .vs or .vsc file.");
+          return;
+        }
+
+        const metadataService = new MetadataService(client);
+        const fileService = new FileService();
+        const document = activeEditor.document;
+        const content = document.getText();
+
+        // Determine script object properties from the file
+        const fileName = path.basename(document.uri.fsPath);
+        const baseName = fileName.replace(/\.(vs|vsc|viz|vizc|vs4|vs4c|viz4|viz4c|vs5|vs5c|viz5|viz5c)$/i, "");
+        const isContainer = document.languageId.includes("con");
+
+        const scriptObject: VizScriptObject = {
+          vizId: "", // Will be empty, user needs to set it
+          type: isContainer ? "Container" : "Scene",
+          extension: isContainer ? ".vsc" : ".vs",
+          name: baseName,
+          code: content,
+          scenePath: "", // Will be empty for containers, user needs to set it for scenes
+          children: [],
+          isGroup: false,
+        };
+
+        // Check if metadata exists in the document using the server
+        const detectResult = await metadataService.detectMetadata(document.uri.toString());
+        const hasMetadata = detectResult.hasMetadata;
+
+        let newContent: string;
+        let actionMessage: string;
+
+        if (hasMetadata) {
+          // Extract existing metadata and update/complete it
+          const metadataResult = await metadataService.extractMetadataFromContent(content);
+
+          if (metadataResult.success && metadataResult.metadata) {
+            const existingMetadata = metadataResult.metadata;
+            const completeMetadata = metadataService.createDefaultMetadata(scriptObject);
+
+            // Merge existing with complete, preserving non-empty existing values
+            const mergedMetadata = { ...completeMetadata };
+            for (const [key, value] of Object.entries(existingMetadata)) {
+              if (value !== null && value !== undefined && value !== "") {
+                mergedMetadata[key] = value;
+              }
+            }
+
+            // Check if there are content changes
+            const hasContentChanges = JSON.stringify(existingMetadata) !== JSON.stringify(mergedMetadata);
+
+            // Check if format needs updating based on current settings
+            const currentLines = content.split(/\r?\n/g);
+            const currentFormat = detectMetadataFormat(currentLines);
+            const desiredFormat = await getDesiredMetadataFormat();
+            const needsFormatUpdate = currentFormat !== desiredFormat;
+
+            if (!hasContentChanges && !needsFormatUpdate) {
+              vscode.window.showInformationMessage(
+                "This script already has complete and valid metadata in the correct format.",
+              );
+              return;
+            }
+
+            // Update with proper format based on settings (local context)
+            const updateResult = await metadataService.updateMetadataInContent(content, mergedMetadata);
+
+            if (updateResult.success) {
+              newContent = updateResult.content;
+
+              // Determine what was changed
+              const addedFields = Object.keys(mergedMetadata).filter(
+                (key) =>
+                  !existingMetadata.hasOwnProperty(key) ||
+                  existingMetadata[key] === null ||
+                  existingMetadata[key] === undefined ||
+                  existingMetadata[key] === "",
+              );
+
+              let changeDescription = "";
+              if (hasContentChanges && needsFormatUpdate) {
+                changeDescription = `Added missing fields: ${addedFields.join(", ")} and updated format to ${desiredFormat}`;
+              } else if (hasContentChanges) {
+                changeDescription = `Added missing fields: ${addedFields.join(", ")}`;
+              } else if (needsFormatUpdate) {
+                changeDescription = `Updated format from ${currentFormat} to ${desiredFormat}`;
+              }
+
+              actionMessage = `Metadata updated! ${changeDescription}`;
+            } else {
+              vscode.window.showErrorMessage("Failed to update metadata: " + (updateResult.error || "Unknown error"));
+              return;
+            }
+          } else {
+            vscode.window.showErrorMessage("Failed to extract existing metadata: " + metadataResult.error);
+            return;
+          }
+        } else {
+          // No metadata exists, inject new metadata with proper format
+          const injectionResult = await metadataService.injectMetadataIntoContent(content, scriptObject, "local");
+
+          if (injectionResult.success) {
+            newContent = injectionResult.content;
+            actionMessage = "Metadata added successfully!";
+          } else {
+            vscode.window.showErrorMessage("Failed to add metadata: " + (injectionResult.message || "Unknown error"));
+            return;
+          }
+        }
+
+        // Apply the changes to the document
+        const edit = new vscode.WorkspaceEdit();
+        const fullRange = new vscode.Range(document.positionAt(0), document.positionAt(content.length));
+        edit.replace(document.uri, fullRange, newContent);
+
+        const success = await vscode.workspace.applyEdit(edit);
+
+        if (success) {
+          vscode.window.showInformationMessage(actionMessage);
+        } else {
+          vscode.window.showErrorMessage("Failed to apply metadata changes to document.");
+        }
+      } catch (error) {
+        console.error("Error in update metadata command:", error);
+        vscode.window.showErrorMessage(`Failed to update metadata: ${error.message}`);
+      }
     }),
   );
 

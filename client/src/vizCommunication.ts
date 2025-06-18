@@ -467,17 +467,17 @@ export function compileScriptId(
                 modal: true,
                 detail: `Script was fetched from: ${cachedScenePath}\nCurrent scene in ${selectedLayer}: ${currentScenePath}\n\nDo you want to continue anyway?`,
               },
-              "Continue Anyway",
+              "Continue",
               "Cancel",
             )
             .then((choice) => {
-              if (choice !== "Continue Anyway") {
+              if (choice === "Continue") {
+                socket.write("-1 " + scriptId + "*SCRIPT*PLUGIN STOP " + String.fromCharCode(0));
+                socket.write("3 " + scriptId + "*SCRIPT*PLUGIN*SOURCE_CODE SET " + text + " " + String.fromCharCode(0));
+              } else {
                 socket.end();
                 return;
               }
-
-              socket.write("-1 " + scriptId + "*SCRIPT*PLUGIN STOP " + String.fromCharCode(0));
-              socket.write("3 " + scriptId + "*SCRIPT*PLUGIN*SOURCE_CODE SET " + text + " " + String.fromCharCode(0));
             });
         } else {
           socket.write("-1 " + scriptId + "*SCRIPT*PLUGIN STOP " + String.fromCharCode(0));
