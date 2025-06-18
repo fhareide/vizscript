@@ -78,9 +78,71 @@
 			{
 				"command": "vizscript.setscript.back",
 				"title": "Viz Script: Set script in back layer"
+			},
+			{
+				"command": "vizscript.sidebar.editScript",
+				"title": "Edit Script",
+				"icon": "$(edit)"
+			},
+			{
+				"command": "vizscript.sidebar.previewScript",
+				"title": "Preview Script",
+				"icon": "$(eye)"
+			},
+			{
+				"command": "vizscript.sidebar.diffScript",
+				"title": "Compare with Active File",
+				"icon": "$(diff)"
+			},
+			{
+				"command": "vizscript.sidebar.setScript",
+				"title": "Set Script in Viz",
+				"icon": "$(rocket)"
+			},
+			{
+				"command": "vizscript.sidebar.copyName",
+				"title": "Copy Name",
+				"icon": "$(clippy)"
+			},
+			{
+				"command": "vizscript.sidebar.copyVizId",
+				"title": "Copy Viz ID",
+				"icon": "$(tag)"
 			}
 		],
 		"menus": {
+			"webview/context": [
+				{
+					"command": "vizscript.sidebar.editScript",
+					"when": "webviewId == 'vizscript-sidebar'",
+					"group": "1_scripts@1"
+				},
+				{
+					"command": "vizscript.sidebar.previewScript",
+					"when": "webviewId == 'vizscript-sidebar'",
+					"group": "1_scripts@2"
+				},
+				{
+					"command": "vizscript.sidebar.diffScript",
+					"when": "webviewId == 'vizscript-sidebar'",
+					"group": "1_scripts@3"
+				},
+				{
+					"command": "vizscript.sidebar.setScript",
+					"when": "webviewId == 'vizscript-sidebar'",
+					"group": "1_scripts@4"
+				},
+				{
+					"command": "vizscript.sidebar.copyName",
+					"when": "webviewId == 'vizscript-sidebar'",
+					"group": "2_clipboard@1"
+				},
+				{
+					"command": "vizscript.sidebar.copyVizId",
+					"when": "webviewId == 'vizscript-sidebar'",
+					"group": "2_clipboard@2"
+				}
+			],
 			"commandPalette": [
 				{
 					"command": "vizscript.compile",
@@ -341,6 +403,22 @@
 					"type": "boolean",
 					"default": false,
 					"description": "Always prompt user to choose between local and remote when both exist",
+					"scope": "resource"
+				},
+				"vizscript.sidebar.doubleClickAction": {
+					"type": "string",
+					"enum": [
+						"preview",
+						"edit"
+					],
+					"default": "edit",
+					"description": "Action to perform when double-clicking a script in the sidebar",
+					"scope": "resource"
+				},
+				"vizscript.sidebar.previewOnSingleClick": {
+					"type": "boolean",
+					"default": true,
+					"description": "Enable preview on single click (in addition to selection)",
 					"scope": "resource"
 				}
 			}

@@ -88,7 +88,12 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         case "getSettings": {
           const settings = vscode.workspace.getConfiguration("vizscript");
           const compilerSettings = settings.compiler;
-          webviewView.webview.postMessage({ type: "receiveSettings", value: compilerSettings });
+          const sidebarSettings = settings.sidebar;
+          const allSettings = {
+            ...compilerSettings,
+            sidebar: sidebarSettings,
+          };
+          webviewView.webview.postMessage({ type: "receiveSettings", value: allSettings });
           break;
         }
         case "splitGroup": {
@@ -101,6 +106,10 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         }
         case "mergeSelectedScripts": {
           vscode.commands.executeCommand("vizscript.mergeselectedscripts", data.value);
+          break;
+        }
+        case "executeCommand": {
+          vscode.commands.executeCommand(data.value);
           break;
         }
       }

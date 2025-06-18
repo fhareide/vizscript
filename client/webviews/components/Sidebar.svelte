@@ -9,6 +9,7 @@
 
   let hostname = "localhost";
   let port = 6100;
+  let sidebarSettings: any = {};
 
 	let selectedLayer = "MAIN_SCENE";
   let previousLayer = selectedLayer;
@@ -30,6 +31,16 @@
     tsvscode.postMessage({
       type: "onScriptSelected",
       value: selectedScript.vizId,
+    });
+  };
+
+  const handleScriptPreviewEvent = (event: CustomEvent) => {
+    const script = event.detail.script;
+    if (!script) return;
+    
+    tsvscode.postMessage({
+      type: "onScriptSelected",
+      value: script.vizId,
     });
   };
 
@@ -100,15 +111,50 @@
       console.log("Settings received", message.value);
       hostname = message.value.hostName;
       port = message.value.hostPort;
+      sidebarSettings = message.value.sidebar || {};
     } else if (message.type === "receiveState") {
       console.log("State received", message.value);
       vizscripts = [...message.value];
+    } else if (message.type === "getSelectedScript") {
+      // Respond with selected script data
+      const script = selectedScript;
+      tsvscode.postMessage({
+        type: "selectedScriptResponse",
+        value: script
+      });
+    } else if (message.type === "getSelectedScriptData") {
+      // Respond with selected script data including connection info
+      const script = selectedScript;
+      if (script) {
+        tsvscode.postMessage({
+          type: "selectedScriptDataResponse",
+          value: {
+            vizId: script.vizId,
+            hostname: hostname,
+            port: port,
+            selectedLayer: selectedLayer
+          }
+        });
+      } else {
+        tsvscode.postMessage({
+          type: "selectedScriptDataResponse",
+          value: null
+        });
+      }
     }
   };
 
   const handleScriptDoubleClick = (event: CustomEvent) => {
     selectedScriptId = event.detail.script.vizId;
-    handleScriptPreview();
+    
+    // Check setting for double-click action
+    const doubleClickAction = sidebarSettings?.doubleClickAction || 'preview';
+    
+    if (doubleClickAction === 'edit') {
+      handleScriptEdit();
+    } else {
+      handleScriptPreview();
+    }
   };
 
   const handleScriptSelection = (event: CustomEvent) => {
@@ -136,6 +182,8 @@
       tsvscode.setState(updatedState);
     }
   };
+
+
 
   onMount(() => {
     tsvscode.postMessage({ type: "getSettings" });
@@ -180,6 +228,7 @@
 				</div>
 			</div>
 			<button on:click={handleGetScripts}>Get scripts from Viz</button>
+			
     </div>
 
     <div class="h-full flex flex-col bg-vscode-sideBar-background overflow-hidden">
@@ -190,11 +239,12 @@
           {#each Object.values(vizscripts) as script}
             <ScriptItem 
               {script} 
-              {vizscripts}
               {selectedScriptId}
               {selectedScriptIds}
+              {sidebarSettings}
               on:doubleClick={handleScriptDoubleClick}
               on:scriptSelected={handleScriptSelection}
+              on:preview={handleScriptPreviewEvent}
             />
           {/each}
         {/if}

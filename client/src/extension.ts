@@ -17,6 +17,82 @@ import { randomUUID } from "crypto";
 
 let client: LanguageClient;
 
+// Helper functions for sidebar context menu commands
+async function getSelectedScriptFromSidebar(sidebarProvider: SidebarProvider): Promise<string | null> {
+  return new Promise((resolve) => {
+    if (!sidebarProvider._view?.webview) {
+      resolve(null);
+      return;
+    }
+
+    const messageHandler = (message: any) => {
+      if (message.type === "selectedScriptResponse") {
+        sidebarProvider._view?.webview.onDidReceiveMessage(undefined);
+        resolve(message.value?.vizId || null);
+      }
+    };
+
+    sidebarProvider._view.webview.onDidReceiveMessage(messageHandler);
+    sidebarProvider._view.webview.postMessage({ type: "getSelectedScript" });
+
+    // Timeout after 1 second
+    setTimeout(() => {
+      sidebarProvider._view?.webview.onDidReceiveMessage(undefined);
+      resolve(null);
+    }, 1000);
+  });
+}
+
+async function getSelectedScriptDataFromSidebar(sidebarProvider: SidebarProvider): Promise<any | null> {
+  return new Promise((resolve) => {
+    if (!sidebarProvider._view?.webview) {
+      resolve(null);
+      return;
+    }
+
+    const messageHandler = (message: any) => {
+      if (message.type === "selectedScriptDataResponse") {
+        sidebarProvider._view?.webview.onDidReceiveMessage(undefined);
+        resolve(message.value || null);
+      }
+    };
+
+    sidebarProvider._view.webview.onDidReceiveMessage(messageHandler);
+    sidebarProvider._view.webview.postMessage({ type: "getSelectedScriptData" });
+
+    // Timeout after 1 second
+    setTimeout(() => {
+      sidebarProvider._view?.webview.onDidReceiveMessage(undefined);
+      resolve(null);
+    }, 1000);
+  });
+}
+
+async function getSelectedScriptNameFromSidebar(sidebarProvider: SidebarProvider): Promise<string | null> {
+  return new Promise((resolve) => {
+    if (!sidebarProvider._view?.webview) {
+      resolve(null);
+      return;
+    }
+
+    const messageHandler = (message: any) => {
+      if (message.type === "selectedScriptResponse") {
+        sidebarProvider._view?.webview.onDidReceiveMessage(undefined);
+        resolve(message.value?.name || null);
+      }
+    };
+
+    sidebarProvider._view.webview.onDidReceiveMessage(messageHandler);
+    sidebarProvider._view.webview.postMessage({ type: "getSelectedScript" });
+
+    // Timeout after 1 second
+    setTimeout(() => {
+      sidebarProvider._view?.webview.onDidReceiveMessage(undefined);
+      resolve(null);
+    }, 1000);
+  });
+}
+
 function registerCommands(client: LanguageClient, context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerTextEditorCommand(
@@ -206,6 +282,68 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand("vizscript.refreshsidebar", async () => {
       await Commands.refreshSidebar.bind(this)(context, sidebarProvider);
+    }),
+  );
+
+  // Sidebar context menu commands
+  context.subscriptions.push(
+    vscode.commands.registerCommand("vizscript.sidebar.editScript", async () => {
+      const selectedVizId = await getSelectedScriptFromSidebar(sidebarProvider);
+      if (selectedVizId) {
+        await Commands.openScriptInTextEditor.bind(this)(context, client, selectedVizId, true);
+      }
+    }),
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("vizscript.sidebar.previewScript", async () => {
+      const selectedVizId = await getSelectedScriptFromSidebar(sidebarProvider);
+      if (selectedVizId) {
+        await Commands.openScriptInTextEditor.bind(this)(context, client, selectedVizId, true, true);
+      }
+    }),
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("vizscript.sidebar.diffScript", async () => {
+      const selectedVizId = await getSelectedScriptFromSidebar(sidebarProvider);
+      if (selectedVizId) {
+        await Commands.openScriptInDiff.bind(this)(context, selectedVizId);
+      }
+    }),
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("vizscript.sidebar.setScript", async () => {
+      const selectedData = await getSelectedScriptDataFromSidebar(sidebarProvider);
+      if (selectedData) {
+        await Commands.compileCurrentScript.bind(this)(context, client, {
+          vizId: selectedData.vizId,
+          hostname: selectedData.hostname,
+          port: selectedData.port,
+          selectedLayer: selectedData.selectedLayer,
+        });
+      }
+    }),
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("vizscript.sidebar.copyName", async () => {
+      const scriptName = await getSelectedScriptNameFromSidebar(sidebarProvider);
+      if (scriptName) {
+        await vscode.env.clipboard.writeText(scriptName);
+        vscode.window.showInformationMessage(`Copied "${scriptName}" to clipboard`);
+      }
+    }),
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("vizscript.sidebar.copyVizId", async () => {
+      const selectedVizId = await getSelectedScriptFromSidebar(sidebarProvider);
+      if (selectedVizId) {
+        await vscode.env.clipboard.writeText(selectedVizId);
+        vscode.window.showInformationMessage(`Copied "${selectedVizId}" to clipboard`);
+      }
     }),
   );
 

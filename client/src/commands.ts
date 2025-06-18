@@ -47,6 +47,30 @@ async function fileExists(uri: Uri): Promise<boolean> {
   }
 }
 
+/**
+ * Closes any existing preview tab for the given script
+ */
+async function closePreviewTabForScript(name: string, extension: string): Promise<void> {
+  const previewPattern = `${name}(read-only)${extension}`;
+
+  // Get all open tabs
+  const tabGroups = window.tabGroups.all;
+
+  for (const tabGroup of tabGroups) {
+    for (const tab of tabGroup.tabs) {
+      if (tab.input && typeof tab.input === "object" && "uri" in tab.input) {
+        const tabInput = tab.input as { uri: Uri };
+        // Check if this is a preview tab for our script
+        if (tabInput.uri.scheme === "diff" && tabInput.uri.path.includes(previewPattern)) {
+          // Close this tab
+          await window.tabGroups.close(tab);
+          break;
+        }
+      }
+    }
+  }
+}
+
 export async function saveToStorage(context: ExtensionContext, data: any): Promise<void> {
   try {
     const content = JSON.stringify(data);
@@ -211,6 +235,9 @@ export async function openScriptInTextEditor(
 
     // Check if we should open a local file instead
     if (processedScript.openLocalFile && processedScript.localFileUri && !preview) {
+      // Close any existing preview tab before opening the local file
+      await closePreviewTabForScript(scriptObject.name, scriptObject.extension);
+
       const fileService = new FileService();
       await fileService.openFile(processedScript.localFileUri);
     } else {
@@ -237,6 +264,9 @@ export async function openScriptInTextEditor(
         // Show success message
         window.showInformationMessage(`Current file replaced with script "${scriptObject.name}"`);
       } else {
+        // Before creating new untitled file, check if there's a preview tab for this script and close it
+        await closePreviewTabForScript(scriptObject.name, scriptObject.extension);
+
         // Create new untitled file
         await showUntitledWindow(
           vizIdStripped,
@@ -289,7 +319,7 @@ async function processScriptWithLocalFileIntegration(
   if (hasMetadata) {
     try {
       // Extract metadata to check for filePath
-      const metadataResult = await metadataService.injectMetadataIntoContent(originalContent, scriptObject);
+      const metadataResult = await metadataService.extractMetadataFromContent(originalContent);
       if (metadataResult.success && metadataResult.metadata && metadataResult.metadata.filePath) {
         const filePath = metadataResult.metadata.filePath;
 
