@@ -169,21 +169,38 @@
         // Deselect if already selected
         selectedScriptIds = selectedScriptIds.filter(id => id !== script.vizId);
       } else {
-        // Add to selection
-        selectedScriptIds = [...selectedScriptIds, script.vizId];
+        // Add to selection - include the current selected script if it's a container and not already in the list
+        let newSelection = [...selectedScriptIds];
+        
+        // If we have a single selected script that's a container and not in multi-selection, add it
+        if (selectedScriptId && !selectedScriptIds.includes(selectedScriptId)) {
+          const currentScript = vizscripts.find(s => s.vizId === selectedScriptId);
+          if (currentScript && currentScript.type === "Container" && !currentScript.isGroup) {
+            newSelection.push(selectedScriptId);
+          }
+        }
+        
+        // Add the new script
+        newSelection.push(script.vizId);
+        selectedScriptIds = newSelection;
+        
+        // Clear single selection when multi-selecting
+        selectedScriptId = '';
       }
     } else {
       // Single selection - clear multi-selection
       selectedScriptIds = [];
       selectedScriptId = script.vizId;
-      
-      const currentState = tsvscode.getState() || {};
-      const updatedState = {
-        ...currentState,
-        selectedScriptId: script.vizId
-      };
-      tsvscode.setState(updatedState);
     }
+    
+    // Save state
+    const currentState = tsvscode.getState() || {};
+    const updatedState = {
+      ...currentState,
+      selectedScriptId: selectedScriptId,
+      selectedScriptIds: selectedScriptIds
+    };
+    tsvscode.setState(updatedState);
   };
 
   // Handle toggling between global settings and manual input
@@ -219,6 +236,24 @@
     tsvscode.setState(updatedState);
   };
 
+  // Handle clicks on the script list container to deselect when clicking outside items
+  const handleContainerClick = (event: MouseEvent) => {
+    // Only deselect if the click target is the container itself, not a child element
+    if (event.target === event.currentTarget) {
+      selectedScriptId = '';
+      selectedScriptIds = [];
+      
+      // Save state
+      const currentState = tsvscode.getState() || {};
+      const updatedState = {
+        ...currentState,
+        selectedScriptId: '',
+        selectedScriptIds: []
+      };
+      tsvscode.setState(updatedState);
+    }
+  };
+
   onMount(() => {
     // Always get settings to populate the sidebar settings and conditionally the connection info
     tsvscode.postMessage({ type: "getSettings" });
@@ -228,6 +263,7 @@
 		console.log("Current state", currentState);
 
 		selectedScriptId = currentState.selectedScriptId;
+		selectedScriptIds = currentState.selectedScriptIds || [];
 		selectedLayer = currentState.selectedLayer || "MAIN_SCENE";
 		previousLayer = selectedLayer;
 
@@ -250,7 +286,9 @@
 <!-- svelte-ignore a11y-click-events-have-key-events -->
 <!-- svelte-ignore a11y-no-static-element-interactions -->
 
-<div class="h-full relative whitespace-nowrap w-full overflow-hidden">
+<div class="h-full relative whitespace-nowrap w-full overflow-hidden" 	data-vscode-context={JSON.stringify({
+    "preventDefaultContextMenuItems": true
+  })}>
   <div class="h-full overflow-hidden">
     <div class="p-2 flex flex-col gap-2">
       <div class="flex items-center gap-2 mb-1">
@@ -306,7 +344,12 @@
     </div>
 
     <div class="h-full flex flex-col bg-vscode-sideBar-background overflow-hidden">
-      <div class="h-2/3 border-b-2 border-vscode-editorGroup-border overflow-auto">
+      <div class="h-2/3 border-b-2 border-vscode-editorGroup-border overflow-auto" on:click={handleContainerClick}>
+        {#if selectedScriptIds.length > 1}
+          <div class="px-2 py-1 bg-vscode-editorGroupHeader-tabsBackground text-vscode-textLink-foreground text-xs">
+            {selectedScriptIds.length} items selected (Shift+Click to select more, click empty space to deselect)
+          </div>
+        {/if}
         {#if vizscripts == undefined || vizscripts.length === 0}
           <div class="flex items-center justify-center h-full text-vscode-descriptionForeground">No scripts found</div>
         {:else}

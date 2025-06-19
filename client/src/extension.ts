@@ -473,8 +473,17 @@ export function activate(context: vscode.ExtensionContext) {
 
   // Sidebar context menu commands
   context.subscriptions.push(
-    vscode.commands.registerCommand("vizscript.sidebar.editScript", async () => {
-      const selectedVizId = await getSelectedScriptFromSidebar(sidebarProvider);
+    vscode.commands.registerCommand("vizscript.sidebar.editScript", async (contextData?: any) => {
+      let selectedVizId: string | null = null;
+
+      // Try to get script from context data first (right-click menu)
+      if (contextData?.script?.vizId) {
+        selectedVizId = contextData.script.vizId;
+      } else {
+        // Fallback to the old method for other invocations
+        selectedVizId = await getSelectedScriptFromSidebar(sidebarProvider);
+      }
+
       if (selectedVizId) {
         await Commands.openScriptInTextEditor.bind(this)(context, client, selectedVizId, true);
       }
@@ -482,8 +491,17 @@ export function activate(context: vscode.ExtensionContext) {
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("vizscript.sidebar.previewScript", async () => {
-      const selectedVizId = await getSelectedScriptFromSidebar(sidebarProvider);
+    vscode.commands.registerCommand("vizscript.sidebar.previewScript", async (contextData?: any) => {
+      let selectedVizId: string | null = null;
+
+      // Try to get script from context data first (right-click menu)
+      if (contextData?.script?.vizId) {
+        selectedVizId = contextData.script.vizId;
+      } else {
+        // Fallback to the old method for other invocations
+        selectedVizId = await getSelectedScriptFromSidebar(sidebarProvider);
+      }
+
       if (selectedVizId) {
         await Commands.openScriptInTextEditor.bind(this)(context, client, selectedVizId, true, true);
       }
@@ -491,8 +509,17 @@ export function activate(context: vscode.ExtensionContext) {
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("vizscript.sidebar.diffScript", async () => {
-      const selectedVizId = await getSelectedScriptFromSidebar(sidebarProvider);
+    vscode.commands.registerCommand("vizscript.sidebar.diffScript", async (contextData?: any) => {
+      let selectedVizId: string | null = null;
+
+      // Try to get script from context data first (right-click menu)
+      if (contextData?.script?.vizId) {
+        selectedVizId = contextData.script.vizId;
+      } else {
+        // Fallback to the old method for other invocations
+        selectedVizId = await getSelectedScriptFromSidebar(sidebarProvider);
+      }
+
       if (selectedVizId) {
         await Commands.openScriptInDiff.bind(this)(context, selectedVizId);
       }
@@ -500,8 +527,22 @@ export function activate(context: vscode.ExtensionContext) {
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("vizscript.sidebar.setScript", async () => {
-      const selectedData = await getSelectedScriptDataFromSidebar(sidebarProvider);
+    vscode.commands.registerCommand("vizscript.sidebar.setScript", async (contextData?: any) => {
+      let selectedData: any = null;
+
+      // Try to get script data from context data first (right-click menu)
+      if (contextData?.script?.vizId && contextData.hostname && contextData.port) {
+        selectedData = {
+          vizId: contextData.script.vizId,
+          hostname: contextData.hostname,
+          port: contextData.port,
+          selectedLayer: contextData.selectedLayer || "MAIN_SCENE",
+        };
+      } else {
+        // Fallback to the old method for other invocations
+        selectedData = await getSelectedScriptDataFromSidebar(sidebarProvider);
+      }
+
       if (selectedData) {
         await Commands.compileCurrentScript.bind(this)(context, client, {
           vizId: selectedData.vizId,
@@ -514,8 +555,17 @@ export function activate(context: vscode.ExtensionContext) {
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("vizscript.sidebar.copyName", async () => {
-      const scriptName = await getSelectedScriptNameFromSidebar(sidebarProvider);
+    vscode.commands.registerCommand("vizscript.sidebar.copyName", async (contextData?: any) => {
+      let scriptName: string | null = null;
+
+      // Try to get script name from context data first (right-click menu)
+      if (contextData?.script?.name) {
+        scriptName = contextData.script.name;
+      } else {
+        // Fallback to the old method for other invocations
+        scriptName = await getSelectedScriptNameFromSidebar(sidebarProvider);
+      }
+
       if (scriptName) {
         await vscode.env.clipboard.writeText(scriptName);
         vscode.window.showInformationMessage(`Copied "${scriptName}" to clipboard`);
@@ -524,11 +574,72 @@ export function activate(context: vscode.ExtensionContext) {
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("vizscript.sidebar.copyVizId", async () => {
-      const selectedVizId = await getSelectedScriptFromSidebar(sidebarProvider);
+    vscode.commands.registerCommand("vizscript.sidebar.copyVizId", async (contextData?: any) => {
+      let selectedVizId: string | null = null;
+
+      // Try to get script from context data first (right-click menu)
+      if (contextData?.script?.vizId) {
+        selectedVizId = contextData.script.vizId;
+      } else {
+        // Fallback to the old method for other invocations
+        selectedVizId = await getSelectedScriptFromSidebar(sidebarProvider);
+      }
+
       if (selectedVizId) {
         await vscode.env.clipboard.writeText(selectedVizId);
         vscode.window.showInformationMessage(`Copied "${selectedVizId}" to clipboard`);
+      }
+    }),
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("vizscript.sidebar.splitGroup", async (contextData?: any) => {
+      let groupVizId: string | null = null;
+
+      // Try to get script from context data first (right-click menu)
+      if (contextData?.script?.vizId && contextData?.isGroup) {
+        groupVizId = contextData.script.vizId;
+      } else {
+        // Fallback to the old method for other invocations
+        const selectedScript = await getSelectedScriptFromSidebar(sidebarProvider);
+        if (selectedScript) {
+          groupVizId = selectedScript;
+        }
+      }
+
+      if (groupVizId) {
+        await Commands.splitScriptGroup.bind(this)(context, groupVizId);
+      }
+    }),
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("vizscript.sidebar.mergeScripts", async (contextData?: any) => {
+      console.log("Merge command invoked with context data:", contextData);
+      let vizIds: string[] = [];
+
+      // Try to get selected scripts from context data first (right-click menu)
+      if (contextData?.selectedScriptIds && contextData.selectedScriptIds.length > 0) {
+        vizIds = contextData.selectedScriptIds;
+        console.log("Using context data vizIds:", vizIds);
+
+        // Only proceed if we have multiple items or show a message
+        if (vizIds.length < 2) {
+          vscode.window.showInformationMessage(
+            "Please select multiple container scripts to merge into a group. Use Shift+Click to select multiple items.",
+          );
+          return;
+        }
+      } else {
+        console.log("No valid context data, falling back to quick pick");
+        // Fallback to the old method for other invocations - show quick pick
+        await Commands.showMergeScriptsQuickPick.bind(this)(context);
+        return;
+      }
+
+      if (vizIds.length > 1) {
+        console.log("Merging scripts:", vizIds);
+        await Commands.mergeScriptsIntoGroup.bind(this)(context, vizIds);
       }
     }),
   );

@@ -48,9 +48,19 @@
   title={sidebarSettings?.doubleClickAction ? `Double-click ${sidebarSettings.doubleClickAction === 'edit' ? 'to edit' : 'to preview'}` : ''}
   on:click={handleScriptSelected}
 	on:dblclick={handleDoubleClick}
-  on:contextmenu={handleRightClick}
+	data-vscode-context={JSON.stringify({
+    "webviewSection": "scriptItem", 
+    "preventDefaultContextMenuItems": true,
+    "script": script,
+    "isSelected": selectedScriptId === script.vizId || selectedScriptIds.includes(script.vizId),
+    "selectedScriptIds": selectedScriptIds,
+    "hasMultipleSelection": selectedScriptIds.length > 1,
+    "isGroup": script.isGroup,
+    "isContainer": script.type === "Container"
+  })}
   class={`cursor-pointer overflow-hidden w-full h-[72px] relative 
-	${selectedScriptId === script.vizId || selectedScriptIds.includes(script.vizId) ? buttonStyles : "hover:bg-vscode-list-hoverBackground"}`}
+	${selectedScriptId === script.vizId || selectedScriptIds.includes(script.vizId) ? buttonStyles : "hover:bg-vscode-list-hoverBackground"}
+	${selectedScriptIds.includes(script.vizId) && selectedScriptIds.length > 1 ? "border-l-4 border-vscode-textLink-foreground" : ""}`}
 >
   <div class="flex h-full overflow-hidden w-full box-border pl-[16px] absolute">
     <div class="relative flex items-center pr-4">

@@ -4,7 +4,7 @@
 	"description": "A complete language extension for Viz Script. Auto complete, syntax checking, syntax highlighting, signature help, jump to definition and more.",
 	"author": "Fredrik Hareide",
 	"license": "MIT",
-	"version": "0.5.0",
+	"version": "0.5.1-beta.2",
 	"publisher": "fhareide",
 	"keywords": [
 		"Vizrt",
@@ -108,39 +108,59 @@
 				"command": "vizscript.sidebar.copyVizId",
 				"title": "Copy Viz ID",
 				"icon": "$(tag)"
+			},
+			{
+				"command": "vizscript.sidebar.splitGroup",
+				"title": "Split Group",
+				"icon": "$(split-horizontal)"
+			},
+			{
+				"command": "vizscript.sidebar.mergeScripts",
+				"title": "Merge into Group",
+				"icon": "$(group-by-ref-type)"
 			}
 		],
 		"menus": {
 			"webview/context": [
 				{
 					"command": "vizscript.sidebar.editScript",
-					"when": "webviewId == 'vizscript-sidebar'",
+					"when": "webviewId == 'vizscript-sidebar' && webviewSection == 'scriptItem'",
 					"group": "1_scripts@1"
 				},
 				{
 					"command": "vizscript.sidebar.previewScript",
-					"when": "webviewId == 'vizscript-sidebar'",
+					"when": "webviewId == 'vizscript-sidebar' && webviewSection == 'scriptItem'",
 					"group": "1_scripts@2"
 				},
 				{
 					"command": "vizscript.sidebar.diffScript",
-					"when": "webviewId == 'vizscript-sidebar'",
+					"when": "webviewId == 'vizscript-sidebar' && webviewSection == 'scriptItem'",
 					"group": "1_scripts@3"
 				},
 				{
 					"command": "vizscript.sidebar.setScript",
-					"when": "webviewId == 'vizscript-sidebar'",
+					"when": "webviewId == 'vizscript-sidebar' && webviewSection == 'scriptItem'",
 					"group": "1_scripts@4"
 				},
 				{
 					"command": "vizscript.sidebar.copyName",
-					"when": "webviewId == 'vizscript-sidebar'",
+					"when": "webviewId == 'vizscript-sidebar' && webviewSection == 'scriptItem'",
 					"group": "2_clipboard@1"
 				},
 				{
 					"command": "vizscript.sidebar.copyVizId",
-					"when": "webviewId == 'vizscript-sidebar'",
+					"when": "webviewId == 'vizscript-sidebar' && webviewSection == 'scriptItem'",
 					"group": "2_clipboard@2"
+				},
+				{
+					"command": "vizscript.sidebar.splitGroup",
+					"when": "webviewId == 'vizscript-sidebar' && webviewSection == 'scriptItem' && isGroup",
+					"group": "3_groups@1"
+				},
+				{
+					"command": "vizscript.sidebar.mergeScripts",
+					"when": "webviewId == 'vizscript-sidebar' && webviewSection == 'scriptItem'",
+					"group": "3_groups@2"
 				}
 			],
 			"commandPalette": [
