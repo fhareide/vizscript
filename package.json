@@ -4,7 +4,7 @@
 	"description": "A complete language extension for Viz Script. Auto complete, syntax checking, syntax highlighting, signature help, jump to definition and more.",
 	"author": "Fredrik Hareide",
 	"license": "MIT",
-	"version": "0.5.1-beta.2",
+	"version": "0.5.1-beta.3",
 	"publisher": "fhareide",
 	"keywords": [
 		"Vizrt",
@@ -401,16 +401,15 @@
 					"description": "Automatically inject/update metadata without prompting",
 					"scope": "resource"
 				},
-				"vizscript.metadata.minifyFormat": {
+				"vizscript.metadata.formatting": {
 					"type": "string",
 					"enum": [
-						"none",
+						"full",
 						"compact",
-						"vizOnly",
-						"both"
+						"oneline"
 					],
-					"default": "none",
-					"description": "Metadata format: 'none': multi-line, 'compact': 3-line minified, 'vizOnly': single-line for Viz scripts only, 'both': always single-line",
+					"default": "full",
+					"description": "Metadata formatting: 'full': multi-line JSON, 'compact': 3-line format, 'oneline': single-line format",
 					"scope": "resource"
 				},
 				"vizscript.files.preferLocalFiles": {

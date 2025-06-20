@@ -1,0 +1,2 @@
+- When fetching scripts from Viz and finding a local copy, the open as a new file option still opens the local version and not an untitled version.
+- 

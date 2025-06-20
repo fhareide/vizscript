@@ -58,7 +58,7 @@
     "isGroup": script.isGroup,
     "isContainer": script.type === "Container"
   })}
-  class={`cursor-pointer overflow-hidden w-full h-[72px] relative 
+  class={`cursor-pointer overflow-hidden w-full h-[72px] relative select-none 
 	${selectedScriptId === script.vizId || selectedScriptIds.includes(script.vizId) ? buttonStyles : "hover:bg-vscode-list-hoverBackground"}
 	${selectedScriptIds.includes(script.vizId) && selectedScriptIds.length > 1 ? "border-l-4 border-vscode-textLink-foreground" : ""}`}
 >

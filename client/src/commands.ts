@@ -730,7 +730,6 @@ async function processScriptWithMetadata(
               `Metadata is incomplete for "${scriptObject.name}". Missing: ${missingFields.join(", ")}`,
               "Auto-complete",
               "Continue anyway",
-              "Cancel",
             );
 
             if (choice === "Auto-complete") {
@@ -743,7 +742,7 @@ async function processScriptWithMetadata(
                   message: `Metadata auto-completed for "${scriptObject.name}". Added: ${missingFields.join(", ")}`,
                 };
               }
-            } else if (choice === "Cancel") {
+            } else if (choice === undefined) {
               throw new Error("Script opening cancelled due to incomplete metadata");
             }
             // If "Continue anyway", fall through to return original content
@@ -972,14 +971,14 @@ async function validateAndHandleMetadataForScriptSetting(
                 modal: true,
                 detail: sceneValidation.error || "Unknown scene validation error",
               },
-              "Continue Anyway",
-              "Update Metadata",
-              "Cancel",
+              { title: "Continue Anyway" },
+              { title: "Update Metadata" },
+              { title: "Cancel", isCloseAffordance: true },
             );
 
-            if (choice === "Cancel") {
+            if (choice?.title === "Cancel" || !choice) {
               throw new Error("Script setting cancelled due to scene path mismatch");
-            } else if (choice === "Update Metadata") {
+            } else if (choice?.title === "Update Metadata") {
               // Update metadata with current scene path
               updatedMetadata.scenePath = sceneValidation.currentScenePath || "";
               updatedMetadata.lastModified = metadataService.formatLocalDateTime(new Date());
@@ -1020,11 +1019,11 @@ async function validateAndHandleMetadataForScriptSetting(
         modal: false,
         detail: "Metadata helps track script relationships with Viz scenes and enables better version control.",
       },
-      "Create Metadata",
-      "Skip",
+      { title: "Create Metadata" },
+      { title: "Skip", isCloseAffordance: true },
     );
 
-    if (shouldCreateMetadata === "Create Metadata") {
+    if (shouldCreateMetadata?.title === "Create Metadata") {
       try {
         // Get script objects to find the current one
         const scriptObjects = await loadFromStorage(context);
@@ -1353,6 +1352,217 @@ export async function splitScriptGroup(context: ExtensionContext, groupVizId: st
 }
 
 /**
+ * Analyzes differences between scripts to provide helpful info
+ */
+function analyzeDifferences(scripts: VizScriptObject[]): string[] {
+  if (scripts.length < 2) return [];
+
+  const baseScript = scripts[0];
+  const results: string[] = [];
+
+  for (let i = 0; i < scripts.length; i++) {
+    const script = scripts[i];
+
+    if (i === 0) {
+      results.push("Reference script");
+      continue;
+    }
+
+    const baseLines = baseScript.code.split("\n");
+    const currentLines = script.code.split("\n");
+
+    // Basic difference analysis
+    if (baseLines.length !== currentLines.length) {
+      const diff = currentLines.length - baseLines.length;
+      results.push(`${diff > 0 ? "+" : ""}${diff} lines difference`);
+    } else {
+      // Count different lines
+      let differentLines = 0;
+      for (let j = 0; j < baseLines.length; j++) {
+        if (baseLines[j] !== currentLines[j]) {
+          differentLines++;
+        }
+      }
+      if (differentLines > 0) {
+        results.push(`${differentLines} line${differentLines === 1 ? "" : "s"} modified`);
+      } else {
+        results.push("Identical content");
+      }
+    }
+  }
+
+  return results;
+}
+
+/**
+ * Shows a diff dialog for merging scripts with different content
+ */
+async function showMergeDiffDialog(
+  scripts: VizScriptObject[],
+): Promise<{ selectedContent: string; cancelled: boolean }> {
+  try {
+    // Create temporary files for each script to show diffs
+    const tempFiles: { uri: vscode.Uri; script: VizScriptObject }[] = [];
+
+    for (let i = 0; i < scripts.length; i++) {
+      const script = scripts[i];
+      const tempUri = vscode.Uri.parse(`untitled:${script.name}_merge_${i}.${script.extension.substring(1)}`);
+      const doc = await vscode.workspace.openTextDocument(tempUri);
+
+      // Insert content into the document
+      const edit = new vscode.WorkspaceEdit();
+      edit.insert(tempUri, new vscode.Position(0, 0), script.code);
+      await vscode.workspace.applyEdit(edit);
+
+      tempFiles.push({ uri: tempUri, script });
+    }
+
+    // Analyze differences between scripts
+    const differences = analyzeDifferences(scripts);
+
+    // Show quick pick to let user choose which version to use
+    const items = scripts.map((script, index) => ({
+      label: `$(file-code) ${script.name}`,
+      description: script.vizId,
+      detail: `Lines: ${script.code.split("\n").length}, Characters: ${script.code.length}${differences[index] ? ` • ${differences[index]}` : ""}`,
+      script: script,
+      index: index,
+    }));
+
+    // Add preview options
+    const previewItems = scripts.map((script, index) => ({
+      label: `$(eye) Preview ${script.name}`,
+      description: "Open in editor to view full content",
+      detail: `Preview the full content of ${script.name}`,
+      script: script,
+      index: index,
+      isPreview: true,
+    }));
+
+    // Add option to show diff first
+    const selectedItem = await vscode.window.showQuickPick(
+      [
+        {
+          label: "$(diff) Compare Scripts",
+          description: "Show differences between scripts",
+          detail: "Open diff view to compare script contents",
+          isCompareOption: true,
+        },
+        { label: "", kind: vscode.QuickPickItemKind.Separator },
+        { label: "Preview Scripts", kind: vscode.QuickPickItemKind.Separator },
+        ...previewItems,
+        { label: "", kind: vscode.QuickPickItemKind.Separator },
+        { label: "Choose Version to Keep", kind: vscode.QuickPickItemKind.Separator },
+        ...items,
+      ],
+      {
+        placeHolder: "Scripts have different content. Compare, preview, or choose which version to keep:",
+        ignoreFocusOut: true,
+      },
+    );
+
+    if (!selectedItem) {
+      return { selectedContent: "", cancelled: true };
+    }
+
+    // If user chose to preview a script
+    if ((selectedItem as any).isPreview) {
+      const scriptToPreview = (selectedItem as any).script;
+      const previewUri = tempFiles.find((tf) => tf.script.vizId === scriptToPreview.vizId)?.uri;
+
+      if (previewUri) {
+        await vscode.window.showTextDocument(previewUri, { preview: true });
+
+        // Show the picker again after preview
+        const afterPreviewChoice = await vscode.window.showQuickPick(items, {
+          placeHolder: "After reviewing the preview, choose which version to keep:",
+          ignoreFocusOut: true,
+        });
+
+        if (!afterPreviewChoice) {
+          return { selectedContent: "", cancelled: true };
+        }
+
+        return { selectedContent: (afterPreviewChoice as any).script.code, cancelled: false };
+      }
+    }
+
+    // If user chose to compare first
+    if ((selectedItem as any).isCompareOption) {
+      if (tempFiles.length >= 2) {
+        // If only 2 scripts, show direct diff
+        if (tempFiles.length === 2) {
+          await vscode.commands.executeCommand(
+            "vscode.diff",
+            tempFiles[0].uri,
+            tempFiles[1].uri,
+            `Compare: ${tempFiles[0].script.name} ↔ ${tempFiles[1].script.name}`,
+          );
+        } else {
+          // If more than 2 scripts, let user choose which two to compare
+          const compareItems = [];
+          for (let i = 0; i < tempFiles.length; i++) {
+            for (let j = i + 1; j < tempFiles.length; j++) {
+              compareItems.push({
+                label: `$(diff) ${tempFiles[i].script.name} ↔ ${tempFiles[j].script.name}`,
+                detail: `Compare ${tempFiles[i].script.name} with ${tempFiles[j].script.name}`,
+                leftIndex: i,
+                rightIndex: j,
+              });
+            }
+          }
+
+          const compareChoice = await vscode.window.showQuickPick(compareItems, {
+            placeHolder: "Choose which scripts to compare:",
+            ignoreFocusOut: true,
+          });
+
+          if (compareChoice) {
+            await vscode.commands.executeCommand(
+              "vscode.diff",
+              tempFiles[compareChoice.leftIndex].uri,
+              tempFiles[compareChoice.rightIndex].uri,
+              `Compare: ${tempFiles[compareChoice.leftIndex].script.name} ↔ ${tempFiles[compareChoice.rightIndex].script.name}`,
+            );
+          }
+        }
+
+        // Show the picker again after diff
+        const secondChoice = await vscode.window.showQuickPick(items, {
+          placeHolder: "After reviewing the diff, choose which version to keep:",
+          ignoreFocusOut: true,
+        });
+
+        if (!secondChoice) {
+          return { selectedContent: "", cancelled: true };
+        }
+
+        return { selectedContent: (secondChoice as any).script.code, cancelled: false };
+      }
+    }
+
+    return { selectedContent: (selectedItem as any).script.code, cancelled: false };
+  } catch (error) {
+    vscode.window.showErrorMessage(`Error showing merge diff: ${error.message}`);
+    return { selectedContent: "", cancelled: true };
+  } finally {
+    // Close any temporary untitled documents that were created
+    const openDocuments = vscode.workspace.textDocuments;
+    for (const doc of openDocuments) {
+      if (doc.uri.scheme === "untitled" && doc.uri.path.includes("_merge_")) {
+        try {
+          // Close the document without saving
+          await vscode.window.showTextDocument(doc);
+          await vscode.commands.executeCommand("workbench.action.closeActiveEditor");
+        } catch (closeError) {
+          // Ignore errors when closing documents
+        }
+      }
+    }
+  }
+}
+
+/**
  * Merges selected individual scripts into a group
  */
 export async function mergeScriptsIntoGroup(context: ExtensionContext, vizIds: string[]): Promise<void> {
@@ -1389,17 +1599,15 @@ export async function mergeScriptsIntoGroup(context: ExtensionContext, vizIds: s
     const firstScript = scriptsToMerge[0];
     const allSameContent = scriptsToMerge.every((script) => script.code === firstScript.code);
 
-    if (!allSameContent) {
-      const shouldProceed = await vscode.window.showWarningMessage(
-        "Selected scripts have different content. Merge anyway?",
-        { modal: true },
-        "Yes, Merge",
-        "Cancel",
-      );
+    let selectedContent = firstScript.code;
 
-      if (shouldProceed !== "Yes, Merge") {
+    if (!allSameContent) {
+      // Show diff and let user choose which version to keep
+      const result = await showMergeDiffDialog(scriptsToMerge);
+      if (result.cancelled) {
         return;
       }
+      selectedContent = result.selectedContent;
     }
 
     // Create the new group
@@ -1410,7 +1618,7 @@ export async function mergeScriptsIntoGroup(context: ExtensionContext, vizIds: s
       type: `ContainerCollection ( x${scriptsToMerge.length} )`,
       extension: ".vsc",
       name: `Collection${collectionIndex}`,
-      code: firstScript.code,
+      code: selectedContent,
       scenePath: firstScript.scenePath,
       children: scriptsToMerge.map((script) => script.vizId),
       isGroup: true,

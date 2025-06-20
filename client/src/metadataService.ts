@@ -125,17 +125,23 @@ export class MetadataService {
       const metadataLines: string[] = [];
 
       for (const line of lines) {
-        if (line.includes("VSCODE-META-START")) {
+        if (line.includes("VSCODE-META-START") && line.includes("VSCODE-META-END")) {
+          // Single-line format: 'VSCODE-META-START{json}VSCODE-META-END
+          const startIndex = line.indexOf("VSCODE-META-START") + "VSCODE-META-START".length;
+          const endIndex = line.indexOf("VSCODE-META-END");
+
+          if (startIndex < endIndex) {
+            const jsonContent = line.substring(startIndex, endIndex);
+            const metadata = JSON.parse(jsonContent);
+            return { success: true, metadata };
+          }
+        } else if (line.includes("VSCODE-META-START")) {
           inMetaSection = true;
           continue;
-        }
-
-        if (line.includes("VSCODE-META-END")) {
+        } else if (line.includes("VSCODE-META-END")) {
           inMetaSection = false;
           break;
-        }
-
-        if (inMetaSection) {
+        } else if (inMetaSection) {
           // Remove leading quote if present
           const cleanLine = line.startsWith("'") ? line.substring(1) : line;
           metadataLines.push(cleanLine);
@@ -195,20 +201,23 @@ export class MetadataService {
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
 
-      if (line.includes("VSCODE-META-START")) {
-        inMetaSection = true;
-        // Add the new metadata block
+      if (line.includes("VSCODE-META-START") && line.includes("VSCODE-META-END")) {
+        // Single-line format: both START and END on the same line
         newLines.push(...this.generateMetadataBlock(newMetadata, { sourceContext: "local" }));
         metadataReplaced = true;
         continue;
-      }
-
-      if (line.includes("VSCODE-META-END")) {
+      } else if (line.includes("VSCODE-META-START")) {
+        // Multi-line format: START marker found
+        inMetaSection = true;
+        newLines.push(...this.generateMetadataBlock(newMetadata, { sourceContext: "local" }));
+        metadataReplaced = true;
+        continue;
+      } else if (line.includes("VSCODE-META-END")) {
+        // Multi-line format: END marker found
         inMetaSection = false;
         continue; // Skip the end line as it's included in generateMetadataBlock
-      }
-
-      if (!inMetaSection) {
+      } else if (!inMetaSection) {
+        // Only add lines that are not part of metadata section
         newLines.push(line);
       }
     }
@@ -227,22 +236,19 @@ export class MetadataService {
    */
   private generateMetadataBlock(metadata: any, options?: { minify?: boolean; sourceContext?: string }): string[] {
     const config = vscode.workspace.getConfiguration("vizscript.metadata");
-    const minifyFormat = config.get<string>("minifyFormat", "none");
+    const formatting = config.get<string>("formatting", "full");
 
     let formatType = "multiline";
 
-    // Determine format type based on configuration and context
-    switch (minifyFormat) {
-      case "both":
+    // Determine format type based on configuration
+    switch (formatting) {
+      case "oneline":
         formatType = "oneline";
-        break;
-      case "vizOnly":
-        formatType = options?.sourceContext === "viz" ? "oneline" : "multiline";
         break;
       case "compact":
         formatType = "compact";
         break;
-      case "none":
+      case "full":
       default:
         formatType = "multiline";
         break;

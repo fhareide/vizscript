@@ -25,18 +25,42 @@ export class MetadataProcessor {
     for (let i = 0; i < lines.length; i++) {
       let line = lines[i];
 
+      if (line.includes("VSCODE-META-START") && line.includes("VSCODE-META-END")) {
+        // Single-line format: 'VSCODE-META-START{json}VSCODE-META-END
+        let startIndex = line.indexOf("VSCODE-META-START") + "VSCODE-META-START".length;
+        let endIndex = line.indexOf("VSCODE-META-END");
+
+        if (startIndex < endIndex) {
+          let jsonContent = line.substring(startIndex, endIndex).trim();
+          this.metaContent = [jsonContent];
+          this.parseMetaContent();
+          this.metaContent = []; // Reset the meta content array
+        }
+        continue;
+      }
+
       if (line.includes("VSCODE-META-START")) {
         isCollectingMeta = true;
         // Remove the keyword and keep only the portion after it
         let startIndex = line.indexOf("VSCODE-META-START") + "VSCODE-META-START".length;
         line = line.substring(startIndex).trim();
+
+        // Only add non-empty content
+        if (line) {
+          this.metaContent.push(line);
+        }
+        continue;
       }
 
       if (line.includes("VSCODE-META-END")) {
         // Remove the keyword and keep only the portion before it
         let endIndex = line.indexOf("VSCODE-META-END");
         line = line.substring(0, endIndex).trim();
-        this.metaContent.push(line); // Add the final line before ending collection
+
+        // Only add non-empty content
+        if (line) {
+          this.metaContent.push(line);
+        }
 
         isCollectingMeta = false;
         this.parseMetaContent();

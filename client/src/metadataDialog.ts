@@ -71,13 +71,13 @@ export async function showMetadataComparisonDialog(options: MetadataDialogOption
       modal: true,
       detail: comparison,
     },
-    "Update",
-    "Keep Current",
-    "Show Details",
-    "Set File Path",
+    { title: "Update" },
+    { title: "Keep Current", isCloseAffordance: true },
+    { title: "Show Details" },
+    { title: "Set File Path" },
   );
 
-  switch (choice) {
+  switch (choice?.title) {
     case "Update":
       return { action: "update", metadata: suggestedMetadata };
     case "Keep Current":
@@ -239,14 +239,14 @@ export async function showMetadataValidationErrors(
       modal: true,
       detail: errors.join("\n"),
     },
-    "Fix Automatically",
-    "Ignore Errors",
-    "Always Fix",
-    "Always Ignore",
-    "Cancel",
+    { title: "Fix Automatically" },
+    { title: "Ignore Errors" },
+    { title: "Always Fix" },
+    { title: "Always Ignore" },
+    { title: "Cancel", isCloseAffordance: true },
   );
 
-  switch (choice) {
+  switch (choice?.title) {
     case "Fix Automatically":
       return { action: "fix", dontAskAgain: false };
     case "Ignore Errors":

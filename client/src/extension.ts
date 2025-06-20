@@ -190,17 +190,14 @@ function detectMetadataFormat(lines: string[]): "single-line" | "compact" | "tra
  */
 async function getDesiredMetadataFormat(): Promise<"single-line" | "compact" | "traditional"> {
   const config = vscode.workspace.getConfiguration("vizscript.metadata");
-  const minifyFormat = config.get<string>("minifyFormat", "none");
+  const formatting = config.get<string>("formatting", "full");
 
-  switch (minifyFormat) {
-    case "both":
+  switch (formatting) {
+    case "oneline":
       return "single-line";
     case "compact":
       return "compact";
-    case "vizOnly":
-      // For local operations (Update metadata command), this should be traditional
-      return "traditional";
-    case "none":
+    case "full":
     default:
       return "traditional";
   }
@@ -615,13 +612,11 @@ export function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     vscode.commands.registerCommand("vizscript.sidebar.mergeScripts", async (contextData?: any) => {
-      console.log("Merge command invoked with context data:", contextData);
       let vizIds: string[] = [];
 
       // Try to get selected scripts from context data first (right-click menu)
       if (contextData?.selectedScriptIds && contextData.selectedScriptIds.length > 0) {
         vizIds = contextData.selectedScriptIds;
-        console.log("Using context data vizIds:", vizIds);
 
         // Only proceed if we have multiple items or show a message
         if (vizIds.length < 2) {
@@ -631,14 +626,12 @@ export function activate(context: vscode.ExtensionContext) {
           return;
         }
       } else {
-        console.log("No valid context data, falling back to quick pick");
         // Fallback to the old method for other invocations - show quick pick
         await Commands.showMergeScriptsQuickPick.bind(this)(context);
         return;
       }
 
       if (vizIds.length > 1) {
-        console.log("Merging scripts:", vizIds);
         await Commands.mergeScriptsIntoGroup.bind(this)(context, vizIds);
       }
     }),
