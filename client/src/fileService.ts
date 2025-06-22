@@ -179,7 +179,8 @@ export class FileService {
         if (
           cleanLine.includes('"lastUpdated"') ||
           cleanLine.includes('"createdAt"') ||
-          cleanLine.includes('"timestamp"')
+          cleanLine.includes('"timestamp"') ||
+          cleanLine.includes('"lastModified"')
         ) {
           // Skip this line entirely or replace with normalized version
           continue;
@@ -413,7 +414,6 @@ export class FileService {
         // Update the filePath if it's different
         if (metadata.filePath !== preferredPath) {
           metadata.filePath = preferredPath;
-          metadata.lastUpdated = new Date().toISOString();
 
           // Update the metadata in the document
           await this.updateMetadataInDocument(document, metadata);

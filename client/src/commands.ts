@@ -1,5 +1,10 @@
 import { PreviewFileSystemProvider } from "./previewFileSystemProvider";
 import { SidebarProvider } from "./sidebarProvider";
+import {
+  getScriptParametersData,
+  setScriptParameterValue,
+  invokeScriptParameter as invokeParameterService,
+} from "./scriptParameterService";
 /* --------------------------------------------------------------------------------------------
  * Copyright (c) Fredrik Hareide. All rights reserved.
  * Licensed under the MIT License.
@@ -30,6 +35,7 @@ import { compileScript, compileScriptId, getVizScripts } from "./vizCommunicatio
 import { MetadataService } from "./metadataService";
 import { FileService } from "./fileService";
 import { SceneService } from "./sceneService";
+import uuidByString from "uuid-by-string";
 import {
   showMetadataUpdateDialog,
   showMetadataInjectionDialog,
@@ -69,6 +75,41 @@ async function closePreviewTabForScript(name: string, extension: string): Promis
       }
     }
   }
+}
+
+/**
+ * Finds an existing editor for a script based on deterministic filename
+ */
+async function findExistingScriptEditor(
+  vizId: string,
+  scriptName: string,
+  extension: string,
+): Promise<vscode.TextEditor | null> {
+  const vizIdStripped = vizId.replace("#", "");
+
+  // Generate the same deterministic UUID and filename
+  const deterministicUuid = uuidByString(`vizscript-${vizIdStripped}`);
+  const filename = `${scriptName}-${deterministicUuid.substring(0, 8)}${extension}`;
+
+  // First check all open documents (including background tabs)
+  for (const document of vscode.workspace.textDocuments) {
+    const docFilename = document.uri.path.split("/").pop() || "";
+
+    // Check if this document has our deterministic filename
+    if (docFilename === filename) {
+      // Document found, try to get an editor for it or create one
+      const existingEditor = vscode.window.visibleTextEditors.find((editor) => editor.document === document);
+      if (existingEditor) {
+        return existingEditor;
+      } else {
+        // Document exists but no visible editor, show it to get an editor
+        const editor = await vscode.window.showTextDocument(document);
+        return editor;
+      }
+    }
+  }
+
+  return null;
 }
 
 export async function saveToStorage(context: ExtensionContext, data: any): Promise<void> {
@@ -442,18 +483,220 @@ export async function openScriptInTextEditor(
         // Show success message
         window.showInformationMessage(`Current file replaced with script "${scriptObject.name}"`);
       } else {
-        // Before creating new untitled file, check if there's a preview tab for this script and close it
-        await closePreviewTabForScript(scriptObject.name, scriptObject.extension);
+        // Check if this script is already open in an editor
+        const existingEditor = await findExistingScriptEditor(vizId, scriptObject.name, scriptObject.extension);
 
-        // Create new untitled file
-        await showUntitledWindow(
-          vizIdStripped,
-          scriptObject.name,
-          scriptObject.extension,
-          processedScript.content,
-          context,
-        );
+        if (existingEditor) {
+          // Preserve existing metadata (especially UUID) when refreshing content
+          const currentContent = existingEditor.document.getText();
+          let updatedContent = processedScript.content;
+
+          // Check if current content has metadata and preserve UUID
+          const metadataService = new MetadataService(client);
+          try {
+            const currentLines = currentContent.split(/\r?\n/g);
+            const hasCurrentMetadata = detectMetadataInLines(currentLines);
+
+            if (hasCurrentMetadata) {
+              // Extract current metadata to preserve UUID
+              const currentMetadataResult = await metadataService.extractMetadataFromContent(currentContent);
+
+              if (currentMetadataResult.success && currentMetadataResult.metadata?.UUID) {
+                // Check if new content has metadata
+                const newLines = updatedContent.split(/\r?\n/g);
+                const hasNewMetadata = detectMetadataInLines(newLines);
+
+                if (hasNewMetadata) {
+                  // Extract new metadata and replace UUID with current one
+                  const newMetadataResult = await metadataService.extractMetadataFromContent(updatedContent);
+
+                  if (newMetadataResult.success && newMetadataResult.metadata) {
+                    // Preserve the existing UUID
+                    const preservedMetadata = {
+                      ...newMetadataResult.metadata,
+                      UUID: currentMetadataResult.metadata.UUID,
+                    };
+
+                    // Update the content with preserved metadata
+                    const updateResult = await metadataService.updateMetadataInContent(
+                      updatedContent,
+                      preservedMetadata,
+                    );
+                    if (updateResult.success) {
+                      updatedContent = updateResult.content;
+                    }
+                  }
+                }
+              }
+            }
+          } catch (error) {
+            console.warn("Error preserving metadata during refresh:", error);
+            // Continue with original content if metadata processing fails
+          }
+
+          // Instead of just focusing, update the content and refresh
+          const edit = new vscode.WorkspaceEdit();
+          const fullRange = new Range(
+            existingEditor.document.positionAt(0),
+            existingEditor.document.positionAt(existingEditor.document.getText().length),
+          );
+          edit.replace(existingEditor.document.uri, fullRange, updatedContent);
+
+          // Apply the edit and wait for completion
+          const success = await workspace.applyEdit(edit);
+
+          if (success) {
+            // Save cursor position and selection
+            const currentPosition = existingEditor.selection.active;
+
+            // Simply focus the editor - the WorkspaceEdit should be sufficient for most cases
+            await window.showTextDocument(existingEditor.document);
+
+            // Restore cursor position
+            existingEditor.selection = new vscode.Selection(currentPosition, currentPosition);
+
+            window.showInformationMessage(`Script "${scriptObject.name}" content updated`);
+          } else {
+            // Fallback to just focusing if edit fails
+            await window.showTextDocument(existingEditor.document);
+            window.showErrorMessage(`Failed to update content for "${scriptObject.name}"`);
+          }
+        } else {
+          // Before creating new untitled file, check if there's a preview tab for this script and close it
+          await closePreviewTabForScript(scriptObject.name, scriptObject.extension);
+
+          // Create new untitled file
+          await showUntitledWindow(
+            vizIdStripped,
+            scriptObject.name,
+            scriptObject.extension,
+            processedScript.content,
+            context,
+            scriptObject,
+          );
+        }
       }
+    }
+
+    // Show metadata processing result to user if needed
+    if (processedScript.message) {
+      window.showInformationMessage(processedScript.message);
+    }
+  } catch (error) {
+    showMessage(error);
+    throw error;
+  }
+}
+
+export async function openScriptInTextEditorForceRefresh(
+  context: ExtensionContext,
+  client: LanguageClient,
+  vizId: string,
+) {
+  try {
+    const state = await loadFromStorage(context);
+    const scriptObjects: VizScriptObject[] = state;
+
+    if (!scriptObjects) {
+      throw new Error("No script objects found.");
+    }
+
+    const scriptObject = scriptObjects.find((element) => element.vizId === vizId);
+    if (!scriptObject) {
+      throw new Error("No script object found.");
+    }
+
+    const vizIdStripped = vizId.replace("#", "");
+
+    // Enhanced metadata processing workflow with local file integration
+    const processedScript = await processScriptWithLocalFileIntegration(context, client, scriptObject, {
+      preview: false,
+    });
+
+    // Check if this script is already open in an editor
+    const existingEditor = await findExistingScriptEditor(vizId, scriptObject.name, scriptObject.extension);
+
+    if (existingEditor) {
+      // Preserve existing metadata (especially UUID) when refreshing content
+      const currentContent = existingEditor.document.getText();
+      let updatedContent = processedScript.content;
+
+      // Check if current content has metadata and preserve UUID
+      const metadataService = new MetadataService(client);
+      try {
+        const currentLines = currentContent.split(/\r?\n/g);
+        const hasCurrentMetadata = detectMetadataInLines(currentLines);
+
+        if (hasCurrentMetadata) {
+          // Extract current metadata to preserve UUID
+          const currentMetadataResult = await metadataService.extractMetadataFromContent(currentContent);
+
+          if (currentMetadataResult.success && currentMetadataResult.metadata?.UUID) {
+            // Check if new content has metadata
+            const newLines = updatedContent.split(/\r?\n/g);
+            const hasNewMetadata = detectMetadataInLines(newLines);
+
+            if (hasNewMetadata) {
+              // Extract new metadata and replace UUID with current one
+              const newMetadataResult = await metadataService.extractMetadataFromContent(updatedContent);
+
+              if (newMetadataResult.success && newMetadataResult.metadata) {
+                // Preserve the existing UUID
+                const preservedMetadata = {
+                  ...newMetadataResult.metadata,
+                  UUID: currentMetadataResult.metadata.UUID,
+                };
+
+                // Update the content with preserved metadata
+                const updateResult = await metadataService.updateMetadataInContent(updatedContent, preservedMetadata);
+                if (updateResult.success) {
+                  updatedContent = updateResult.content;
+                }
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.warn("Error preserving metadata during refresh:", error);
+        // Continue with original content if metadata processing fails
+      }
+
+      // Update content of existing editor using WorkspaceEdit for better refresh
+      const edit = new vscode.WorkspaceEdit();
+      const fullRange = new Range(
+        existingEditor.document.positionAt(0),
+        existingEditor.document.positionAt(existingEditor.document.getText().length),
+      );
+      edit.replace(existingEditor.document.uri, fullRange, updatedContent);
+
+      // Apply the edit and wait for completion
+      const success = await workspace.applyEdit(edit);
+
+      if (success) {
+        // Save cursor position and selection
+        const currentPosition = existingEditor.selection.active;
+
+        // Simply focus the editor - the WorkspaceEdit should be sufficient for most cases
+        await window.showTextDocument(existingEditor.document);
+
+        // Restore cursor position
+        existingEditor.selection = new vscode.Selection(currentPosition, currentPosition);
+
+        window.showInformationMessage(`Script "${scriptObject.name}" content refreshed`);
+      } else {
+        window.showErrorMessage(`Failed to refresh content for "${scriptObject.name}"`);
+      }
+    } else {
+      // No existing editor found, open normally
+      await showUntitledWindow(
+        vizIdStripped,
+        scriptObject.name,
+        scriptObject.extension,
+        processedScript.content,
+        context,
+        scriptObject,
+      );
+      window.showInformationMessage(`Script "${scriptObject.name}" opened (was not previously open)`);
     }
 
     // Show metadata processing result to user if needed
@@ -684,7 +927,7 @@ async function processScriptWithMetadata(
         const suggestedMetadata = metadataService.createDefaultMetadata(scriptObject);
 
         // Define required fields (scenePath is optional for containers)
-        const requiredFields = ["UUID", "fileName", "scriptType", "lastModified"];
+        const requiredFields = ["UUID", "fileName", "scriptType", "vizVersion"];
         if (scriptObject.type === "Scene") {
           requiredFields.push("scenePath");
         }
@@ -692,11 +935,19 @@ async function processScriptWithMetadata(
         // Check for missing or empty required fields
         const missingFields: string[] = [];
         for (const field of requiredFields) {
-          if (
-            !existingMetadata[field] ||
-            (typeof existingMetadata[field] === "string" && existingMetadata[field].trim() === "")
-          ) {
-            missingFields.push(field);
+          // For scenePath, allow empty strings (no scene loaded is valid)
+          if (field === "scenePath") {
+            if (existingMetadata[field] === undefined || existingMetadata[field] === null) {
+              missingFields.push(field);
+            }
+          } else {
+            // For other fields, empty strings are considered missing
+            if (
+              !existingMetadata[field] ||
+              (typeof existingMetadata[field] === "string" && existingMetadata[field].trim() === "")
+            ) {
+              missingFields.push(field);
+            }
           }
         }
 
@@ -751,9 +1002,12 @@ async function processScriptWithMetadata(
           // Metadata is complete - check if user wants to update with current script info
           // Only prompt if there are meaningful differences and not in preview mode
           if (shouldPromptForMetadataUpdate(existingMetadata, suggestedMetadata) && !options.preview) {
+            // Create suggested metadata that preserves existing UUID and other important fields
+            const properSuggestedMetadata = metadataService.mergeMetadata(existingMetadata, suggestedMetadata);
+
             const dialogOptions: MetadataDialogOptions = {
               currentMetadata: existingMetadata,
-              suggestedMetadata,
+              suggestedMetadata: properSuggestedMetadata,
               scriptName: scriptObject.name,
             };
 
@@ -839,8 +1093,9 @@ function detectMetadataInLines(lines: string[]): boolean {
 function shouldPromptForMetadataUpdate(current: any, suggested: any): boolean {
   if (!current || !suggested) return false;
 
-  // Check for meaningful differences (ignore lastModified and minor fields)
-  const importantFields = ["scenePath", "scriptType", "fileName"];
+  // Check for meaningful differences (ignore UUID and minor fields)
+  // UUID should never be changed, so we don't consider it for update prompts
+  const importantFields = ["scenePath", "scriptType", "fileName", "vizVersion"];
 
   for (const field of importantFields) {
     if (current[field] !== suggested[field]) {
@@ -918,7 +1173,10 @@ async function validateAndHandleMetadataForScriptSetting(
                 updatedMetadata.scenePath = currentScript?.scenePath || "";
                 break;
               case "UUID":
-                updatedMetadata.UUID = metadataService.generateUUID();
+                // Use deterministic UUID if vizId is available, otherwise generate random
+                updatedMetadata.UUID = currentScript?.vizId
+                  ? metadataService.generateDeterministicUUID(currentScript.vizId)
+                  : metadataService.generateUUID();
                 break;
               case "scriptType":
                 updatedMetadata.scriptType = scriptType;
@@ -930,10 +1188,8 @@ async function validateAndHandleMetadataForScriptSetting(
           }
         }
 
-        // Update lastModified if any fields were added
+        // Update metadata if any fields were added
         if (needsUpdate) {
-          updatedMetadata.lastModified = metadataService.formatLocalDateTime(new Date());
-
           // Sort the metadata to ensure consistent field order
           updatedMetadata = metadataService.mergeMetadata({}, updatedMetadata);
 
@@ -981,7 +1237,6 @@ async function validateAndHandleMetadataForScriptSetting(
             } else if (choice?.title === "Update Metadata") {
               // Update metadata with current scene path
               updatedMetadata.scenePath = sceneValidation.currentScenePath || "";
-              updatedMetadata.lastModified = metadataService.formatLocalDateTime(new Date());
 
               // Sort the metadata to ensure consistent field order
               updatedMetadata = metadataService.mergeMetadata({}, updatedMetadata);
@@ -1735,5 +1990,99 @@ export async function showMergeScriptsQuickPick(context: ExtensionContext): Prom
     }
   } catch (error) {
     vscode.window.showErrorMessage(`Failed to show merge selection: ${error.message}`);
+  }
+}
+
+/**
+ * Gets script parameters and sends them to the secondary sidebar
+ */
+export async function getScriptParameters(
+  context: ExtensionContext,
+  data: { scriptId: string; hostname: string; port: number },
+  sidebarProvider: SidebarProvider,
+): Promise<void> {
+  try {
+    console.log("getScriptParameters called with data:", data);
+    const { scriptId, hostname, port } = data;
+
+    if (!scriptId) {
+      throw new Error("No script ID provided");
+    }
+
+    console.log("Calling getScriptParametersData...");
+    const parametersData = await getScriptParametersData(hostname, port, scriptId);
+    console.log("Received parameters data:", parametersData);
+
+    // Send parameters to secondary sidebar
+    if (sidebarProvider._view?.webview) {
+      console.log("Sending parameters to webview...");
+      sidebarProvider._view.webview.postMessage({
+        type: "receiveScriptParameters",
+        value: parametersData,
+      });
+    } else {
+      console.log("No webview available to send parameters to");
+    }
+  } catch (error) {
+    vscode.window.showErrorMessage(`Failed to get script parameters: ${error.message}`);
+    console.error("Error getting script parameters:", error);
+
+    // Send error state to webview
+    if (sidebarProvider._view?.webview) {
+      sidebarProvider._view.webview.postMessage({
+        type: "receiveScriptParameters",
+        value: null,
+      });
+    }
+  }
+}
+
+/**
+ * Sets a script parameter value and refreshes the parameters
+ */
+export async function setScriptParameter(
+  context: ExtensionContext,
+  data: { scriptId: string; parameterName: string; value: any; hostname: string; port: number },
+  sidebarProvider: SidebarProvider,
+): Promise<void> {
+  try {
+    const { scriptId, parameterName, value, hostname, port } = data;
+
+    if (!scriptId || !parameterName) {
+      throw new Error("Script ID and parameter name are required");
+    }
+
+    await setScriptParameterValue(hostname, port, scriptId, parameterName, value);
+
+    // Refresh parameters to show updated values
+    await getScriptParameters(context, { scriptId, hostname, port }, sidebarProvider);
+  } catch (error) {
+    vscode.window.showErrorMessage(`Failed to set script parameter: ${error.message}`);
+    console.error("Error setting script parameter:", error);
+  }
+}
+
+/**
+ * Invokes a script parameter (for pushbuttons) and refreshes the parameters
+ */
+export async function invokeScriptParameter(
+  context: ExtensionContext,
+  data: { scriptId: string; parameterName: string; hostname: string; port: number },
+  sidebarProvider: SidebarProvider,
+): Promise<void> {
+  try {
+    const { scriptId, parameterName, hostname, port } = data;
+
+    if (!scriptId || !parameterName) {
+      throw new Error("Script ID and parameter name are required");
+    }
+
+    await invokeParameterService(hostname, port, scriptId, parameterName);
+
+    // Refresh parameters to show any updated values
+    await getScriptParameters(context, { scriptId, hostname, port }, sidebarProvider);
+  } catch (error) {
+    vscode.window.showErrorMessage(`Failed to invoke script parameter: ${error.message}`);
+    console.error("Error invoking script parameter:", error);
   }
 }

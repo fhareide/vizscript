@@ -465,12 +465,6 @@
 					"name": "Viz Script",
 					"type": "webview",
 					"icon": "images/vizicon.png"
-				},
-				{
-					"id": "vizscript-secondary-sidebar",
-					"name": "Viz Controls",
-					"type": "webview",
-					"icon": "images/vizicon.png"
 				}
 			]
 		}
@@ -522,6 +516,7 @@
 		"webpack-cli": "^4.5.0"
 	},
 	"dependencies": {
-		"svelte-icons": "^2.1.0"
+		"svelte-icons": "^2.1.0",
+		"uuid-by-string": "^4.0.0"
 	}
 }

@@ -73,7 +73,7 @@ export function getVizScripts(
           const scriptContent = await getVizScriptContent(host, port, currentObjectId);
           const cleanName = cleanString(scriptContent[1]);
           const scriptName = cleanName.startsWith("#") ? "Unsaved Scene" : cleanName;
-          const finalScriptName = scriptContent[0] === "" ? "No scene script found" : scriptName;
+          const finalScriptName = scriptContent[0] === "" ? "NewScene" : scriptName;
           const script: VizScriptObject = {
             vizId: currentObjectId,
             type: "Scene",
@@ -93,7 +93,13 @@ export function getVizScripts(
           window.showErrorMessage("Failed " + error.message);
         }
       } else if (answer[1] == "3") {
-        if (answer[3] === "") socket.end();
+        if (answer[3] === "") {
+          // No container scripts found, but still return the scene script
+          scriptObjects = [...sceneScript];
+          await saveToStorage(context, scriptObjects);
+          socket.end();
+          return;
+        }
         const containerScriptVizIds = answer[3].split(" ");
 
         const increment = 90 / containerScriptVizIds.length;

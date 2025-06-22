@@ -3,6 +3,7 @@
 		"vscode": "^1.75.0"
 	},
 	"dependencies": {
+		"uuid-by-string": "^4.0.0",
 		"vscode-languageclient": "^9.0.1"
 	},
 	"devDependencies": {

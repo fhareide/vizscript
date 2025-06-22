@@ -1,7 +1,8 @@
 <script lang="ts">
   import { onMount } from "svelte";
-	import type {VizScriptObject} from "../../src/shared/types"
+	import type {VizScriptObject, ScriptParameter, ScriptParametersData} from "../../src/shared/types"
   import ScriptItem from "./ScriptItem.svelte";
+  import ScriptParameters from "./ScriptParameters.svelte";
   let vizscripts: VizScriptObject[] = [];
   let selectedScriptId: string;
   let selectedScript: VizScriptObject | undefined;
@@ -15,7 +16,23 @@
 	let selectedLayer = "MAIN_SCENE";
   let previousLayer = selectedLayer;
 
+  // Script parameters state
+  let parametersData: ScriptParametersData | null = null;
+  let showParameters = true;
+  let parametersCache: { [scriptId: string]: ScriptParametersData } = {}; // Controls collapsible parameters section
+  let scriptParametersComponent: ScriptParameters;
+  
+  // Resizer state
+  let isResizing = false;
+  let scriptListHeight = 60; // Percentage of available space for script list
+  let startY = 0;
+  let startHeight = 0;
+
   $: selectedScript = vizscripts.find((script) => script.vizId === selectedScriptId) || undefined;
+  
+  // Calculate effective script list height based on parameters panel state
+  // When collapsed, leave enough space for the header (~10% should be sufficient for header visibility)
+  $: effectiveScriptListHeight = showParameters ? scriptListHeight : 90;
 
   const handleGetScripts = async () => {
     console.log('Getting scripts for layer:', selectedLayer);
@@ -45,14 +62,6 @@
     });
   };
 
-  const handleScriptDiff = () => {
-    if (!selectedScript) return;
-    tsvscode.postMessage({
-      type: "diff",
-      value: selectedScript.vizId,
-    });
-  };
-
   const handleScriptEdit = () => {
     if (!selectedScript) return;
     tsvscode.postMessage({
@@ -61,8 +70,23 @@
     });
   };
 
+  const handleScriptEditForceRefresh = () => {
+    if (!selectedScript) return;
+    tsvscode.postMessage({
+      type: "editScriptForceRefresh",
+      value: selectedScript.vizId,
+    });
+  };
+
 	const handleScriptSet = () => {
-		if (!selectedScript) return;
+		if (!selectedScript) {
+			// If no script is selected, send empty vizId to clear/reset the scene
+			tsvscode.postMessage({
+				type: "setScript",
+				value: { vizId: "", selectedLayer, hostname, port },
+			});
+			return;
+		}
 		tsvscode.postMessage({
 			type: "setScript",
 			value: { vizId: selectedScript.vizId, selectedLayer, hostname, port },
@@ -98,6 +122,74 @@
 
 		tsvscode.setState(updatedState);
 	};
+
+  // Parameter handling functions - moved to ScriptParameters component
+  function handleGetScriptParameters(event: CustomEvent) {
+    tsvscode.postMessage({
+      type: "getScriptParameters",
+      value: event.detail
+    });
+  }
+
+  function handleSetScriptParameter(event: CustomEvent) {
+    tsvscode.postMessage({
+      type: "setScriptParameter",
+      value: event.detail
+    });
+  }
+
+  function handleInvokeScriptParameter(event: CustomEvent) {
+    tsvscode.postMessage({
+      type: "invokeScriptParameter",
+      value: event.detail
+    });
+  }
+
+  // Resizer functions
+  function startResize(event: MouseEvent) {
+    isResizing = true;
+    startY = event.clientY;
+    startHeight = scriptListHeight;
+    
+    document.addEventListener('mousemove', handleResize);
+    document.addEventListener('mouseup', stopResize);
+    document.body.style.cursor = 'row-resize';
+    event.preventDefault();
+  }
+
+  function handleResize(event: MouseEvent) {
+    if (!isResizing) return;
+    
+    const deltaY = event.clientY - startY;
+    
+    // Get the actual container height for true 1:1 resizing
+    const container = document.querySelector('.h-full.flex.flex-col.bg-vscode-sideBar-background');
+    if (!container) return;
+    
+    const containerHeight = container.clientHeight;
+    const deltaPercent = (deltaY / containerHeight) * 100;
+    
+    let newHeight = startHeight + deltaPercent;
+    newHeight = Math.max(20, Math.min(80, newHeight)); // Limit between 20% and 80%
+    
+    scriptListHeight = newHeight;
+  }
+
+  function stopResize() {
+    isResizing = false;
+    document.removeEventListener('mousemove', handleResize);
+    document.removeEventListener('mouseup', stopResize);
+    document.body.style.cursor = '';
+    
+    // Save the resize state
+    const currentState = tsvscode.getState() || {};
+    const updatedState = {
+      ...currentState,
+      scriptListHeight: scriptListHeight,
+      parametersCache
+    };
+    tsvscode.setState(updatedState);
+  }
 
   const handleMessage = (event: any) => {
     const message = event.data;
@@ -143,6 +235,16 @@
           type: "selectedScriptDataResponse",
           value: null
         });
+      }
+    } else if (message.type === "receiveScriptParameters") {
+      // Delegate to ScriptParameters component
+      if (scriptParametersComponent) {
+        scriptParametersComponent.handleParametersReceived(message.value);
+        // Update local cache as well
+        parametersData = message.value;
+        if (parametersData && parametersData.scriptId) {
+          parametersCache[parametersData.scriptId] = parametersData;
+        }
       }
     }
   };
@@ -193,12 +295,18 @@
       selectedScriptId = script.vizId;
     }
     
+    // Fetch parameters for the selected script (pass script directly to avoid reactive timing issues)
+    if (scriptParametersComponent) {
+      scriptParametersComponent.fetchParametersForSelectedScript(script);
+    }
+    
     // Save state
     const currentState = tsvscode.getState() || {};
     const updatedState = {
       ...currentState,
       selectedScriptId: selectedScriptId,
-      selectedScriptIds: selectedScriptIds
+      selectedScriptIds: selectedScriptIds,
+      parametersCache
     };
     tsvscode.setState(updatedState);
   };
@@ -232,6 +340,7 @@
       useGlobalSettings,
       manualHostname: useGlobalSettings ? undefined : hostname,
       manualPort: useGlobalSettings ? undefined : port,
+      parametersCache,
     };
     tsvscode.setState(updatedState);
   };
@@ -267,9 +376,19 @@
 		selectedLayer = currentState.selectedLayer || "MAIN_SCENE";
 		previousLayer = selectedLayer;
 
+    // Restore resizer state
+    if (currentState.scriptListHeight !== undefined) {
+      scriptListHeight = currentState.scriptListHeight;
+    }
+
     // Restore the global settings preference if saved in state
     if (currentState.useGlobalSettings !== undefined) {
       useGlobalSettings = currentState.useGlobalSettings;
+    }
+
+    // Restore parameters cache if saved in state
+    if (currentState.parametersCache) {
+      parametersCache = currentState.parametersCache;
     }
 
     // If not using global settings, restore manual values from state
@@ -343,78 +462,182 @@
 			
     </div>
 
-    <div class="h-full flex flex-col bg-vscode-sideBar-background overflow-hidden">
-      <div class="h-2/3 border-b-2 border-vscode-editorGroup-border overflow-auto" on:click={handleContainerClick}>
-        {#if selectedScriptIds.length > 1}
-          <div class="px-2 py-1 bg-vscode-editorGroupHeader-tabsBackground text-vscode-textLink-foreground text-xs">
-            {selectedScriptIds.length} items selected (Shift+Click to select more, click empty space to deselect)
-          </div>
-        {/if}
-        {#if vizscripts == undefined || vizscripts.length === 0}
-          <div class="flex items-center justify-center h-full text-vscode-descriptionForeground">No scripts found</div>
-        {:else}
-          {#each Object.values(vizscripts) as script}
+    <div class="h-full flex flex-col bg-vscode-sideBar-background">
+      <div class="flex flex-col border-b border-vscode-editorGroup-border" style="height: {effectiveScriptListHeight}%">
+        <div class="flex-1 overflow-auto" on:click={handleContainerClick}>
+          {#if selectedScriptIds.length > 1}
+            <div class="px-2 py-1 bg-vscode-editorGroupHeader-tabsBackground text-vscode-textLink-foreground text-xs">
+              {selectedScriptIds.length} items selected (Shift+Click to select more, click empty space to deselect)
+            </div>
+          {/if}
+          {#if vizscripts == undefined || vizscripts.length === 0}
             <ScriptItem 
-              {script} 
-              {selectedScriptId}
-              {selectedScriptIds}
+              script={{
+                name: "No scene script found",
+                vizId: "",
+                type: "Scene",
+                extension: ".viz",
+                code: "",
+                scenePath: selectedLayer,
+                isGroup: false,
+                children: []
+              }}
+              selectedScriptId={selectedScriptId}
+              selectedScriptIds={selectedScriptIds}
               {sidebarSettings}
               on:doubleClick={handleScriptDoubleClick}
               on:scriptSelected={handleScriptSelection}
               on:preview={handleScriptPreviewEvent}
             />
-          {/each}
-        {/if}
-      </div>
-      {#if selectedScript}
-        <div class="h-1/3 flex text-white overflow-hidden">
-          <div class="p-2 flex-1 flex-col justify-center overflow-hidden">
-            <div class="flex gap-2">
-              <div class="overflow-hidden flex">{selectedScript.name}</div>
-              <div class="text-vscode-descriptionForeground">{selectedScript.type}</div>
-            </div>
-						<div>{selectedScript.scenePath}</div>
-
-						{#if selectedScript.isGroup}
-							<div class="text-yellow-400">Group ({selectedScript.children.length} scripts)</div>
-						{/if}
-            <div class="items-center justify-end h-[24px] flex overflow-hidden pr-[7px]">
-              {selectedScript.extension}
-            </div>
-            <div class="w-full flex flex-col gap-2">
-							<div class="flex gap-2">
-								<button 
-								on:click={handleScriptEdit}
-								class="w-full bg-vscode-button-background text-vscode-button-foreground border-0 px-3 py-1.5 rounded text-md cursor-pointer hover:bg-vscode-button-hoverBackground focus:outline-none focus:bg-vscode-button-hoverBackground transition-colors duration-150"
-								>
-								Edit
-							</button>
+          {:else}
+            {#each Object.values(vizscripts) as script}
+              <ScriptItem 
+                {script} 
+                {selectedScriptId}
+                {selectedScriptIds}
+                {sidebarSettings}
+                on:doubleClick={handleScriptDoubleClick}
+                on:scriptSelected={handleScriptSelection}
+                on:preview={handleScriptPreviewEvent}
+              />
+            {/each}
+          {/if}
+        </div>
+        
+        <!-- Script Info Section - Always at bottom -->
+        <div class="border-t border-vscode-editorGroup-border">
+          <div class="p-2 text-white">
+            {#if selectedScript}
+              <div class="flex justify-between items-start gap-2 mb-2">
+                <div class="flex-1 overflow-hidden">
+                  <div class="flex gap-2 items-center">
+                    <div class="overflow-hidden text-ellipsis">{selectedScript.name}</div>
+                    <div class="text-vscode-descriptionForeground text-sm">{selectedScript.type}</div>
+                  </div>
+                  <div class="text-xs text-vscode-descriptionForeground">{selectedScript.scenePath}</div>
+                  {#if selectedScript.isGroup}
+                    <div class="text-yellow-400 text-xs">Group ({selectedScript.children.length} scripts)</div>
+                  {/if}
+                </div>
+                <div class="text-xs text-vscode-descriptionForeground">{selectedScript.extension}</div>
+              </div>
+              
+              <div class="flex gap-2 mb-2">
+                <div class="flex-1 flex gap-1">
+                  <button 
+                    on:click={handleScriptEdit}
+                    class="flex-1 bg-vscode-button-background text-vscode-button-foreground border-0 px-2 py-1 rounded text-md cursor-pointer hover:bg-vscode-button-hoverBackground transition-colors"
+                  >
+                    Edit
+                  </button>
+                </div>
+                <button 
+                  on:click={handleScriptPreview}
+                  class="flex-1 bg-vscode-button-background text-vscode-button-foreground border-0 px-2 py-1 rounded text-md cursor-pointer hover:bg-vscode-button-hoverBackground transition-colors"
+                >
+                  Preview
+                </button>
+              </div>
+              
               <button 
-							on:click={handleScriptPreview}
-							class="w-full bg-vscode-button-background text-vscode-button-foreground border-0 px-3 py-1.5 rounded text-md cursor-pointer hover:bg-vscode-button-hoverBackground focus:outline-none focus:bg-vscode-button-hoverBackground transition-colors duration-150"
-							>
-							Preview
-						</button>
-
-				</div>
-							<button 
-								on:click={handleScriptSet}
-								class="w-full bg-vscode-button-background text-vscode-button-foreground border-0 px-3 py-1.5 rounded text-md cursor-pointer hover:bg-vscode-button-hoverBackground focus:outline-none focus:bg-vscode-button-hoverBackground transition-colors duration-150"
-							>
-								Set script in Viz
-							</button>
-            </div>
+                on:click={handleScriptSet}
+                class="w-full bg-vscode-button-background text-vscode-button-foreground border-0 px-2 py-1 rounded text-md cursor-pointer hover:bg-vscode-button-hoverBackground transition-colors"
+              >
+                Set script in Viz
+              </button>
+            {:else}
+              <div class="flex justify-between items-start gap-2 mb-2">
+                <div class="flex-1 overflow-hidden">
+                  <div class="flex gap-2 items-center">
+                    <div class="text-vscode-descriptionForeground">No script selected</div>
+                  </div>
+                  <div class="text-xs text-vscode-descriptionForeground">Select a script to view details and controls</div>
+                </div>
+              </div>
+              
+              <div class="flex gap-2 mb-2">
+                <div class="flex-1 flex gap-1">
+                  <button 
+                    disabled
+                    class="flex-1 bg-vscode-button-background text-vscode-button-foreground border-0 px-2 py-1 rounded text-md opacity-50 cursor-not-allowed"
+                  >
+                    Edit
+                  </button>
+                  <button 
+                    disabled
+                    title="Force refresh content if already open"
+                    class="px-2 py-1 bg-vscode-button-background text-vscode-button-foreground border-0 rounded text-md opacity-50 cursor-not-allowed"
+                  >
+                    ↻
+                  </button>
+                </div>
+                <button 
+                  disabled
+                  class="flex-1 bg-vscode-button-background text-vscode-button-foreground border-0 px-2 py-1 rounded text-md opacity-50 cursor-not-allowed"
+                >
+                  Preview
+                </button>
+              </div>
+              
+              <button 
+                disabled
+                class="w-full bg-vscode-button-background text-vscode-button-foreground border-0 px-2 py-1 rounded text-md opacity-50 cursor-not-allowed"
+              >
+                Set script in Viz
+              </button>
+            {/if}
           </div>
         </div>
-      {:else}
-        <div class="h-1/3 flex text-white">
-          <div class="p-2 flex-1 flex-col justify-center overflow-hidden">
-            <div class="flex gap-2">
-              <div class="overflow-hidden flex">No script selected</div>
-            </div>
-          </div>
+      </div>
+
+      <!-- Resize Handle - Only show when parameters panel is expanded -->
+      {#if showParameters}
+        <div 
+          class="h-1 bg-vscode-editorGroup-border hover:bg-vscode-focusBorder cursor-row-resize flex items-center justify-center relative group select-none"
+          on:mousedown={startResize}
+        >
+          <div class="w-8 h-0.5 bg-vscode-descriptionForeground group-hover:bg-vscode-foreground rounded transition-colors"></div>
         </div>
       {/if}
+
+      <!-- Bottom Section Container -->
+      <div class="flex flex-col" style="height: {100 - effectiveScriptListHeight}%">
+        <!-- Script Info and Controls Section -->
+
+
+      <!-- Script Parameters Component -->
+      <ScriptParameters 
+        bind:this={scriptParametersComponent}
+        {selectedScript}
+        {hostname}
+        {port}
+        bind:parametersData
+        bind:parametersCache
+        bind:showParameters
+        on:getParameters={handleGetScriptParameters}
+        on:setParameter={handleSetScriptParameter}
+        on:invokeParameter={handleInvokeScriptParameter}
+      />
+      </div> <!-- Close Bottom Section Container -->
     </div>
   </div>
 </div>
+
+<style>
+  /* Resize handle styling */
+  .cursor-row-resize {
+    cursor: row-resize;
+  }
+
+  .cursor-row-resize:active {
+    background-color: var(--vscode-focusBorder);
+  }
+
+  /* Prevent text selection during resize */
+  .select-none {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+  }
+</style>

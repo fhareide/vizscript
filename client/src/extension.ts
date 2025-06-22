@@ -13,7 +13,6 @@ import { SidebarProvider } from "./sidebarProvider";
 import { VizScriptObject } from "./shared/types";
 import { MetadataService } from "./metadataService";
 import { FileService } from "./fileService";
-import { randomUUID } from "crypto";
 
 let client: LanguageClient;
 
@@ -241,13 +240,8 @@ export function activate(context: vscode.ExtensionContext) {
   );
 
   const sidebarProvider = new SidebarProvider(context);
-  const secondarySidebarProvider = new SidebarProvider(context);
 
   context.subscriptions.push(vscode.window.registerWebviewViewProvider("vizscript-sidebar", sidebarProvider));
-
-  context.subscriptions.push(
-    vscode.window.registerWebviewViewProvider("vizscript-secondary-sidebar", secondarySidebarProvider),
-  );
 
   context.subscriptions.push(
     vscode.commands.registerCommand(
@@ -273,6 +267,12 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand("vizscript.editscript", async (vizId: string) => {
       await Commands.openScriptInTextEditor.bind(this)(context, client, vizId, true);
+    }),
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("vizscript.editscriptforcerefresh", async (vizId: string) => {
+      await Commands.openScriptInTextEditorForceRefresh.bind(this)(context, client, vizId);
     }),
   );
 
@@ -658,6 +658,25 @@ export function activate(context: vscode.ExtensionContext) {
     ),
   );
 
+  // Script parameter commands
+  context.subscriptions.push(
+    vscode.commands.registerCommand("vizscript.getscriptparameters", async (data: any) => {
+      await Commands.getScriptParameters.bind(this)(context, data, sidebarProvider);
+    }),
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("vizscript.setscriptparameter", async (data: any) => {
+      await Commands.setScriptParameter.bind(this)(context, data, sidebarProvider);
+    }),
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("vizscript.invokescriptparameter", async (data: any) => {
+      await Commands.invokeScriptParameter.bind(this)(context, data, sidebarProvider);
+    }),
+  );
+
   context.subscriptions.push(
     vscode.window.onDidChangeActiveTextEditor((editor) => {
       if (editor != undefined) {
@@ -737,49 +756,6 @@ export function activate(context: vscode.ExtensionContext) {
       });
     }
   }); */
-
-  vscode.workspace.onWillSaveTextDocument(async (event) => {
-    const {
-      document: { uri },
-    } = event;
-
-    //TODO: Implement this
-    return;
-
-    //TODO: Change this to check for VSCODE-META tags and send request to server to add to file
-
-    // Check scheme of active document
-    const activeUri = vscode.window.activeTextEditor?.document.uri;
-
-    const state: VizScriptObject[] = await Commands.loadFromStorage(context);
-    //check if state is larger than 0, if so destructure the first element
-    if (state.length > 0) {
-      //TODO: Add check to which vizscript object is selected and being saved
-      const { scenePath, extension, name } = state[0];
-
-      console.log("State", state);
-
-      // Add selected file name to top of the file to save only if it is a viz file that is untitled
-      if (activeUri?.scheme === "untitled" && (uri.path.endsWith(".vs") || uri.path.endsWith(".vsc"))) {
-        const workspaceFolder = vscode.workspace.getWorkspaceFolder(uri);
-        const relativePath = workspaceFolder ? vscode.workspace.asRelativePath(uri) : uri.path;
-
-        const edit = new vscode.WorkspaceEdit();
-        edit.insert(
-          uri,
-          new vscode.Position(0, 0),
-          `'VSCODE-META-START
-'{
-'  "scenePath": "${scenePath}",
-'  "fileName": "${relativePath}",
-'  "UUID": "${randomUUID()}"
-'}
-'VSCODE-META-END'\n`,
-        );
-        await vscode.workspace.applyEdit(edit);
-      }
-    }
-  });
 
   client.start().then(() => {
     registerCommands(client, context);

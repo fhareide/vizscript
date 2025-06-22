@@ -17,17 +17,31 @@ export interface MetadataDialogResult {
 export async function showMetadataUpdateDialog(options: MetadataDialogOptions): Promise<MetadataDialogResult> {
   const { currentMetadata, suggestedMetadata, scriptName } = options;
 
-  // Create quick pick items for user choice
+  // Create a detailed comparison to show what would change
+  const comparison = createMetadataComparison(currentMetadata, suggestedMetadata);
+  const hasChanges = comparison !== "No changes detected";
+
+  if (!hasChanges) {
+    // No changes needed, just return keep
+    return { action: "keep", metadata: currentMetadata };
+  }
+
+  // Create quick pick items with detailed change information
   const items: vscode.QuickPickItem[] = [
     {
       label: "$(sync) Update Metadata",
-      description: "Use suggested metadata values",
-      detail: "Updates metadata with current script information",
+      description: "Apply the changes shown below",
+      detail: comparison,
     },
     {
       label: "$(check) Keep Existing",
-      description: "Keep current metadata",
+      description: "Keep current metadata unchanged",
       detail: "No changes will be made to existing metadata",
+    },
+    {
+      label: "$(info) Show Full Details",
+      description: "View complete metadata comparison",
+      detail: "Opens a detailed side-by-side comparison",
     },
     {
       label: "$(x) Skip",
@@ -37,8 +51,8 @@ export async function showMetadataUpdateDialog(options: MetadataDialogOptions): 
   ];
 
   const selected = await vscode.window.showQuickPick(items, {
-    title: `Metadata Found for "${scriptName}"`,
-    placeHolder: "Choose how to handle existing metadata",
+    title: `Metadata Update Available for "${scriptName}"`,
+    placeHolder: "The following changes are suggested:",
     ignoreFocusOut: true,
   });
 
@@ -51,6 +65,10 @@ export async function showMetadataUpdateDialog(options: MetadataDialogOptions): 
       return { action: "update", metadata: suggestedMetadata };
     case "$(check) Keep Existing":
       return { action: "keep", metadata: currentMetadata };
+    case "$(info) Show Full Details":
+      // Show detailed view and return to main dialog
+      await showDetailedMetadataView(currentMetadata, suggestedMetadata);
+      return showMetadataUpdateDialog(options);
     default:
       return { action: "skip" };
   }
@@ -123,24 +141,52 @@ ${createDetailedChanges(current, suggested)}`;
 function createMetadataComparison(current: any, suggested: any): string {
   const changes: string[] = [];
 
+  // Get all keys but exclude UUID from comparison display
+  // UUID should never change
   const allKeys = new Set([...Object.keys(current || {}), ...Object.keys(suggested || {})]);
+  const excludeFromDisplay = ["UUID"];
+  const deprecatedFields = ["lastModified"]; // Fields that will be removed
 
   for (const key of allKeys) {
+    // Skip fields that shouldn't be shown in the comparison
+    if (excludeFromDisplay.includes(key)) {
+      continue;
+    }
+
     const currentValue = current?.[key];
     const suggestedValue = suggested?.[key];
 
+    // Handle deprecated fields - they will be removed regardless of suggested value
+    if (deprecatedFields.includes(key) && currentValue !== undefined && currentValue !== null) {
+      changes.push(`• Remove deprecated field ${key}: ${formatValue(currentValue)}`);
+      continue;
+    }
+
     if (currentValue !== suggestedValue) {
-      if (currentValue === undefined) {
-        changes.push(`+ ${key}: "${suggestedValue}"`);
-      } else if (suggestedValue === undefined) {
-        changes.push(`- ${key}: "${currentValue}"`);
+      if (currentValue === undefined || currentValue === null) {
+        changes.push(`• Add ${key}: ${formatValue(suggestedValue)}`);
+      } else if (suggestedValue === undefined || suggestedValue === null) {
+        changes.push(`• Remove ${key}: ${formatValue(currentValue)}`);
       } else {
-        changes.push(`~ ${key}: "${currentValue}" → "${suggestedValue}"`);
+        changes.push(`• Update ${key}: ${formatValue(currentValue)} → ${formatValue(suggestedValue)}`);
       }
     }
   }
 
-  return changes.length > 0 ? `Changes:\n${changes.join("\n")}` : "No changes detected";
+  // Helper function for formatting values
+  function formatValue(value: any): string {
+    if (value === null || value === undefined) return "(empty)";
+    if (value === "") return "(empty string)";
+    if (typeof value === "string") return `"${value}"`;
+    return String(value);
+  }
+
+  // Add a note about automatic fields
+  if (changes.length > 0) {
+    changes.push("", "Note: UUID is preserved");
+  }
+
+  return changes.length > 0 ? changes.join("\n") : "No changes detected";
 }
 
 /**

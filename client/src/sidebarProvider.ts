@@ -7,6 +7,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
   _doc?: vscode.TextDocument;
   viewId: string;
 
+  private static instances: Map<string, SidebarProvider> = new Map();
+
   constructor(private readonly _context: vscode.ExtensionContext) {
     this.viewId = "default";
   }
@@ -26,6 +28,9 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     } else {
       this.viewId = "default"; // Handle default case if needed
     }
+
+    // Register this instance
+    SidebarProvider.instances.set(this.viewId, this);
 
     webviewView.webview.options = {
       // Allow scripts in the webview
@@ -77,6 +82,10 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           vscode.commands.executeCommand("vizscript.editscript", data.value);
           break;
         }
+        case "editScriptForceRefresh": {
+          vscode.commands.executeCommand("vizscript.editscriptforcerefresh", data.value);
+          break;
+        }
         case "setScript": {
           vscode.commands.executeCommand("vizscript.setscript", data.value);
           break;
@@ -110,6 +119,18 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
         }
         case "executeCommand": {
           vscode.commands.executeCommand(data.value);
+          break;
+        }
+        case "getScriptParameters": {
+          vscode.commands.executeCommand("vizscript.getscriptparameters", data.value);
+          break;
+        }
+        case "setScriptParameter": {
+          vscode.commands.executeCommand("vizscript.setscriptparameter", data.value);
+          break;
+        }
+        case "invokeScriptParameter": {
+          vscode.commands.executeCommand("vizscript.invokescriptparameter", data.value);
           break;
         }
       }

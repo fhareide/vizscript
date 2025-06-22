@@ -393,17 +393,22 @@ export class MetadataService {
 
   /**
    * Creates default metadata object for client-side operations
+   * Uses deterministic UUID for new scripts, but existing UUIDs should be preserved via mergeMetadata
    */
   createDefaultMetadata(scriptObject: VizScriptObject): any {
-    const now = this.formatLocalDateTime(new Date());
+    // Use deterministic UUID based on vizId for new scripts - existing UUIDs preserved in mergeMetadata
+    const uuid = scriptObject.vizId ? this.generateDeterministicUUID(scriptObject.vizId) : this.generateUUID();
+
+    // Determine viz version from file extension or language
+    const vizVersion = this.getVizVersionFromScript(scriptObject);
 
     const metadata: any = {
-      UUID: this.generateUUID(),
+      UUID: uuid,
       scenePath: scriptObject.scenePath || "",
       filePath: "", // Will be set when file is saved locally
       fileName: scriptObject.name || "untitled",
       scriptType: scriptObject.type || "Scene",
-      lastModified: now,
+      vizVersion: vizVersion,
     };
 
     // Add group flag for collections
@@ -426,54 +431,81 @@ export class MetadataService {
   }
 
   /**
+   * Generates a deterministic UUID based on a string input (like vizId)
+   */
+  public generateDeterministicUUID(input: string): string {
+    // Import uuidByString dynamically since it might not be available at module level
+    const uuidByString = require("uuid-by-string");
+    return uuidByString(`vizscript-${input}`);
+  }
+
+  /**
+   * Determines viz version from script object properties
+   */
+  private getVizVersionFromScript(scriptObject: VizScriptObject): string {
+    // Check if we have extension information
+    if (scriptObject.extension) {
+      const ext = scriptObject.extension.toLowerCase();
+      if (ext.includes("4")) return "viz4";
+      if (ext.includes("5")) return "viz5";
+      return "viz3";
+    }
+
+    // Check if we have file name with extension
+    if (scriptObject.name) {
+      const name = scriptObject.name.toLowerCase();
+      if (name.includes(".vs4") || name.includes(".viz4")) return "viz4";
+      if (name.includes(".vs5") || name.includes(".viz5")) return "viz5";
+      return "viz3";
+    }
+
+    // Default to viz3 if we can't determine
+    return "viz3";
+  }
+
+  /**
    * Merges current metadata with updates
+   * Preserves existing UUID to maintain consistency across Viz Artist restarts
+   * Also removes deprecated fields like lastModified
    */
   mergeMetadata(existing: any, updates: any): any {
     const merged = { ...existing };
 
     for (const [key, value] of Object.entries(updates)) {
       if (value !== undefined && value !== null) {
+        // Never overwrite existing UUID - preserve it to maintain consistency
+        if (key === "UUID" && existing.UUID) {
+          continue; // Skip updating UUID if one already exists
+        }
         merged[key] = value;
       }
     }
 
-    // Always update lastModified when merging
-    merged["lastModified"] = this.formatLocalDateTime(new Date());
+    // Remove deprecated fields like lastModified
+    delete merged.lastModified;
 
     return this.sortMetadata(merged);
   }
 
   /**
-   * Formats date in local timezone as DD/MM/YYYY HH:mm
-   */
-  public formatLocalDateTime(date: Date): string {
-    const day = String(date.getDate()).padStart(2, "0");
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const year = date.getFullYear();
-    const hours = String(date.getHours()).padStart(2, "0");
-    const minutes = String(date.getMinutes()).padStart(2, "0");
-
-    return `${day}/${month}/${year} ${hours}:${minutes}`;
-  }
-
-  /**
-   * Sorts metadata fields in the desired order
+   * Sorts metadata fields in the desired order and filters out deprecated fields
    */
   private sortMetadata(metadata: any): any {
-    const fieldOrder = ["UUID", "scenePath", "filePath", "fileName", "scriptType", "lastModified"];
+    const fieldOrder = ["UUID", "scenePath", "filePath", "fileName", "scriptType", "vizVersion"];
+    const deprecatedFields = ["lastModified"]; // Fields to exclude completely
 
     const sorted: any = {};
 
     // Add fields in the specified order
     for (const field of fieldOrder) {
-      if (metadata.hasOwnProperty(field)) {
+      if (metadata.hasOwnProperty(field) && !deprecatedFields.includes(field)) {
         sorted[field] = metadata[field];
       }
     }
 
-    // Add any remaining fields that weren't in the ordered list
+    // Add any remaining fields that weren't in the ordered list and aren't deprecated
     for (const [key, value] of Object.entries(metadata)) {
-      if (!fieldOrder.includes(key)) {
+      if (!fieldOrder.includes(key) && !deprecatedFields.includes(key)) {
         sorted[key] = value;
       }
     }
