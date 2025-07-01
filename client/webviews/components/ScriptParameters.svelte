@@ -106,6 +106,11 @@
     handleParameterChange(parameter, target.checked ? "1" : "0");
   }
 
+	function handleStringParameterChange(parameter: ScriptParameter, event: Event) {
+    const target = event.target as HTMLInputElement;
+    handleParameterChange(parameter, target.value);
+  }
+
   function handleColorParameterChange(parameter: ScriptParameter, event: Event) {
     const target = event.target as HTMLInputElement;
     handleParameterChange(parameter, target.value);
@@ -169,10 +174,20 @@
                           {parameter.value || parameter.description || ''}
                         </div>
                       </details>
+										{:else if parameter.type === "STRING"}
+											<div class="flex items-center justify-between">
+                        <span class="text-sm text-vscode-foreground">{parameter.displayName}</span>
+                        <input
+                          type="text"
+                          value={parameter.value}
+                          on:change={(e) => handleStringParameterChange(parameter, e)}
+                          class="w-20 px-2 py-1 text-sm bg-vscode-input-background text-vscode-input-foreground border border-vscode-input-border rounded focus:outline-none focus:border-vscode-focusBorder text-right"
+                        />
+                      </div>
                     {:else if parameter.type === "PUSHBUTTON"}
                       <button
                         on:click={() => handleParameterInvoke(parameter)}
-                        class="w-full px-3 py-2 bg-gray-800 text-white hover:bg-gray-700 border-none rounded cursor-pointer transition-colors text-sm font-medium"
+                        class="w-full px-3 py-2 bg-gray-500 text-white hover:bg-gray-700 border-none rounded cursor-pointer transition-colors text-sm font-medium"
                       >
                         {parameter.displayName}
                       </button>

@@ -110,25 +110,57 @@ export async function showUntitledWindow(
     return "viz3";
   }
 
-  let finalMetadata: any;
+  // Check metadata configuration to see if we should inject metadata
+  const config = vscode.workspace.getConfiguration("vizscript.metadata");
+  const metadataEnabled = config.get<boolean>("enabled", true);
+  const autoUpdate = config.get<boolean>("autoUpdate", false);
+
+  let finalContent = contentWithoutMetadata;
 
   if (existingMetadata) {
-    // Use existing metadata, but ensure filePath is empty for untitled
-    finalMetadata = {
+    // Existing metadata found - always preserve it but clear filePath for untitled
+    const finalMetadata = {
       ...existingMetadata,
       filePath: "", // Clear filePath for untitled documents
     };
-  } else {
-    // No existing metadata - create new metadata
-    // Generate deterministic UUID based on vizId for new untitled documents
-    // This matches createDefaultMetadata behavior for new scripts
+
+    // Sort metadata fields in the same order as MetadataService
+    const fieldOrder = ["UUID", "scenePath", "filePath", "fileName", "scriptType", "vizVersion"];
+    const sortedMetadata: any = {};
+
+    // Add fields in the specified order
+    for (const field of fieldOrder) {
+      if (finalMetadata.hasOwnProperty(field)) {
+        sortedMetadata[field] = finalMetadata[field];
+      }
+    }
+
+    // Add any remaining fields that weren't in the ordered list
+    for (const [key, value] of Object.entries(finalMetadata)) {
+      if (!fieldOrder.includes(key)) {
+        sortedMetadata[key] = value;
+      }
+    }
+
+    // Format metadata and include it
+    const metadataJson = JSON.stringify(sortedMetadata, null, 2);
+    const formattedMetadataLines = [
+      "'VSCODE-META-START",
+      ...metadataJson.split("\n").map((line) => `'${line}`),
+      "'VSCODE-META-END",
+      "",
+    ];
+
+    finalContent = formattedMetadataLines.join("\n") + contentWithoutMetadata;
+  } else if (metadataEnabled && autoUpdate) {
+    // No existing metadata but auto-update is enabled - inject metadata
+    console.log(`[DEBUG] Auto-injecting metadata in showUntitledWindow for ${id}`);
+
     const vizIdForUuid = scriptObject?.vizId || id;
     const deterministicUuid = uuidByString(`vizscript-${vizIdForUuid}`);
-
-    // Determine viz version from file extension
     const vizVersion = getVizVersionFromExtension(fileExtension);
 
-    finalMetadata = {
+    const finalMetadata: any = {
       UUID: deterministicUuid,
       scenePath: scriptObject?.scenePath || "",
       filePath: "", // Will be set when file is saved locally
@@ -137,44 +169,47 @@ export async function showUntitledWindow(
       vizVersion: vizVersion,
     };
 
-    // Add group flag for collections (matching createDefaultMetadata logic)
     if (scriptObject?.isGroup) {
       finalMetadata.isGroup = true;
     }
-  }
 
-  // Sort metadata fields in the same order as MetadataService
-  const fieldOrder = ["UUID", "scenePath", "filePath", "fileName", "scriptType", "vizVersion"];
-  const sortedMetadata: any = {};
+    // Sort metadata fields
+    const fieldOrder = ["UUID", "scenePath", "filePath", "fileName", "scriptType", "vizVersion"];
+    const sortedMetadata: any = {};
 
-  // Add fields in the specified order
-  for (const field of fieldOrder) {
-    if (finalMetadata.hasOwnProperty(field)) {
-      sortedMetadata[field] = finalMetadata[field];
+    for (const field of fieldOrder) {
+      if (finalMetadata.hasOwnProperty(field)) {
+        sortedMetadata[field] = finalMetadata[field];
+      }
     }
-  }
 
-  // Add any remaining fields that weren't in the ordered list
-  for (const [key, value] of Object.entries(finalMetadata)) {
-    if (!fieldOrder.includes(key)) {
-      sortedMetadata[key] = value;
+    for (const [key, value] of Object.entries(finalMetadata)) {
+      if (!fieldOrder.includes(key)) {
+        sortedMetadata[key] = value;
+      }
     }
+
+    // Format metadata and include it
+    const metadataJson = JSON.stringify(sortedMetadata, null, 2);
+    const formattedMetadataLines = [
+      "'VSCODE-META-START",
+      ...metadataJson.split("\n").map((line) => `'${line}`),
+      "'VSCODE-META-END",
+      "",
+    ];
+
+    finalContent = formattedMetadataLines.join("\n") + contentWithoutMetadata;
+  } else {
+    // No existing metadata and auto-update disabled - don't inject metadata
+    console.log(
+      `[DEBUG] Not injecting metadata in showUntitledWindow for ${id} (metadata enabled: ${metadataEnabled}, auto-update: ${autoUpdate})`,
+    );
+    finalContent = contentWithoutMetadata;
   }
-
-  // Format metadata as multi-line for better readability and parsing
-  const metadataJson = JSON.stringify(sortedMetadata, null, 2);
-  const formattedMetadataLines = [
-    "'VSCODE-META-START",
-    ...metadataJson.split("\n").map((line) => `'${line}`),
-    "'VSCODE-META-END",
-    "",
-  ];
-
-  const contentWithMetadata = formattedMetadataLines.join("\n") + contentWithoutMetadata;
 
   // Create a proper untitled document
   const document = await vscode.workspace.openTextDocument({
-    content: contentWithMetadata,
+    content: finalContent,
     language: filetype,
   });
 

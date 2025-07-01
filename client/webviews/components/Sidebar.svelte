@@ -18,7 +18,7 @@
 
   // Script parameters state
   let parametersData: ScriptParametersData | null = null;
-  let showParameters = true;
+  let showParameters = false;
   let parametersCache: { [scriptId: string]: ScriptParametersData } = {}; // Controls collapsible parameters section
   let scriptParametersComponent: ScriptParameters;
   
@@ -562,13 +562,6 @@
                     class="flex-1 bg-vscode-button-background text-vscode-button-foreground border-0 px-2 py-1 rounded text-md opacity-50 cursor-not-allowed"
                   >
                     Edit
-                  </button>
-                  <button 
-                    disabled
-                    title="Force refresh content if already open"
-                    class="px-2 py-1 bg-vscode-button-background text-vscode-button-foreground border-0 rounded text-md opacity-50 cursor-not-allowed"
-                  >
-                    ↻
                   </button>
                 </div>
                 <button 

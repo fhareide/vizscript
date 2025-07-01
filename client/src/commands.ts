@@ -1503,7 +1503,7 @@ export async function syntaxCheckCurrentScript(
 
       if (error === "OK") {
         compileMessage.text = "$(check) Compile OK";
-        compileMessage.backgroundColor = "";
+        compileMessage.backgroundColor = new ThemeColor("statusBarItem.successBackground");
         showStatusMessage(compileMessage);
         resolve();
       } else {
