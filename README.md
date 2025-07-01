@@ -2,6 +2,37 @@
 
 > A complete language extension for Viz Script development in Visual Studio Code
 
+## New Features - Viz Script 0.6.0
+
+* **Metadata System** - Enhanced script management and tracking
+  * **Automatic Metadata Generation**: Scripts now automatically receive comprehensive metadata including:
+    * Unique UUID for permanent script identification
+    * Scene path tracking to remember which Viz scene the script belongs to
+    * Local file path associations for better file management
+    * Script type detection (Scene/Container scripts)
+    * Viz version detection (Viz3/Viz4/Viz5) based on file extensions
+    * Grouped collection support for complex script hierarchies
+  * **Smart Metadata Injection**: 
+    * Automatically detects scripts without metadata and offers to add it
+    * Preserves existing metadata while completing missing fields
+    * Configurable auto-injection without user prompts
+  * **Metadata Validation & Auto-completion**:
+    * Validates metadata structure and required fields
+    * Auto-completes incomplete metadata with contextual information
+    * Scene path validation ensures scripts stay synchronized with active Viz scenes
+  * **Flexible Formatting Options**:
+    * Full format: Multi-line JSON for readability
+    * Compact format: 3-line condensed format
+    * One-line format: Minimal space usage
+  * **Configuration Options**:
+    * Enable/disable metadata functionality
+    * Auto-update mode for seamless workflow
+    * Customize formatting preferences
+    * Control file path handling (absolute vs relative paths)
+  
+* **Parameters panel**
+  * The parameters panel will eventually show all parameters created in the script, similar to how Viz does internally
+  * Currently only supports buttons, bool and int correctly
 
 ## New Features - Viz Script 0.5.0
 * Initial beta support for the sidebar panel
