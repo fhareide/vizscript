@@ -16,6 +16,14 @@ import { FileService } from "./fileService";
 
 let client: LanguageClient;
 
+// Interface for completion system toggle response
+interface CompletionSystemState {
+  overall: boolean;
+  completion: boolean;
+  signatureHelp: boolean;
+  definition: boolean;
+}
+
 // Helper functions for sidebar context menu commands
 async function getSelectedScriptFromSidebar(sidebarProvider: SidebarProvider): Promise<string | null> {
   return new Promise((resolve) => {
@@ -102,6 +110,62 @@ function registerCommands(client: LanguageClient, context: vscode.ExtensionConte
       "vizscript.compile.currentscript",
       Commands.compileCurrentScript.bind(this, context, client),
     ),
+    // NEW COMPLETION SYSTEM TOGGLE COMMANDS
+    vscode.commands.registerCommand("vizscript.toggleCompletionSystem", async () => {
+      try {
+        const result = (await client.sendRequest("toggleCompletionSystem")) as CompletionSystemState;
+        vscode.window.showInformationMessage(
+          `Completion system toggled: ${result.overall ? "NEW (Modular)" : "OLD (Legacy)"}`,
+        );
+      } catch (error) {
+        vscode.window.showErrorMessage(`Failed to toggle completion system: ${error.message}`);
+      }
+    }),
+    vscode.commands.registerCommand("vizscript.toggleCompletion", async () => {
+      try {
+        const result = (await client.sendRequest("toggleCompletion")) as CompletionSystemState;
+        vscode.window.showInformationMessage(
+          `Completion handler: ${result.completion ? "NEW (Modular)" : "OLD (Legacy)"}`,
+        );
+      } catch (error) {
+        vscode.window.showErrorMessage(`Failed to toggle completion handler: ${error.message}`);
+      }
+    }),
+    vscode.commands.registerCommand("vizscript.toggleSignatureHelp", async () => {
+      try {
+        const result = (await client.sendRequest("toggleSignatureHelp")) as CompletionSystemState;
+        vscode.window.showInformationMessage(
+          `Signature help handler: ${result.signatureHelp ? "NEW (Modular)" : "OLD (Legacy)"}`,
+        );
+      } catch (error) {
+        vscode.window.showErrorMessage(`Failed to toggle signature help handler: ${error.message}`);
+      }
+    }),
+    vscode.commands.registerCommand("vizscript.toggleDefinition", async () => {
+      try {
+        const result = (await client.sendRequest("toggleDefinition")) as CompletionSystemState;
+        vscode.window.showInformationMessage(
+          `Definition handler: ${result.definition ? "NEW (Modular)" : "OLD (Legacy)"}`,
+        );
+      } catch (error) {
+        vscode.window.showErrorMessage(`Failed to toggle definition handler: ${error.message}`);
+      }
+    }),
+    vscode.commands.registerCommand("vizscript.getCompletionSystemStatus", async () => {
+      try {
+        const result = (await client.sendRequest("getCompletionSystemStatus")) as CompletionSystemState;
+        const status = `
+Completion System Status:
+• Overall: ${result.overall ? "NEW (Modular)" : "OLD (Legacy)"}
+• Completion: ${result.completion ? "NEW" : "OLD"}
+• Signature Help: ${result.signatureHelp ? "NEW" : "OLD"}
+• Definition: ${result.definition ? "NEW" : "OLD"}
+        `.trim();
+        vscode.window.showInformationMessage(status);
+      } catch (error) {
+        vscode.window.showErrorMessage(`Failed to get completion system status: ${error.message}`);
+      }
+    }),
   );
 }
 

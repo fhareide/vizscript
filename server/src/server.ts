@@ -14,6 +14,10 @@ import * as vizevent from "./vizevent_completions.json";
 import { DefinitionLink } from "vscode-languageserver";
 import { MetadataProcessor, VizScriptObject } from "./metadataProcessor";
 
+// NEW MODULAR COMPLETION SYSTEM
+import { CompletionService } from "./completion/completionService";
+import { CompletionToggle } from "./completion/toggle";
+
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
 let connection = ls.createConnection(ls.ProposedFeatures.all);
@@ -96,6 +100,9 @@ connection.onDidChangeConfiguration((change) => {
   // Revalidate all open text documents
   documents.all().forEach(cacheConfiguration);
   GetBuiltinSymbols();
+
+  // Update new completion service with new settings
+  updateNewCompletionService();
 });
 
 const pendingValidationRequests: { [uri: string]: NodeJS.Timeout } = {};
@@ -475,6 +482,43 @@ function getBracketRanges(mystring) {
 }
 
 connection.onSignatureHelp((params: ls.SignatureHelpParams, cancelToken: ls.CancellationToken): ls.SignatureHelp => {
+  // NEW SYSTEM TOGGLE - Check if we should use the new modular system
+  if (CompletionToggle.shouldUseNewSignatureHelp()) {
+    try {
+      if (!newCompletionService) {
+        initializeNewCompletionService();
+      }
+
+      if (newCompletionService) {
+        const line: string = documents
+          .get(params.textDocument.uri)
+          .getText(
+            ls.Range.create(
+              ls.Position.create(params.position.line, 0),
+              ls.Position.create(params.position.line, params.position.character),
+            ),
+          );
+
+        const activeSignature = params.context?.activeSignatureHelp?.activeSignature || 0;
+
+        const signatureHelp = newCompletionService.getSignatureHelp(
+          line,
+          params.position,
+          params.position.character,
+          params.textDocument.uri,
+          activeSignature,
+        );
+
+        console.log(`NEW System: Signature help ${signatureHelp ? "found" : "not found"}`);
+        return signatureHelp;
+      }
+    } catch (error) {
+      console.error("Error in new signature help system, falling back to old system:", error);
+    }
+  }
+
+  // OLD SYSTEM - Keep existing logic as fallback
+  console.log("Using OLD signature help system");
   if (settings != null) {
     if (!settings.enableSignatureHelp) return;
   }
@@ -694,6 +738,43 @@ function CheckHasParameters(hint: string): boolean {
 
 connection.onDefinition(
   (params: ls.TextDocumentPositionParams, cancelToken: ls.CancellationToken): DefinitionLink[] => {
+    // NEW SYSTEM TOGGLE - Check if we should use the new modular system
+    if (CompletionToggle.shouldUseNewDefinition()) {
+      try {
+        if (!newCompletionService) {
+          initializeNewCompletionService();
+        }
+
+        if (newCompletionService) {
+          const line: string = documents
+            .get(params.textDocument.uri)
+            .getText(
+              ls.Range.create(
+                ls.Position.create(params.position.line, 0),
+                ls.Position.create(params.position.line, 50000),
+              ),
+            );
+
+          const word = getWordAt(line, params.position.character);
+
+          const definitions = newCompletionService.getDefinition(
+            line,
+            params.position,
+            params.position.character,
+            params.textDocument.uri,
+            word,
+          );
+
+          console.log(`NEW System: ${definitions.length} definitions found`);
+          return definitions;
+        }
+      } catch (error) {
+        console.error("Error in new definition system, falling back to old system:", error);
+      }
+    }
+
+    // OLD SYSTEM - Keep existing logic as fallback
+    console.log("Using OLD definition system");
     if (settings != null) {
       if (!settings.enableDefinition) return;
     }
@@ -772,6 +853,41 @@ function GetRegexResult(line: string, regex: RegExp): string[] {
 }
 
 connection.onCompletion((params: ls.CompletionParams, cancelToken: ls.CancellationToken): ls.CompletionItem[] => {
+  // NEW SYSTEM TOGGLE - Check if we should use the new modular system
+  if (CompletionToggle.shouldUseNewCompletion()) {
+    try {
+      if (!newCompletionService) {
+        initializeNewCompletionService();
+      }
+
+      if (newCompletionService) {
+        const line: string = documents
+          .get(params.textDocument.uri)
+          .getText(
+            ls.Range.create(
+              ls.Position.create(params.position.line, 0),
+              ls.Position.create(params.position.line, params.position.character),
+            ),
+          );
+
+        const completions = newCompletionService.getCompletions(
+          line,
+          params.position,
+          params.position.character,
+          params.textDocument.uri,
+          documents.get(params.textDocument.uri)?.languageId || "",
+        );
+
+        console.log(`NEW System: ${completions.length} completions returned`);
+        return completions;
+      }
+    } catch (error) {
+      console.error("Error in new completion system, falling back to old system:", error);
+    }
+  }
+
+  // OLD SYSTEM - Keep existing logic as fallback
+  console.log("Using OLD completion system");
   if (settings != null) {
     if (!settings.enableAutoComplete) return;
   }
@@ -1308,6 +1424,9 @@ function PositionInRange(range: ls.Range, position: ls.Position): boolean {
 
 let symbolCache: { [id: string]: VizSymbol[] } = {};
 
+// NEW MODULAR COMPLETION SYSTEM INSTANCE
+let newCompletionService: CompletionService | null = null;
+
 function RefreshDocumentsSymbols(uri: string) {
   let startTime: number = Date.now();
   let symbolsList: VizSymbol[] = CollectSymbols(documents.get(uri));
@@ -1315,6 +1434,32 @@ function RefreshDocumentsSymbols(uri: string) {
   /*   connection.console.info(
     "Found " + symbolsList.length + " document symbols in '" + uri + "': " + (Date.now() - startTime) + " ms",
   ); */
+
+  // Update new completion service when symbols change
+  updateNewCompletionService();
+}
+
+// NEW COMPLETION SYSTEM FUNCTIONS
+function initializeNewCompletionService() {
+  try {
+    newCompletionService = new CompletionService(symbolCache, settings, documentUri, scriptType);
+    console.log("New modular completion service initialized");
+  } catch (error) {
+    console.error("Error initializing new completion service:", error);
+    newCompletionService = null;
+  }
+}
+
+function updateNewCompletionService() {
+  try {
+    if (newCompletionService && settings) {
+      newCompletionService.updateSettings(settings);
+    } else if (!newCompletionService) {
+      initializeNewCompletionService();
+    }
+  } catch (error) {
+    console.error("Error updating new completion service:", error);
+  }
 }
 
 connection.onDocumentSymbol((docParams: ls.DocumentSymbolParams): ls.SymbolInformation[] => {
@@ -2703,6 +2848,65 @@ connection.onRequest("showDiagnostics", (vizReply: string) => {
     }
   }
 });
+
+// NEW COMPLETION SYSTEM TOGGLE COMMANDS
+connection.onRequest("toggleCompletionSystem", () => {
+  CompletionToggle.toggleSystem();
+  const state = CompletionToggle.getSystemState();
+  connection.window.showInformationMessage(
+    `Completion system switched to: ${state.overall ? "NEW (Modular)" : "OLD (Legacy)"}`,
+  );
+  return state;
+});
+
+connection.onRequest("toggleCompletion", () => {
+  CompletionToggle.toggleCompletion();
+  const state = CompletionToggle.getSystemState();
+  connection.window.showInformationMessage(
+    `Completion handler: ${state.completion ? "NEW (Modular)" : "OLD (Legacy)"}`,
+  );
+  return state;
+});
+
+connection.onRequest("toggleSignatureHelp", () => {
+  CompletionToggle.toggleSignatureHelp();
+  const state = CompletionToggle.getSystemState();
+  connection.window.showInformationMessage(
+    `Signature help handler: ${state.signatureHelp ? "NEW (Modular)" : "OLD (Legacy)"}`,
+  );
+  return state;
+});
+
+connection.onRequest("toggleDefinition", () => {
+  CompletionToggle.toggleDefinition();
+  const state = CompletionToggle.getSystemState();
+  connection.window.showInformationMessage(
+    `Definition handler: ${state.definition ? "NEW (Modular)" : "OLD (Legacy)"}`,
+  );
+  return state;
+});
+
+connection.onRequest("getCompletionSystemStatus", () => {
+  const state = CompletionToggle.getSystemState();
+  const statusMessage = CompletionToggle.getStatusMessage();
+  connection.window.showInformationMessage(statusMessage);
+  return state;
+});
+
+connection.onRequest(
+  "setCompletionSystemState",
+  (params: { completion?: boolean; signatureHelp?: boolean; definition?: boolean }) => {
+    CompletionToggle.setSystemState(params.completion, params.signatureHelp, params.definition);
+    return CompletionToggle.getSystemState();
+  },
+);
+
+// Initialize new completion service on startup
+setTimeout(() => {
+  initializeNewCompletionService();
+  console.log("VizScript Language Server ready with dual completion systems");
+  console.log("Use 'toggleCompletionSystem' command to switch between old and new systems");
+}, 1000);
 
 // Listen on the connection
 connection.listen();

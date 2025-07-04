@@ -118,6 +118,26 @@
 				"command": "vizscript.sidebar.mergeScripts",
 				"title": "Merge into Group",
 				"icon": "$(group-by-ref-type)"
+			},
+			{
+				"command": "vizscript.toggleCompletionSystem",
+				"title": "VizScript: Toggle Completion System (Old/New)"
+			},
+			{
+				"command": "vizscript.toggleCompletion",
+				"title": "VizScript: Toggle Completion Handler"
+			},
+			{
+				"command": "vizscript.toggleSignatureHelp",
+				"title": "VizScript: Toggle Signature Help Handler"
+			},
+			{
+				"command": "vizscript.toggleDefinition",
+				"title": "VizScript: Toggle Definition Handler"
+			},
+			{
+				"command": "vizscript.getCompletionSystemStatus",
+				"title": "VizScript: Get Completion System Status"
 			}
 		],
 		"menus": {
@@ -198,6 +218,16 @@
 			{
 				"command": "vizscript.compile.currentscript",
 				"key": "ctrl+shift+f5",
+				"when": "editorLangId == viz || editorLangId == viz-con || editorLangId == viz4 || editorLangId == viz4-con || editorLangId == viz5 || editorLangId == viz5-con"
+			},
+			{
+				"command": "vizscript.toggleCompletionSystem",
+				"key": "ctrl+shift+f12",
+				"when": "editorLangId == viz || editorLangId == viz-con || editorLangId == viz4 || editorLangId == viz4-con || editorLangId == viz5 || editorLangId == viz5-con"
+			},
+			{
+				"command": "vizscript.getCompletionSystemStatus",
+				"key": "ctrl+f12",
 				"when": "editorLangId == viz || editorLangId == viz-con || editorLangId == viz4 || editorLangId == viz4-con || editorLangId == viz5 || editorLangId == viz5-con"
 			}
 		],
