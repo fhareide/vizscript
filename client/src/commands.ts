@@ -423,6 +423,8 @@ export async function getAndPostVizScripts(
       },
     );
   } catch (error) {
+    // Clear the sidebar when engine connection fails
+    sidebarProvider._view?.webview.postMessage({ type: "receiveScripts", value: [] });
     showMessage(error);
   }
 }
