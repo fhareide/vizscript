@@ -475,6 +475,30 @@
 					"default": "edit",
 					"description": "Action to perform when double-clicking a script in the sidebar",
 					"scope": "resource"
+				},
+				"vizscript.formatting.enabled": {
+					"type": "boolean",
+					"default": true,
+					"description": "Enable document formatting for Viz Script files",
+					"scope": "resource"
+				},
+				"vizscript.formatting.indentSize": {
+					"type": "number",
+					"default": 2,
+					"description": "Number of spaces or tabs for indentation",
+					"scope": "resource"
+				},
+				"vizscript.formatting.useSpaces": {
+					"type": "boolean",
+					"default": true,
+					"description": "Use spaces instead of tabs for indentation",
+					"scope": "resource"
+				},
+				"vizscript.formatting.addLinesBetweenMethods": {
+					"type": "boolean",
+					"default": true,
+					"description": "Add blank lines between consecutive methods/functions",
+					"scope": "resource"
 				}
 			}
 		},

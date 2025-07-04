@@ -18,6 +18,9 @@ import { MetadataProcessor, VizScriptObject } from "./metadataProcessor";
 import { CompletionService } from "./completion/completionService";
 import { CompletionToggle } from "./completion/toggle";
 
+// FORMATTER
+import { VizScriptFormatter } from "./formatter";
+
 // Create a connection for the server, using Node's IPC as a transport.
 // Also include all preview / proposed LSP features.
 let connection = ls.createConnection(ls.ProposedFeatures.all);
@@ -59,6 +62,9 @@ connection.onInitialize((params): ls.InitializeResult => {
         resolveProvider: true,
         triggerCharacters: ["."],
       },
+      // Document formatting support
+      documentFormattingProvider: true,
+      documentRangeFormattingProvider: true,
     },
   };
 });
@@ -80,12 +86,20 @@ interface VizScriptSettings {
   enableDefinition: boolean;
   enableGlobalProcedureSnippets: boolean;
   compiler: VizScriptCompilerSettings;
+  formatting: VizScriptFormattingSettings;
 }
 
 interface VizScriptCompilerSettings {
   hostName: string;
   hostPort: number;
   liveSyntaxChecking: boolean;
+}
+
+interface VizScriptFormattingSettings {
+  enabled: boolean;
+  indentSize: number;
+  useSpaces: boolean;
+  addLinesBetweenMethods: boolean;
 }
 
 // Cache the settings of all open documents
@@ -103,6 +117,9 @@ connection.onDidChangeConfiguration((change) => {
 
   // Update new completion service with new settings
   updateNewCompletionService();
+
+  // Update formatter settings
+  updateFormatterSettings();
 });
 
 const pendingValidationRequests: { [uri: string]: NodeJS.Timeout } = {};
@@ -112,6 +129,9 @@ let documentUri: string;
 let scriptType: string = "";
 let currentMetaJson: any;
 const metadataProcessor = new MetadataProcessor();
+
+// Create formatter instance
+const formatter = new VizScriptFormatter();
 
 // The content of a text document has changed. This event is emitted
 // when the text document first opened or when its content has changed.
@@ -138,6 +158,18 @@ let settings: VizScriptSettings;
 
 async function cacheConfiguration(textDocument: TextDocument): Promise<void> {
   settings = await getDocumentSettings(textDocument.uri);
+
+  // Update formatter settings when configuration is cached
+  if (settings) {
+    const formatterSettings = {
+      enabled: settings.formatting?.enabled ?? true,
+      indentSize: settings.formatting?.indentSize ?? 2,
+      useSpaces: settings.formatting?.useSpaces ?? true,
+      keywordLowercase: settings.keywordLowercase ?? true,
+      addLinesBetweenMethods: settings.formatting?.addLinesBetweenMethods ?? true,
+    };
+    formatter.updateSettings(formatterSettings);
+  }
 }
 
 // a document has opened: cache configuration
@@ -1462,9 +1494,45 @@ function updateNewCompletionService() {
   }
 }
 
+async function updateFormatterSettings() {
+  try {
+    if (settings) {
+      const formatterSettings = {
+        enabled: settings.formatting?.enabled ?? true,
+        indentSize: settings.formatting?.indentSize ?? 2,
+        useSpaces: settings.formatting?.useSpaces ?? true,
+        keywordLowercase: settings.keywordLowercase ?? true,
+        addLinesBetweenMethods: settings.formatting?.addLinesBetweenMethods ?? true,
+      };
+      formatter.updateSettings(formatterSettings);
+    }
+  } catch (error) {
+    console.error("Error updating formatter settings:", error);
+  }
+}
+
 connection.onDocumentSymbol((docParams: ls.DocumentSymbolParams): ls.SymbolInformation[] => {
   documentUri = docParams.textDocument.uri;
   return GetSymbolsOfDocument(docParams.textDocument.uri);
+});
+
+// Document formatting support
+connection.onDocumentFormatting((params: ls.DocumentFormattingParams): ls.TextEdit[] => {
+  const document = documents.get(params.textDocument.uri);
+  if (!document) {
+    return [];
+  }
+
+  return formatter.formatDocument(document);
+});
+
+connection.onDocumentRangeFormatting((params: ls.DocumentRangeFormattingParams): ls.TextEdit[] => {
+  const document = documents.get(params.textDocument.uri);
+  if (!document) {
+    return [];
+  }
+
+  return formatter.formatRange(document, params.range);
 });
 
 function CollectSymbols(document: TextDocument): VizSymbol[] {

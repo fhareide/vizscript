@@ -29,8 +29,8 @@
 
   "folding": {
     "markers": {
-      "start": "^sub\\b|^function\\b|^structure\\b|^'VSCODE-META-START\\b",
-      "end": "^end sub\\b|^end function\\b|^end structure\\b|^'VSCODE-META-END\\b"
+      "start": "^sub\\b|^function\\b|^structure\\^do\\b|^'VSCODE-META-START\\b",
+      "end": "^end sub\\b|^end function\\b|^end structure\\^loop\\b|^'VSCODE-META-END\\b"
     }
   }
 }
