@@ -163,6 +163,9 @@ export class VizScriptFormatter {
     // If formatting a range, calculate initial indent level
     if (startLineIndex > 0 && allLines) {
       indentLevel = this.calculateIndentLevel(allLines.slice(0, startLineIndex));
+    } else if (startLineIndex === 0 && lines.length > 0) {
+      // For full document formatting, detect the initial context from the first non-empty line
+      indentLevel = this.detectInitialIndentLevel(lines);
     }
 
     for (let i = 0; i < lines.length; i++) {
@@ -207,18 +210,50 @@ export class VizScriptFormatter {
         formattedLines.push("");
       }
 
-      // Check if this is a closing statement
-      if (this.isClosingStatement(trimmedLine)) {
-        indentLevel = Math.max(0, indentLevel - 1);
+      // Add blank line before sub/function if previous line is not empty and not a comment
+      if (
+        this.isMethodBeginning(trimmedLine) &&
+        previousTrimmedLine !== "" &&
+        !this.isComment(previousTrimmedLine) &&
+        !this.isMethodEnding(previousTrimmedLine) // Don't double-add if already handled above
+      ) {
+        formattedLines.push("");
+      }
+
+      // Special handling for else statements and closing statements
+      let tempIndentLevel = indentLevel;
+      if (this.isElseStatement(trimmedLine)) {
+        tempIndentLevel = Math.max(0, indentLevel - 1);
+      } else if (this.isClosingStatement(trimmedLine)) {
+        tempIndentLevel = Math.max(0, indentLevel - 1);
       }
 
       // Format the line with proper indentation
-      const formattedLine = this.formatLine(trimmedLine, indentLevel);
+      const formattedLine = this.formatLine(trimmedLine, tempIndentLevel);
       formattedLines.push(formattedLine);
 
-      // Check if this is an opening statement
-      if (this.isOpeningStatement(trimmedLine)) {
-        indentLevel++;
+      // Add blank line after method ending if next line is not empty
+      if (this.isMethodEnding(trimmedLine)) {
+        // Look ahead to the next non-empty line
+        const nextLineIndex = i + 1;
+        if (nextLineIndex < lines.length) {
+          const nextLine = lines[nextLineIndex];
+          const nextTrimmedLine = nextLine.trim();
+
+          // Add blank line if next line exists and is not empty
+          if (nextTrimmedLine !== "") {
+            formattedLines.push("");
+          }
+        }
+      }
+
+      // Update indent level after formatting (but not for comments)
+      if (!this.isComment(trimmedLine)) {
+        if (this.isClosingStatement(trimmedLine)) {
+          indentLevel = Math.max(0, indentLevel - 1);
+        } else if (this.isOpeningStatement(trimmedLine)) {
+          indentLevel++;
+        }
       }
 
       // Update previous line for next iteration (only update with non-empty trimmed lines)
@@ -264,6 +299,43 @@ export class VizScriptFormatter {
     }
 
     return level;
+  }
+
+  /**
+   * Detect the initial indent level for document formatting based on the first non-empty line
+   */
+  private detectInitialIndentLevel(lines: string[]): number {
+    // Find the first non-empty, non-comment, non-metadata line
+    for (const line of lines) {
+      const trimmedLine = line.trim();
+
+      if (
+        trimmedLine === "" ||
+        this.isComment(trimmedLine) ||
+        this.isMetadataStart(trimmedLine) ||
+        this.isMetadataEnd(trimmedLine)
+      ) {
+        continue;
+      }
+
+      // Check if this line has existing indentation
+      const leadingSpaces = line.match(/^ */)?.[0].length || 0;
+      const leadingTabs = line.match(/^\t*/)?.[0].length || 0;
+
+      // Calculate current indent level from existing indentation
+      const currentIndentLevel = this.useSpaces ? Math.floor(leadingSpaces / this.indentSize) : leadingTabs;
+
+      // If this is a root-level statement (sub, function, etc.), the document starts at the calculated level
+      if (this.isMethodBeginning(trimmedLine)) {
+        return currentIndentLevel;
+      }
+
+      // For other statements, we assume they're inside a block and adjust accordingly
+      return Math.max(0, currentIndentLevel);
+    }
+
+    // Default to 0 if no code lines found
+    return 0;
   }
 
   /**
@@ -384,11 +456,22 @@ export class VizScriptFormatter {
    */
   private formatStatementKeywords(text: string): string {
     const keywords = [
+      // Compound keywords first (to prevent partial matches)
+      "exit function",
+      "exit sub",
+      "exit do",
+      "end function",
+      "end sub",
+      "end structure",
+      "end if",
+      "end select",
+      "select case",
+      "case else",
+      // Single keywords after compound ones
       "if",
       "then",
       "else",
       "elseif",
-      "end if",
       "for",
       "next",
       "to",
@@ -398,15 +481,9 @@ export class VizScriptFormatter {
       "loop",
       "until",
       "function",
-      "end function",
       "sub",
-      "end sub",
       "structure",
-      "end structure",
-      "select case",
       "case",
-      "case else",
-      "end select",
       "dim",
       "redim",
       "global",
@@ -461,27 +538,92 @@ export class VizScriptFormatter {
    * Check if line is an opening statement
    */
   private isOpeningStatement(line: string): boolean {
+    // Comments can never be opening statements
+    if (this.isComment(line)) {
+      return false;
+    }
+
     const lowerLine = line.toLowerCase().trim();
     return (
       lowerLine.startsWith("sub ") ||
       lowerLine.startsWith("function ") ||
       lowerLine.startsWith("structure ") ||
-      lowerLine.startsWith("if ") ||
+      this.isMultiLineIfStatement(lowerLine) ||
+      // Note: elseif is NOT an opening statement - it continues the if block at the same level
       lowerLine.startsWith("for ") ||
       lowerLine.startsWith("while ") ||
       lowerLine.startsWith("do ") ||
       lowerLine === "do" ||
-      lowerLine.startsWith("else") ||
-      lowerLine.startsWith("elseif ") ||
       lowerLine.startsWith("select case ") ||
       lowerLine.startsWith("case ")
     );
   }
 
   /**
+   * Check if this is a multi-line if statement (needs end if)
+   * Single-line if statements like "if condition then action" don't need end if
+   */
+  private isMultiLineIfStatement(lowerLine: string): boolean {
+    if (!lowerLine.startsWith("if ")) {
+      return false;
+    }
+
+    // Check if it's a single-line if statement
+    // Single-line if: "if condition then action"
+    // Multi-line if: "if condition then" (no action after then)
+
+    // Look for "then" keyword (could be " then " or " then" at end of line)
+    const thenRegex = /\bthen\b/;
+    const thenMatch = lowerLine.match(thenRegex);
+    if (!thenMatch) {
+      return false; // No "then" found, not a valid if statement
+    }
+
+    const thenIndex = thenMatch.index!;
+    const afterThen = lowerLine.substring(thenIndex + 4).trim();
+
+    // If there's content after "then", it's a single-line if statement
+    // If there's no content after "then", it's a multi-line if block
+    return afterThen === "";
+  }
+
+  /**
+   * Check if this is a multi-line elseif statement (needs end if)
+   * Single-line elseif statements like "elseif condition then action" don't need end if
+   */
+  private isMultiLineElseIfStatement(lowerLine: string): boolean {
+    if (!lowerLine.startsWith("elseif ")) {
+      return false;
+    }
+
+    // Check if it's a single-line elseif statement
+    // Single-line elseif: "elseif condition then action"
+    // Multi-line elseif: "elseif condition then" (no action after then)
+
+    // Look for "then" keyword (could be " then " or " then" at end of line)
+    const thenRegex = /\bthen\b/;
+    const thenMatch = lowerLine.match(thenRegex);
+    if (!thenMatch) {
+      return false; // No "then" found, not a valid elseif statement
+    }
+
+    const thenIndex = thenMatch.index!;
+    const afterThen = lowerLine.substring(thenIndex + 4).trim();
+
+    // If there's content after "then", it's a single-line elseif statement
+    // If there's no content after "then", it's a multi-line elseif block
+    return afterThen === "";
+  }
+
+  /**
    * Check if line is a closing statement
    */
   private isClosingStatement(line: string): boolean {
+    // Comments can never be closing statements
+    if (this.isComment(line)) {
+      return false;
+    }
+
     const lowerLine = line.toLowerCase().trim();
     return (
       lowerLine.startsWith("end sub") ||
@@ -490,10 +632,7 @@ export class VizScriptFormatter {
       lowerLine.startsWith("end if") ||
       lowerLine.startsWith("end select") ||
       lowerLine.startsWith("next") ||
-      lowerLine.startsWith("loop") ||
-      lowerLine === "loop" ||
-      lowerLine.startsWith("else") ||
-      lowerLine.startsWith("elseif ") ||
+      /\bloop\b/.test(lowerLine) || // Use word boundary to match "loop" as complete word, not part of "LoopPages"
       lowerLine.startsWith("case ")
     );
   }
@@ -528,7 +667,7 @@ export class VizScriptFormatter {
   }
 
   /**
-   * Check if line is an if statement
+   * Check if line is an if statement (for formatting purposes)
    */
   private isIfStatement(line: string): boolean {
     const lowerLine = line.toLowerCase();
@@ -597,6 +736,19 @@ export class VizScriptFormatter {
   }
 
   /**
+   * Check if line is an else statement
+   */
+  private isElseStatement(line: string): boolean {
+    // Comments can never be else statements
+    if (this.isComment(line)) {
+      return false;
+    }
+
+    const lowerLine = line.toLowerCase().trim();
+    return lowerLine === "else" || lowerLine.startsWith("elseif ");
+  }
+
+  /**
    * Format variable declaration
    */
   private formatVariableDeclaration(line: string): string {
@@ -629,14 +781,14 @@ export class VizScriptFormatter {
     return this.formatWithStringProtection(line, (text) => {
       let result = text
         .replace(/\s+/g, " ")
-        .replace(/\s*\bthen\b\s*/gi, ` ${this.formatKeywordCase("then")}`)
+        .replace(/\s*\bthen\b\s*/gi, ` ${this.formatKeywordCase("then")} `)
         .replace(/\s*\band\b\s*/gi, ` ${this.formatKeywordCase("and")} `)
         .replace(/\s*\bor\b\s*/gi, ` ${this.formatKeywordCase("or")} `)
         .replace(/\s*\bnot\b\s*/gi, ` ${this.formatKeywordCase("not")} `);
 
       // Format the main statement keywords
       result = result.replace(/\b(if|else|elseif|end\s+if)\b/gi, (match) => this.formatKeywordCase(match));
-      return this.formatBuiltInTypes(result);
+      return this.formatBuiltInTypes(result).trim();
     });
   }
 
