@@ -212,6 +212,17 @@ function getLineAt(str, pos, isSignatureHelp) {
 
   line = line.trim();
 
+  // Remove comments if not for signature help
+  let containsComment = line.indexOf("'");
+  if (containsComment > -1 && !line.includes("VSCODE-META-START") && !line.includes("VSCODE-META-END")) {
+    // Removes comments from lines if not within meta content
+    line = line.substring(0, containsComment);
+  }
+
+  // Remove literal strings to prevent them from interfering with parsing
+  let stringLiterals = /\"(([^\"]|\"\")*)\"/gi;
+  line = line.replace(stringLiterals, ReplaceBySpaces);
+
   let matches = [];
   let dotResult = [];
 
