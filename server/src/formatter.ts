@@ -700,10 +700,18 @@ export class VizScriptFormatter {
     for (let i = 0; i < line.length; i++) {
       const char = line[i];
       if (char === '"') {
-        // Handle C-style escaped quotes (\")
+        // Handle C-style escaped quotes (\") by counting consecutive backslashes
         if (i > 0 && line[i - 1] === "\\") {
-          // This is an escaped quote, don't count it
-          continue;
+          // Count consecutive backslashes before this quote
+          let backslashCount = 0;
+          for (let j = i - 1; j >= 0 && line[j] === "\\"; j--) {
+            backslashCount++;
+          }
+          // If odd number of backslashes, the quote is escaped
+          if (backslashCount % 2 === 1) {
+            // This is an escaped quote, don't count it
+            continue;
+          }
         }
         // Handle VBScript-style escaped quotes ("")
         if (i + 1 < line.length && line[i + 1] === '"') {
@@ -999,7 +1007,7 @@ export class VizScriptFormatter {
   }
 
   /**
-   * Add proper spacing around operators - simplified approach
+   * Add proper spacing around operators - with unary minus detection
    */
   private formatOperatorSpacing(text: string): string {
     let result = text;
@@ -1022,12 +1030,33 @@ export class VizScriptFormatter {
     // Handle simple operators (but they won't affect the placeholders)
     result = result.replace(/\s*=\s*/g, " = ");
     result = result.replace(/\s*\+\s*/g, " + ");
-    result = result.replace(/\s*-\s*/g, " - ");
     result = result.replace(/\s*\*\s*/g, " * ");
     result = result.replace(/\s*\/\s*/g, " / ");
     result = result.replace(/\s*\^\s*/g, " ^ ");
     result = result.replace(/\s*<\s*/g, " < ");
     result = result.replace(/\s*>\s*/g, " > ");
+
+    // SPECIAL HANDLING FOR MINUS: distinguish unary vs binary
+    // Unary minus: after =, (, [, {, operators, commas, logical operators, or at start
+    // Binary minus: between operands (numbers, variables, function calls, etc.)
+
+    // Handle double minus case first (e.g., "a - -b" should become "a - -b")
+    result = result.replace(/\s*-\s*-\s*/g, " - -");
+
+    // First handle unary minus cases (negative signs) using placeholders
+    // Pattern matches: start of string, or after =, (, [, {, +, -, *, /, ^, <, >, &, comma, or logical operators
+    // Also handle the case where there's a space before the operator
+    result = result.replace(/(^|\s*[=\(\[{+*\/^<>&,]\s*|\s+(?:and|or|not)\s+)\s*-\s*/gi, (match, prefix) => {
+      // Clean up the prefix and use placeholder for unary minus
+      const cleanPrefix = prefix.replace(/\s+/g, " ");
+      return cleanPrefix + "UNARY_MINUS_";
+    });
+
+    // Then handle remaining binary minus cases (subtraction)
+    result = result.replace(/\s*-\s*/g, " - ");
+
+    // Finally restore unary minus cases (no space after minus)
+    result = result.replace(/UNARY_MINUS_/g, "-");
 
     // Restore compound operators with proper spacing
     result = result.replace(/PLACEHOLDER_LTE_GTE/g, " <=> ");
