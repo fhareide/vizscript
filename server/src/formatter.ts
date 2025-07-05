@@ -155,9 +155,11 @@ export class VizScriptFormatter {
    * Format lines with proper indentation and structure
    */
   private formatLines(lines: string[], startLineIndex: number = 0, allLines?: string[]): string[] {
+    console.log("[DEBUG] Starting formatLines with", lines.length, "lines");
     const formattedLines: string[] = [];
     let indentLevel = 0;
     let inMetadata = false;
+    let inMultiLineString = false;
     let previousTrimmedLine = "";
 
     // If formatting a range, calculate initial indent level
@@ -168,9 +170,13 @@ export class VizScriptFormatter {
       indentLevel = this.detectInitialIndentLevel(lines);
     }
 
+    console.log("[DEBUG] Initial indent level:", indentLevel);
+
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
       const trimmedLine = line.trim();
+
+      console.log(`[DEBUG] Line ${i}: "${trimmedLine}" (indent level: ${indentLevel})`);
 
       // Handle metadata sections - preserve original formatting
       if (this.isMetadataStart(trimmedLine)) {
@@ -193,11 +199,20 @@ export class VizScriptFormatter {
         continue;
       }
 
-      // Skip empty lines
+      // Skip empty lines (but still track multi-line string state)
       if (trimmedLine === "") {
         formattedLines.push("");
         previousTrimmedLine = trimmedLine;
         continue;
+      }
+
+      // Check if we're currently in a multi-line string before processing this line
+      const wasInMultiLineString = inMultiLineString;
+
+      // Track multi-line string state for next iteration
+      const quoteInfo = this.hasUnmatchedQuotes(line, inMultiLineString);
+      if (quoteInfo.hasUnmatched) {
+        inMultiLineString = quoteInfo.isOpening;
       }
 
       // Add blank line between consecutive methods if enabled
@@ -220,16 +235,29 @@ export class VizScriptFormatter {
         formattedLines.push("");
       }
 
-      // Special handling for else statements and closing statements
-      let tempIndentLevel = indentLevel;
-      if (this.isElseStatement(trimmedLine)) {
-        tempIndentLevel = Math.max(0, indentLevel - 1);
-      } else if (this.isClosingStatement(trimmedLine)) {
-        tempIndentLevel = Math.max(0, indentLevel - 1);
+      // Simple indentation logic - back to basics
+      if (!this.isComment(trimmedLine) && !wasInMultiLineString) {
+        // Handle closing statements first - reduce indent before formatting
+        if (this.isClosingStatement(trimmedLine)) {
+          console.log(`[DEBUG] Found closing statement: "${trimmedLine}"`);
+          indentLevel = Math.max(0, indentLevel - 1);
+          console.log(`[DEBUG] Indent level after closing: ${indentLevel}`);
+        }
       }
 
-      // Format the line with proper indentation
-      const formattedLine = this.formatLine(trimmedLine, tempIndentLevel);
+      // Special handling for else/elseif/case statements - align with their parent
+      let lineIndentLevel = indentLevel;
+      if (!this.isComment(trimmedLine) && !wasInMultiLineString) {
+        if (this.isElseStatement(trimmedLine) || this.isCaseStatement(trimmedLine)) {
+          console.log(`[DEBUG] Found else/case statement: "${trimmedLine}"`);
+          lineIndentLevel = Math.max(0, indentLevel - 1);
+          console.log(`[DEBUG] Line indent level for else/case: ${lineIndentLevel}`);
+        }
+      }
+
+      // Format the line with calculated indentation level
+      const formattedLine = this.formatLine(trimmedLine, lineIndentLevel);
+      console.log(`[DEBUG] Formatted line: "${formattedLine}"`);
       formattedLines.push(formattedLine);
 
       // Add blank line after method ending if next line is not empty
@@ -247,12 +275,12 @@ export class VizScriptFormatter {
         }
       }
 
-      // Update indent level after formatting (but not for comments)
-      if (!this.isComment(trimmedLine)) {
-        if (this.isClosingStatement(trimmedLine)) {
-          indentLevel = Math.max(0, indentLevel - 1);
-        } else if (this.isOpeningStatement(trimmedLine)) {
+      // Handle opening statements - increase indent after formatting
+      if (!this.isComment(trimmedLine) && !wasInMultiLineString) {
+        if (this.isOpeningStatement(trimmedLine)) {
+          console.log(`[DEBUG] Found opening statement: "${trimmedLine}"`);
           indentLevel++;
+          console.log(`[DEBUG] Indent level after opening: ${indentLevel}`);
         }
       }
 
@@ -262,6 +290,7 @@ export class VizScriptFormatter {
       }
     }
 
+    console.log("[DEBUG] Final formatted lines:", formattedLines);
     return formattedLines;
   }
 
@@ -271,6 +300,7 @@ export class VizScriptFormatter {
   private calculateIndentLevel(lines: string[]): number {
     let level = 0;
     let inMetadata = false;
+    let inMultiLineString = false;
 
     for (const line of lines) {
       const trimmedLine = line.trim();
@@ -289,12 +319,24 @@ export class VizScriptFormatter {
         continue;
       }
 
-      if (this.isOpeningStatement(trimmedLine)) {
-        level++;
+      // Check if we're currently in a multi-line string before processing this line
+      const wasInMultiLineString = inMultiLineString;
+
+      // Track multi-line string state for next iteration
+      const quoteInfo = this.hasUnmatchedQuotes(line, inMultiLineString);
+      if (quoteInfo.hasUnmatched) {
+        inMultiLineString = quoteInfo.isOpening;
       }
 
-      if (this.isClosingStatement(trimmedLine)) {
-        level = Math.max(0, level - 1);
+      // Only apply keyword detection if not in a multi-line string and not a comment
+      if (!this.isComment(trimmedLine) && !wasInMultiLineString) {
+        if (this.isOpeningStatement(trimmedLine)) {
+          level++;
+        }
+
+        if (this.isClosingStatement(trimmedLine)) {
+          level = Math.max(0, level - 1);
+        }
       }
     }
 
@@ -538,25 +580,47 @@ export class VizScriptFormatter {
    * Check if line is an opening statement
    */
   private isOpeningStatement(line: string): boolean {
+    console.log(`[DEBUG] isOpeningStatement called with: "${line}"`);
+
     // Comments can never be opening statements
     if (this.isComment(line)) {
+      console.log(`[DEBUG] isOpeningStatement: "${line}" -> false (comment)`);
       return false;
     }
 
     const lowerLine = line.toLowerCase().trim();
-    return (
-      lowerLine.startsWith("sub ") ||
-      lowerLine.startsWith("function ") ||
-      lowerLine.startsWith("structure ") ||
-      this.isMultiLineIfStatement(lowerLine) ||
-      // Note: elseif is NOT an opening statement - it continues the if block at the same level
-      lowerLine.startsWith("for ") ||
-      lowerLine.startsWith("while ") ||
-      lowerLine.startsWith("do ") ||
-      lowerLine === "do" ||
-      lowerLine.startsWith("select case ") ||
-      lowerLine.startsWith("case ")
-    );
+    console.log(`[DEBUG] isOpeningStatement lowerLine: "${lowerLine}"`);
+
+    let isOpening = false;
+
+    if (lowerLine.startsWith("sub ")) {
+      isOpening = true;
+      console.log(`[DEBUG] isOpeningStatement: sub detected`);
+    } else if (lowerLine.startsWith("function ")) {
+      isOpening = true;
+      console.log(`[DEBUG] isOpeningStatement: function detected`);
+    } else if (lowerLine.startsWith("structure ")) {
+      isOpening = true;
+      console.log(`[DEBUG] isOpeningStatement: structure detected`);
+    } else if (this.isMultiLineIfStatement(lowerLine)) {
+      isOpening = true;
+      console.log(`[DEBUG] isOpeningStatement: multi-line if detected`);
+    } else if (lowerLine.startsWith("for ")) {
+      isOpening = true;
+      console.log(`[DEBUG] isOpeningStatement: for detected`);
+    } else if (lowerLine.startsWith("while ")) {
+      isOpening = true;
+      console.log(`[DEBUG] isOpeningStatement: while detected`);
+    } else if (lowerLine.startsWith("do ") || lowerLine === "do") {
+      isOpening = true;
+      console.log(`[DEBUG] isOpeningStatement: do detected`);
+    } else if (lowerLine.startsWith("select case ")) {
+      isOpening = true;
+      console.log(`[DEBUG] isOpeningStatement: select case detected`);
+    }
+
+    console.log(`[DEBUG] isOpeningStatement: "${line}" -> ${isOpening}`);
+    return isOpening;
   }
 
   /**
@@ -584,35 +648,10 @@ export class VizScriptFormatter {
 
     // If there's content after "then", it's a single-line if statement
     // If there's no content after "then", it's a multi-line if block
-    return afterThen === "";
-  }
+    const isMultiLine = afterThen === "";
 
-  /**
-   * Check if this is a multi-line elseif statement (needs end if)
-   * Single-line elseif statements like "elseif condition then action" don't need end if
-   */
-  private isMultiLineElseIfStatement(lowerLine: string): boolean {
-    if (!lowerLine.startsWith("elseif ")) {
-      return false;
-    }
-
-    // Check if it's a single-line elseif statement
-    // Single-line elseif: "elseif condition then action"
-    // Multi-line elseif: "elseif condition then" (no action after then)
-
-    // Look for "then" keyword (could be " then " or " then" at end of line)
-    const thenRegex = /\bthen\b/;
-    const thenMatch = lowerLine.match(thenRegex);
-    if (!thenMatch) {
-      return false; // No "then" found, not a valid elseif statement
-    }
-
-    const thenIndex = thenMatch.index!;
-    const afterThen = lowerLine.substring(thenIndex + 4).trim();
-
-    // If there's content after "then", it's a single-line elseif statement
-    // If there's no content after "then", it's a multi-line elseif block
-    return afterThen === "";
+    console.log(`[DEBUG] isMultiLineIfStatement: "${lowerLine}" -> ${isMultiLine} (afterThen: "${afterThen}")`);
+    return isMultiLine;
   }
 
   /**
@@ -625,16 +664,20 @@ export class VizScriptFormatter {
     }
 
     const lowerLine = line.toLowerCase().trim();
-    return (
+    const isClosing =
       lowerLine.startsWith("end sub") ||
       lowerLine.startsWith("end function") ||
       lowerLine.startsWith("end structure") ||
       lowerLine.startsWith("end if") ||
       lowerLine.startsWith("end select") ||
       lowerLine.startsWith("next") ||
-      /\bloop\b/.test(lowerLine) || // Use word boundary to match "loop" as complete word, not part of "LoopPages"
-      lowerLine.startsWith("case ")
-    );
+      /\bloop\b/.test(lowerLine); // Use word boundary to match "loop" as complete word, not part of "LoopPages"
+    // Note: case statements are NOT closing statements - they align with select case
+
+    if (isClosing) {
+      console.log(`[DEBUG] isClosingStatement: "${line}" -> true`);
+    }
+    return isClosing;
   }
 
   /**
@@ -642,6 +685,50 @@ export class VizScriptFormatter {
    */
   private isComment(line: string): boolean {
     return line.trim().startsWith("'");
+  }
+
+  /**
+   * Check if line has unmatched quotes (indicates start/end of multi-line string)
+   */
+  private hasUnmatchedQuotes(
+    line: string,
+    currentlyInMultiLineString: boolean,
+  ): { hasUnmatched: boolean; isOpening: boolean } {
+    let quoteCount = 0;
+    let inQuote = false;
+
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      if (char === '"') {
+        // Handle C-style escaped quotes (\")
+        if (i > 0 && line[i - 1] === "\\") {
+          // This is an escaped quote, don't count it
+          continue;
+        }
+        // Handle VBScript-style escaped quotes ("")
+        if (i + 1 < line.length && line[i + 1] === '"') {
+          i++; // Skip the escaped quote
+          continue;
+        }
+        quoteCount++;
+        inQuote = !inQuote;
+      }
+    }
+
+    const hasUnmatched = quoteCount % 2 === 1;
+
+    // If we have unmatched quotes, determine if opening or closing based on current state
+    let isOpening = false;
+    if (hasUnmatched) {
+      // If we're currently in a multiline string, an unmatched quote closes it
+      // If we're not in a multiline string, an unmatched quote opens it
+      isOpening = !currentlyInMultiLineString;
+    }
+
+    return {
+      hasUnmatched,
+      isOpening,
+    };
   }
 
   /**
@@ -662,7 +749,7 @@ export class VizScriptFormatter {
    */
   private isAssignment(line: string): boolean {
     return (
-      line.includes("=") && !line.includes("==") && !line.includes("!=") && !line.includes("<=") && !line.includes(">=")
+      line.includes("=") && !line.includes("==") && !line.includes("<=") && !line.includes(">=") && !line.includes("<>")
     );
   }
 
@@ -745,7 +832,12 @@ export class VizScriptFormatter {
     }
 
     const lowerLine = line.toLowerCase().trim();
-    return lowerLine === "else" || lowerLine.startsWith("elseif ");
+    const isElse = lowerLine === "else" || lowerLine.startsWith("else ") || lowerLine.startsWith("elseif ");
+
+    if (isElse) {
+      console.log(`[DEBUG] isElseStatement: "${line}" -> true`);
+    }
+    return isElse;
   }
 
   /**
@@ -764,11 +856,20 @@ export class VizScriptFormatter {
    */
   private formatAssignment(line: string): string {
     return this.formatWithStringProtection(line, (text) => {
-      let result = text
-        .replace(/\s+/g, " ")
-        .replace(/\s*([+\-*\/&])\s*=\s*/g, " $1= ") // Preserve compound operators like +=, -=, *=, /=, &=
-        .replace(/(?<![+\-*\/&])\s*=\s*/g, " = ") // Handle regular assignment (negative lookbehind to avoid compound operators)
-        .replace(/\s*&\s*(?!=)/g, " & "); // Handle string concatenation operators (& not followed by =)
+      let result = text.replace(/\s+/g, " ");
+
+      // Apply operator spacing FIRST (before compound operators to avoid conflicts)
+      result = this.formatOperatorSpacing(result);
+
+      // Handle compound operators (+=, -=, *=, /=, &=) - this will fix any spacing issues
+      result = result.replace(/\s*([+\-*\/&])\s*=\s*/g, " $1= ");
+
+      // Handle regular assignment (= not preceded by +, -, *, /, or &)
+      result = result.replace(/(?<![+\-*\/&])\s*=\s*/g, " = ");
+
+      // Handle string concatenation operators (& not followed by =)
+      result = result.replace(/\s*&\s*(?!=)/g, " & ");
+
       result = this.formatStatementKeywords(result);
       return this.formatBuiltInTypes(result);
     });
@@ -779,12 +880,10 @@ export class VizScriptFormatter {
    */
   private formatIfStatement(line: string): string {
     return this.formatWithStringProtection(line, (text) => {
-      let result = text
-        .replace(/\s+/g, " ")
-        .replace(/\s*\bthen\b\s*/gi, ` ${this.formatKeywordCase("then")} `)
-        .replace(/\s*\band\b\s*/gi, ` ${this.formatKeywordCase("and")} `)
-        .replace(/\s*\bor\b\s*/gi, ` ${this.formatKeywordCase("or")} `)
-        .replace(/\s*\bnot\b\s*/gi, ` ${this.formatKeywordCase("not")} `);
+      let result = text.replace(/\s+/g, " ").replace(/\s*\bthen\b\s*/gi, ` ${this.formatKeywordCase("then")} `);
+
+      // Add operator spacing
+      result = this.formatOperatorSpacing(result);
 
       // Format the main statement keywords
       result = result.replace(/\b(if|else|elseif|end\s+if)\b/gi, (match) => this.formatKeywordCase(match));
@@ -814,11 +913,10 @@ export class VizScriptFormatter {
    */
   private formatWhileStatement(line: string): string {
     return this.formatWithStringProtection(line, (text) => {
-      let result = text
-        .replace(/\s+/g, " ")
-        .replace(/\s*\band\b\s*/gi, ` ${this.formatKeywordCase("and")} `)
-        .replace(/\s*\bor\b\s*/gi, ` ${this.formatKeywordCase("or")} `)
-        .replace(/\s*\bnot\b\s*/gi, ` ${this.formatKeywordCase("not")} `);
+      let result = text.replace(/\s+/g, " ");
+
+      // Add operator spacing
+      result = this.formatOperatorSpacing(result);
 
       // Format the main statement keywords
       result = result.replace(/\b(while)\b/gi, (match) => this.formatKeywordCase(match));
@@ -834,10 +932,10 @@ export class VizScriptFormatter {
       let result = text
         .replace(/\s+/g, " ")
         .replace(/\s*\bwhile\b\s*/gi, ` ${this.formatKeywordCase("while")} `)
-        .replace(/\s*\buntil\b\s*/gi, ` ${this.formatKeywordCase("until")} `)
-        .replace(/\s*\band\b\s*/gi, ` ${this.formatKeywordCase("and")} `)
-        .replace(/\s*\bor\b\s*/gi, ` ${this.formatKeywordCase("or")} `)
-        .replace(/\s*\bnot\b\s*/gi, ` ${this.formatKeywordCase("not")} `);
+        .replace(/\s*\buntil\b\s*/gi, ` ${this.formatKeywordCase("until")} `);
+
+      // Add operator spacing
+      result = this.formatOperatorSpacing(result);
 
       // Format the main statement keywords
       result = result.replace(/\b(do)\b/gi, (match) => this.formatKeywordCase(match));
@@ -901,6 +999,61 @@ export class VizScriptFormatter {
   }
 
   /**
+   * Add proper spacing around operators - simplified approach
+   */
+  private formatOperatorSpacing(text: string): string {
+    let result = text;
+
+    // First, normalize multiple spaces to single spaces
+    result = result.replace(/\s+/g, " ");
+
+    // Handle compound operators FIRST and protect them completely
+    result = result.replace(/<=>/g, "PLACEHOLDER_LTE_GTE");
+    result = result.replace(/<>/g, "PLACEHOLDER_NOT_EQUAL");
+    result = result.replace(/<=/g, "PLACEHOLDER_LTE");
+    result = result.replace(/>=/g, "PLACEHOLDER_GTE");
+    result = result.replace(/==/g, "PLACEHOLDER_EQUAL_EQUAL");
+    result = result.replace(/\+=/g, "PLACEHOLDER_PLUS_EQUAL");
+    result = result.replace(/-=/g, "PLACEHOLDER_MINUS_EQUAL");
+    result = result.replace(/\*=/g, "PLACEHOLDER_MULT_EQUAL");
+    result = result.replace(/\/=/g, "PLACEHOLDER_DIV_EQUAL");
+    result = result.replace(/&=/g, "PLACEHOLDER_CONCAT_EQUAL");
+
+    // Handle simple operators (but they won't affect the placeholders)
+    result = result.replace(/\s*=\s*/g, " = ");
+    result = result.replace(/\s*\+\s*/g, " + ");
+    result = result.replace(/\s*-\s*/g, " - ");
+    result = result.replace(/\s*\*\s*/g, " * ");
+    result = result.replace(/\s*\/\s*/g, " / ");
+    result = result.replace(/\s*\^\s*/g, " ^ ");
+    result = result.replace(/\s*<\s*/g, " < ");
+    result = result.replace(/\s*>\s*/g, " > ");
+
+    // Restore compound operators with proper spacing
+    result = result.replace(/PLACEHOLDER_LTE_GTE/g, " <=> ");
+    result = result.replace(/PLACEHOLDER_NOT_EQUAL/g, " <> ");
+    result = result.replace(/PLACEHOLDER_LTE/g, " <= ");
+    result = result.replace(/PLACEHOLDER_GTE/g, " >= ");
+    result = result.replace(/PLACEHOLDER_EQUAL_EQUAL/g, " == ");
+    result = result.replace(/PLACEHOLDER_PLUS_EQUAL/g, " += ");
+    result = result.replace(/PLACEHOLDER_MINUS_EQUAL/g, " -= ");
+    result = result.replace(/PLACEHOLDER_MULT_EQUAL/g, " *= ");
+    result = result.replace(/PLACEHOLDER_DIV_EQUAL/g, " /= ");
+    result = result.replace(/PLACEHOLDER_CONCAT_EQUAL/g, " &= ");
+
+    // Logical operators
+    result = result.replace(/\s*\bmod\b\s*/gi, ` ${this.formatKeywordCase("mod")} `);
+    result = result.replace(/\s*\band\b\s*/gi, ` ${this.formatKeywordCase("and")} `);
+    result = result.replace(/\s*\bor\b\s*/gi, ` ${this.formatKeywordCase("or")} `);
+    result = result.replace(/\s*\bnot\b\s*/gi, ` ${this.formatKeywordCase("not")} `);
+
+    // Clean up any extra spaces
+    result = result.replace(/\s+/g, " ");
+
+    return result;
+  }
+
+  /**
    * Format generic statement
    */
   private formatGenericStatement(line: string): string {
@@ -911,6 +1064,9 @@ export class VizScriptFormatter {
         .replace(/\s*\)\s*(?![&+\-*/=])/g, ")") // Don't remove space before operators
         .replace(/\s*,\s*/g, ", ")
         .replace(/\s*\.\s*/g, ".");
+
+      // Add operator spacing
+      result = this.formatOperatorSpacing(result);
 
       // Format remaining statement keywords that might not be caught by specific methods
       return this.formatStatementKeywords(result);
@@ -924,29 +1080,39 @@ export class VizScriptFormatter {
     const strings: string[] = [];
     let index = 0;
 
+    console.log(`[DEBUG] formatWithStringProtection input: "${line}"`);
+
     // Replace all strings with placeholders
+    // Handle both VBScript-style ("") and C-style (\") escaped quotes
     let textWithPlaceholders = line
-      .replace(/"([^"]|"")*"/g, (match) => {
+      .replace(/"([^"\\]|\\.)*"/g, (match) => {
         const placeholder = `__STRING_${index}__`;
         strings[index] = match;
+        console.log(`[DEBUG] Extracted string ${index}: "${match}" -> "${placeholder}"`);
         index++;
         return placeholder;
       })
-      .replace(/'([^']|'')*'/g, (match) => {
+      .replace(/'([^'\\]|\\.)*'/g, (match) => {
         const placeholder = `__STRING_${index}__`;
         strings[index] = match;
+        console.log(`[DEBUG] Extracted string ${index}: "${match}" -> "${placeholder}"`);
         index++;
         return placeholder;
       });
 
+    console.log(`[DEBUG] Text with placeholders: "${textWithPlaceholders}"`);
+
     // Apply formatting to text without strings
     let formatted = formatFunction(textWithPlaceholders);
+    console.log(`[DEBUG] After formatting: "${formatted}"`);
 
     // Restore original strings
     for (let i = 0; i < strings.length; i++) {
       formatted = formatted.replace(`__STRING_${i}__`, strings[i]);
+      console.log(`[DEBUG] Restored string ${i}: "${strings[i]}"`);
     }
 
+    console.log(`[DEBUG] Final result: "${formatted}"`);
     return formatted;
   }
 
