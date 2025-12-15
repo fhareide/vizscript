@@ -542,7 +542,10 @@
 		"webpack-dev-client": "webpack --mode development --config ./client/webpack.config.js --watch",
 		"webpack-dev-server": "webpack --mode development --config ./server/webpack.config.js --watch",
 		"rollup-svelte-watch": "rollup -c ./client/rollup.config.js --bundleConfigAsCjs -w",
-		"development": "npm run clean && concurrently \"npm run webpack-dev-client\" \"npm run webpack-dev-server\" \"npm run rollup-svelte-watch\""
+		"development": "npm run clean && concurrently \"npm run webpack-dev-client\" \"npm run webpack-dev-server\" \"npm run rollup-svelte-watch\"",
+		"patch": "npm version patch",
+		"minor": "npm version minor",
+		"major": "npm version major"
 	},
 	"devDependencies": {
 		"@githubocto/tailwind-vscode": "^1.0.5",
