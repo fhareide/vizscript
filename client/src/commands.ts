@@ -928,10 +928,15 @@ async function processScriptWithMetadata(
         // Check if metadata is complete by creating default metadata and comparing
         const suggestedMetadata = metadataService.createDefaultMetadata(scriptObject);
 
-        // Define required fields (scenePath is optional for containers)
+        // Define required fields (scenePath is optional for containers, filePath is optional for collections)
         const requiredFields = ["UUID", "fileName", "scriptType", "vizVersion"];
         if (scriptObject.type === "Scene") {
           requiredFields.push("scenePath");
+        }
+        // Collections (groups) don't require filePath since they're opened as untitled
+        if (!scriptObject.isGroup) {
+          // Note: filePath is not strictly required but good to have for non-collections
+          // We don't add it to requiredFields to avoid prompts for unsaved scripts
         }
 
         // Check for missing or empty required fields
@@ -1003,7 +1008,8 @@ async function processScriptWithMetadata(
         } else {
           // Metadata is complete - check if user wants to update with current script info
           // Only prompt if there are meaningful differences and not in preview mode
-          if (shouldPromptForMetadataUpdate(existingMetadata, suggestedMetadata) && !options.preview) {
+          // Skip prompts for collections (groups) as they're virtual groupings
+          if (shouldPromptForMetadataUpdate(existingMetadata, suggestedMetadata) && !options.preview && !scriptObject.isGroup) {
             // Create suggested metadata that preserves existing UUID and other important fields
             const properSuggestedMetadata = metadataService.mergeMetadata(existingMetadata, suggestedMetadata);
 
@@ -1900,6 +1906,126 @@ export async function mergeScriptsIntoGroup(context: ExtensionContext, vizIds: s
     vscode.window.showErrorMessage(`Failed to merge scripts: ${error.message}`);
   }
 }
+
+/**
+ * Renames a collection and updates its metadata
+ */
+export async function renameCollection(context: ExtensionContext, client: LanguageClient, vizId: string): Promise<void> {
+  try {
+    const scriptObjects = await loadFromStorage(context);
+    const collectionIndex = scriptObjects.findIndex((script) => script.vizId === vizId && script.isGroup);
+
+    if (collectionIndex === -1) {
+      throw new Error("Collection not found");
+    }
+
+    const collection = scriptObjects[collectionIndex];
+    const oldName = collection.name; // Save old name for matching in open documents
+    
+    // Prompt user for new name
+    const newName = await vscode.window.showInputBox({
+      prompt: "Enter new collection name",
+      value: collection.name,
+      validateInput: (value: string) => {
+        if (!value || value.trim().length === 0) {
+          return "Collection name cannot be empty";
+        }
+        return null;
+      }
+    });
+
+    if (!newName || newName === collection.name) {
+      // User cancelled or didn't change the name
+      return;
+    }
+
+    console.log(`[renameCollection] Updating collection ${vizId} name from "${oldName}" to "${newName.trim()}"`);
+
+    // Update collection name
+    collection.name = newName.trim();
+    
+    // Save updated collection to storage
+    scriptObjects[collectionIndex] = collection;
+    await saveToStorage(context, scriptObjects);
+    
+    console.log(`[renameCollection] Saved to storage. Verifying...`);
+    const verifyScripts = await loadFromStorage(context);
+    const verifyCollection = verifyScripts.find(s => s.vizId === vizId);
+    console.log(`[renameCollection] Verified collection name in storage:`, verifyCollection?.name);
+
+    // Find any open editors with this collection and update their metadata
+    const openDocuments = vscode.workspace.textDocuments;
+    for (const doc of openDocuments) {
+      // Check if this document contains our collection
+      const content = doc.getText();
+      
+      // Look for metadata with matching UUID or vizId
+      const lines = content.split(/\r?\n/g);
+      let inMetaSection = false;
+      let metadataJson = "";
+      
+      for (const line of lines) {
+        if (line.includes("VSCODE-META-START") && line.includes("VSCODE-META-END")) {
+          // Single-line format
+          const startIndex = line.indexOf("VSCODE-META-START") + "VSCODE-META-START".length;
+          const endIndex = line.indexOf("VSCODE-META-END");
+          if (startIndex < endIndex) {
+            metadataJson = line.substring(startIndex, endIndex);
+          }
+          break;
+        } else if (line.includes("VSCODE-META-START")) {
+          inMetaSection = true;
+          continue;
+        } else if (line.includes("VSCODE-META-END")) {
+          break;
+        } else if (inMetaSection) {
+          const cleanLine = line.startsWith("'") ? line.substring(1) : line;
+          metadataJson += cleanLine + "\n";
+        }
+      }
+
+      if (metadataJson) {
+        try {
+          const metadata = JSON.parse(metadataJson);
+          
+          // Check if this metadata belongs to our collection
+          // Use oldName for matching since collection.name has already been updated
+          if (metadata.isGroup && (
+            (metadata.UUID && metadata.UUID === uuidByString(`vizscript-${vizId}`)) ||
+            (metadata.scenePath === collection.scenePath && metadata.fileName === oldName)
+          )) {
+            // Update the metadata with new name
+            metadata.fileName = newName.trim();
+            
+            // Update the document
+            const metadataService = new MetadataService(client);
+            const result = await metadataService.updateMetadataInContent(content, metadata);
+            
+            if (result.success) {
+              const edit = new vscode.WorkspaceEdit();
+              const fullRange = new vscode.Range(
+                doc.positionAt(0),
+                doc.positionAt(content.length)
+              );
+              edit.replace(doc.uri, fullRange, result.content);
+              await vscode.workspace.applyEdit(edit);
+            }
+          }
+        } catch (parseError) {
+          // Ignore parsing errors for non-matching documents
+        }
+      }
+    }
+
+    // Refresh sidebar to show updated name
+    vscode.commands.executeCommand("vizscript.refreshsidebar");
+
+    vscode.window.showInformationMessage(`Collection renamed to "${newName}"`);
+  } catch (error) {
+    vscode.window.showErrorMessage(`Failed to rename collection: ${error.message}`);
+  }
+}
+
 
 /**
  * Refreshes the sidebar with current stored scripts without re-fetching from Viz

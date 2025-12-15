@@ -109,16 +109,21 @@
 				"title": "Copy Viz ID",
 				"icon": "$(tag)"
 			},
-			{
-				"command": "vizscript.sidebar.splitGroup",
-				"title": "Split Group",
-				"icon": "$(split-horizontal)"
-			},
-			{
-				"command": "vizscript.sidebar.mergeScripts",
-				"title": "Merge into Group",
-				"icon": "$(group-by-ref-type)"
-			},
+		{
+			"command": "vizscript.sidebar.renameCollection",
+			"title": "Rename Collection",
+			"icon": "$(edit)"
+		},
+		{
+			"command": "vizscript.sidebar.splitGroup",
+			"title": "Split Group",
+			"icon": "$(split-horizontal)"
+		},
+		{
+			"command": "vizscript.sidebar.mergeScripts",
+			"title": "Merge into Group",
+			"icon": "$(group-by-ref-type)"
+		},
 			{
 				"command": "vizscript.toggleCompletionSystem",
 				"title": "VizScript: Toggle Completion System (Old/New)"
@@ -172,16 +177,21 @@
 					"when": "webviewId == 'vizscript-sidebar' && webviewSection == 'scriptItem'",
 					"group": "2_clipboard@2"
 				},
-				{
-					"command": "vizscript.sidebar.splitGroup",
-					"when": "webviewId == 'vizscript-sidebar' && webviewSection == 'scriptItem' && isGroup",
-					"group": "3_groups@1"
-				},
-				{
-					"command": "vizscript.sidebar.mergeScripts",
-					"when": "webviewId == 'vizscript-sidebar' && webviewSection == 'scriptItem'",
-					"group": "3_groups@2"
-				}
+			{
+				"command": "vizscript.sidebar.renameCollection",
+				"when": "webviewId == 'vizscript-sidebar' && webviewSection == 'scriptItem' && isGroup",
+				"group": "3_groups@1"
+			},
+			{
+				"command": "vizscript.sidebar.splitGroup",
+				"when": "webviewId == 'vizscript-sidebar' && webviewSection == 'scriptItem' && isGroup",
+				"group": "3_groups@2"
+			},
+			{
+				"command": "vizscript.sidebar.mergeScripts",
+				"when": "webviewId == 'vizscript-sidebar' && webviewSection == 'scriptItem'",
+				"group": "3_groups@3"
+			}
 			],
 			"commandPalette": [
 				{

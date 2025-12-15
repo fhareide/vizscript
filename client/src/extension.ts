@@ -675,6 +675,27 @@ export function activate(context: vscode.ExtensionContext) {
   );
 
   context.subscriptions.push(
+    vscode.commands.registerCommand("vizscript.sidebar.renameCollection", async (contextData?: any) => {
+      let collectionVizId: string | null = null;
+
+      // Try to get script from context data first (right-click menu)
+      if (contextData?.script?.vizId && contextData?.isGroup) {
+        collectionVizId = contextData.script.vizId;
+      } else {
+        // Fallback to the old method for other invocations
+        const selectedScript = await getSelectedScriptFromSidebar(sidebarProvider);
+        if (selectedScript) {
+          collectionVizId = selectedScript;
+        }
+      }
+
+      if (collectionVizId) {
+        await Commands.renameCollection.bind(this)(context, client, collectionVizId);
+      }
+    }),
+  );
+
+  context.subscriptions.push(
     vscode.commands.registerCommand("vizscript.sidebar.mergeScripts", async (contextData?: any) => {
       let vizIds: string[] = [];
 

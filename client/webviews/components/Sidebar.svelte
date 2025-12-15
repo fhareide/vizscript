@@ -18,7 +18,7 @@
 
   // Script parameters state
   let parametersData: ScriptParametersData | null = null;
-  let showParameters = false;
+  let showParameters = true;
   let parametersCache: { [scriptId: string]: ScriptParametersData } = {}; // Controls collapsible parameters section
   let scriptParametersComponent: ScriptParameters;
   

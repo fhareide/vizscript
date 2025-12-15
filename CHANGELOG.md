@@ -1,3 +1,6 @@
+### 0.4.2
+ - **New**: Added the ability to rename collections in the sidebar
+
 ### 0.4.1
 - **Change**: Updated readme
 

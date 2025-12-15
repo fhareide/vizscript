@@ -4,10 +4,11 @@
  * ------------------------------------------------------------------------------------------ */
 
 import * as net from "net";
-import { ExtensionContext, Progress, window } from "vscode";
+import { ExtensionContext, Progress, window, workspace } from "vscode";
 import { loadFromStorage, saveToStorage } from "./commands";
 import { SceneService } from "./sceneService";
 import { FileService } from "./fileService";
+import { MetadataService } from "./metadataService";
 import type { VizScriptObject } from "./shared/types";
 
 let sceneId = "";
@@ -154,28 +155,217 @@ export function getVizScripts(
           // Prepare the final scriptObjects list with collections
           const finalScriptObjects = [];
 
-          // Collection index counter
+          // Load existing collections from storage to preserve names
+          const existingScripts = await loadFromStorage(context);
+          const existingCollections = existingScripts.filter((s) => s.isGroup);
+
+          console.log(
+            "Existing collections:",
+            existingCollections.map((c) => ({ name: c.name, vizId: c.vizId, children: c.children })),
+          );
+
+          // Helper to get collection name from metadata in open files or fetched script
+          const getCollectionNameFromMetadata = (content: string): string | null => {
+            try {
+              // Normalize the collection content for comparison
+              const normalizedCollectionContent = fileService.normalizeForComparison(content);
+
+              console.log(`Checking for metadata in open documents and fetched script...`);
+
+              // First, check open documents for matching content with metadata
+              const allDocuments = workspace.textDocuments;
+
+              for (const doc of allDocuments) {
+                const docContent = doc.getText();
+
+                // Extract metadata and script content from document
+                const docLines = docContent.split(/\r?\n/g);
+                let scriptStartIndex = 0;
+                let inMetaSection = false;
+                let metadataJson = "";
+
+                // Parse metadata and find where script starts
+                for (let i = 0; i < docLines.length; i++) {
+                  const line = docLines[i];
+                  if (line.includes("VSCODE-META-START") && line.includes("VSCODE-META-END")) {
+                    const startIndex = line.indexOf("VSCODE-META-START") + "VSCODE-META-START".length;
+                    const endIndex = line.indexOf("VSCODE-META-END");
+                    if (startIndex < endIndex) {
+                      metadataJson = line.substring(startIndex, endIndex);
+                    }
+                    scriptStartIndex = i + 1;
+                    break;
+                  } else if (line.includes("VSCODE-META-START")) {
+                    inMetaSection = true;
+                  } else if (line.includes("VSCODE-META-END")) {
+                    inMetaSection = false;
+                    scriptStartIndex = i + 1;
+                    break;
+                  } else if (inMetaSection) {
+                    const cleanLine = line.startsWith("'") ? line.substring(1) : line;
+                    metadataJson += cleanLine;
+                  }
+                }
+
+                // Get script content without metadata
+                const docScriptContent = docLines.slice(scriptStartIndex).join("\n");
+                const normalizedDocContent = fileService.normalizeForComparison(docScriptContent);
+
+                // Compare contents
+                if (normalizedDocContent === normalizedCollectionContent) {
+                  console.log(`Open document has matching content: ${doc.uri.fsPath}`);
+
+                  if (metadataJson) {
+                    try {
+                      const metadata = JSON.parse(metadataJson);
+                      if (metadata.isGroup && metadata.fileName) {
+                        console.log(`Found metadata in open file with fileName: ${metadata.fileName}`);
+                        return metadata.fileName;
+                      }
+                    } catch (parseError) {
+                      console.log(`Error parsing metadata in open file:`, parseError);
+                    }
+                  }
+                }
+              }
+
+              // If not found in open documents, check the fetched script content itself
+              console.log(`Checking fetched script content for metadata...`);
+              const lines = content.split(/\r?\n/g);
+              let inMetaSection = false;
+              let metadataJson = "";
+
+              for (const line of lines) {
+                if (line.includes("VSCODE-META-START") && line.includes("VSCODE-META-END")) {
+                  const startIndex = line.indexOf("VSCODE-META-START") + "VSCODE-META-START".length;
+                  const endIndex = line.indexOf("VSCODE-META-END");
+                  if (startIndex < endIndex) {
+                    metadataJson = line.substring(startIndex, endIndex);
+                  }
+                  break;
+                } else if (line.includes("VSCODE-META-START")) {
+                  inMetaSection = true;
+                  continue;
+                } else if (line.includes("VSCODE-META-END")) {
+                  break;
+                } else if (inMetaSection) {
+                  const cleanLine = line.startsWith("'") ? line.substring(1) : line;
+                  metadataJson += cleanLine;
+                }
+              }
+
+              if (metadataJson) {
+                try {
+                  const metadata = JSON.parse(metadataJson);
+                  if (metadata.isGroup && metadata.fileName) {
+                    console.log(`Found metadata in fetched script with fileName: ${metadata.fileName}`);
+                    return metadata.fileName;
+                  }
+                } catch (parseError) {
+                  console.log(`Error parsing metadata in fetched script:`, parseError);
+                }
+              }
+
+              console.log("No metadata with fileName found");
+            } catch (error) {
+              console.error("Error getting collection name from metadata:", error);
+            }
+            return null;
+          };
+
+          // Collection index counter - start from the max existing collection index + 1
           let collectionIndex = 0;
+          if (existingCollections.length > 0) {
+            // Find the highest collection index from existing collections
+            const existingIndices = existingCollections
+              .map((c) => {
+                const match = c.vizId.match(/#c(\d+)/);
+                return match ? parseInt(match[1], 10) : -1;
+              })
+              .filter((idx) => idx >= 0);
+
+            if (existingIndices.length > 0) {
+              collectionIndex = Math.max(...existingIndices) + 1;
+            }
+          }
 
           // Add scene script to the final list
           finalScriptObjects.push(...sceneScript);
 
+          // Helper function to find matching existing collection
+          const findMatchingCollection = (vizIds: string[]): VizScriptObject | undefined => {
+            // Sort vizIds for comparison
+            const sortedVizIds = [...vizIds].sort();
+
+            console.log("Looking for collection with vizIds:", sortedVizIds);
+
+            const match = existingCollections.find((collection) => {
+              const sortedChildren = [...collection.children].sort();
+
+              console.log(`  Comparing with ${collection.name} (${collection.vizId}):`, sortedChildren);
+
+              // Check if the children arrays match
+              if (sortedChildren.length !== sortedVizIds.length) {
+                return false;
+              }
+
+              const isMatch = sortedChildren.every((childId, index) => childId === sortedVizIds[index]);
+              console.log(`  Match result:`, isMatch);
+              return isMatch;
+            });
+
+            if (match) {
+              console.log(`Found matching collection: ${match.name} (${match.vizId})`);
+            } else {
+              console.log("No matching collection found");
+            }
+
+            return match;
+          };
+
           // Iterate over contentMap to create collection script objects
           for (const [content, vizIds] of contentMap.entries()) {
             if (vizIds.length > 1) {
+              // Try to find an existing collection with the same children
+              const existingCollection = findMatchingCollection(vizIds);
+
+              // Try to get name from metadata in the fetched script content
+              const metadataName = getCollectionNameFromMetadata(content);
+              console.log("Metadata name:", metadataName);
+
+              // Determine the collection name priority:
+              // For collections (no filePath), the metadata from the fetched script is the master.
+              // This ensures that if a user renames a collection and pushes to Viz,
+              // the next fetch will pick up the correct name from the metadata.
+              // Priority:
+              // 1. Metadata fileName (from fetched Viz script - the source of truth)
+              // 2. Existing collection name (fallback if no metadata in Viz)
+              // 3. Default Collection{index}
+              const collectionName = metadataName || existingCollection?.name || `Collection${collectionIndex}`;
+
               // Create a collection for similar scripts
               const collectionScript: VizScriptObject = {
-                vizId: `#c${collectionIndex}`,
+                vizId: existingCollection?.vizId || `#c${collectionIndex}`,
                 type: `ContainerCollection ( x${vizIds.length} )`,
                 extension: ".vsc",
-                name: `Collection${collectionIndex}`, // Keeping the original name for simplicity
+                name: collectionName,
                 code: scriptMap.get(vizIds[0]).code, // Use the code of the first script as an example
                 scenePath: scenePath,
                 children: vizIds,
                 isGroup: true, // Mark as a group
               };
+
+              console.log(
+                `Created collection: ${collectionScript.name} (${collectionScript.vizId}) with children:`,
+                vizIds,
+              );
+
               finalScriptObjects.push(collectionScript);
-              collectionIndex++; // Increment the collection index after creating a collection
+
+              // Only increment if we created a new collection (not reusing an existing one)
+              if (!existingCollection) {
+                collectionIndex++;
+              }
             } else {
               // If only one script with this content, add it as is
               const singleScript = scriptMap.get(vizIds[0]); // Use the first vizId as an example
