@@ -1,5 +1,55 @@
-### 0.4.2
- - **New**: Added the ability to rename collections in the sidebar
+### 0.6.2
+- **New**: Added the ability to rename collections in the sidebar
+
+### 0.6.1
+- **Fix**: Sidebar now clears scripts when no Viz Engine is found
+- **Fix**: Fixed issue with SignatureHelp not showing all parameters
+
+### 0.6.0
+- **New**: Added code formatter with configurable options
+  - Option `vizscript.formatting.enabled` - Enable document formatting
+  - Option `vizscript.formatting.indentSize` - Number of spaces/tabs for indentation
+  - Option `vizscript.formatting.useSpaces` - Use spaces instead of tabs
+  - Option `vizscript.formatting.addLinesBetweenMethods` - Add blank lines between methods
+- **New**: Added new completion system (behind feature flag)
+- **New**: Added script parameter view in sidebar
+- **New**: Added context menus for script items in sidebar
+  - Edit Script, Preview Script, Compare with Active File, Set Script in Viz
+  - Copy Name, Copy Viz ID
+  - Split Group, Merge into Group
+- **Fix**: Improved metadata injection logic
+- **Fix**: Various improvements to dialogs and modals
+
+### 0.5.0
+- **New**: Added Svelte-based sidebar webview for script management
+  - Browse and manage scripts directly from VS Code sidebar
+  - Preview scripts without opening files
+  - Edit scripts in new or existing files
+  - Compare scripts with diff view
+- **New**: Added ability to fetch scripts from Viz Engine to sidebar
+- **New**: Added preview and diff functionality for scripts
+  - Command: `Viz Script: Diff script with Viz`
+  - Command: `Viz Script: Open script in new file`
+  - Command: `Viz Script: Fetch scripts from Viz`
+- **New**: Added support for Front, Main and Back layer scripts
+  - Command: `Viz Script: Set script in main layer`
+  - Command: `Viz Script: Set script in front layer`
+  - Command: `Viz Script: Set script in back layer`
+- **New**: Added metadata system for scripts
+  - Option `vizscript.metadata.enabled` - Enable metadata functionality
+  - Option `vizscript.metadata.autoUpdate` - Automatically update metadata
+  - Option `vizscript.metadata.formatting` - Choose between full, compact, or oneline format
+  - Command: `Viz Script: Update metadata`
+- **New**: Added file handling options
+  - Option `vizscript.files.preferLocalFiles` - Prefer local files when opening scripts
+  - Option `vizscript.files.promptOnDifference` - Prompt when local file differs from Viz
+  - Option `vizscript.files.useAbsolutePaths` - Use absolute paths in metadata
+  - Option `vizscript.files.alwaysPromptFileChoice` - Always prompt for file choice
+- **New**: Added sidebar configuration
+  - Option `vizscript.sidebar.doubleClickAction` - Choose between preview or edit on double-click
+- **New**: Added script group management
+  - Command: `Viz Script: Split script group`
+  - Command: `Viz Script: Merge scripts into group`
 
 ### 0.4.1
 - **Change**: Updated readme
