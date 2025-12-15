@@ -1,43 +1,43 @@
 <script lang="ts">
   import { onMount } from "svelte";
-	import type {VizScriptObject, ScriptParameter, ScriptParametersData} from "../../src/shared/types"
+  import type {VizScriptObject, ScriptParameter, ScriptParametersData} from "../../src/shared/types"
   import ScriptItem from "./ScriptItem.svelte";
   import ScriptParameters from "./ScriptParameters.svelte";
-  let vizscripts: VizScriptObject[] = [];
-  let selectedScriptId: string;
-  let selectedScript: VizScriptObject | undefined;
-  let selectedScriptIds: string[] = []; // For multi-selection
+  
+  let vizscripts: VizScriptObject[] = $state([]);
+  let selectedScriptId: string = $state('');
+  let selectedScriptIds: string[] = $state([]); // For multi-selection
 
-  let hostname = "localhost";
-  let port = 6100;
-  let sidebarSettings: any = {};
-  let useGlobalSettings = true; // Default to using global settings
+  let hostname = $state("localhost");
+  let port = $state(6100);
+  let sidebarSettings: any = $state({});
+  let useGlobalSettings = $state(true); // Default to using global settings
 
-	let selectedLayer = "MAIN_SCENE";
-  let previousLayer = selectedLayer;
+  let selectedLayer = $state("MAIN_SCENE");
+  let previousLayer = $state("MAIN_SCENE");
 
   // Script parameters state
-  let parametersData: ScriptParametersData | null = null;
-  let showParameters = true;
-  let parametersCache: { [scriptId: string]: ScriptParametersData } = {}; // Controls collapsible parameters section
-  let scriptParametersComponent: ScriptParameters;
+  let parametersData: ScriptParametersData | null = $state(null);
+  let showParameters = $state(true);
+  let parametersCache: { [scriptId: string]: ScriptParametersData } = $state({}); // Controls collapsible parameters section
+  let scriptParametersComponent: ScriptParameters | undefined = $state();
   
   // Resizer state
-  let isResizing = false;
-  let scriptListHeight = 60; // Percentage of available space for script list
-  let startY = 0;
-  let startHeight = 0;
+  let isResizing = $state(false);
+  let scriptListHeight = $state(60); // Percentage of available space for script list
+  let startY = $state(0);
+  let startHeight = $state(0);
 
-  $: selectedScript = vizscripts.find((script) => script.vizId === selectedScriptId) || undefined;
+  let selectedScript = $derived(vizscripts.find((script) => script.vizId === selectedScriptId) || undefined);
   
   // Calculate effective script list height based on parameters panel state
   // When collapsed, leave enough space for the header (~10% should be sufficient for header visibility)
-  $: effectiveScriptListHeight = showParameters ? scriptListHeight : 90;
+  let effectiveScriptListHeight = $derived(showParameters ? scriptListHeight : 90);
 
   const handleGetScripts = async () => {
     console.log('Getting scripts for layer:', selectedLayer);
-		console.log('Hostname:', hostname);
-		console.log('Port:', port);
+    console.log('Hostname:', hostname);
+    console.log('Port:', port);
     tsvscode.postMessage({
       type: "fetchscripts",
       value: { hostname, port, selectedLayer },
@@ -52,8 +52,8 @@
     });
   };
 
-  const handleScriptPreviewEvent = (event: CustomEvent) => {
-    const script = event.detail.script;
+  const handleScriptPreviewCallback = (detail: { script: VizScriptObject }) => {
+    const script = detail.script;
     if (!script) return;
     
     tsvscode.postMessage({
@@ -78,70 +78,70 @@
     });
   };
 
-	const handleScriptSet = () => {
-		if (!selectedScript) {
-			// If no script is selected, send empty vizId to clear/reset the scene
-			tsvscode.postMessage({
-				type: "setScript",
-				value: { vizId: "", selectedLayer, hostname, port },
-			});
-			return;
-		}
-		tsvscode.postMessage({
-			type: "setScript",
-			value: { vizId: selectedScript.vizId, selectedLayer, hostname, port },
-		});
-	};
+  const handleScriptSet = () => {
+    if (!selectedScript) {
+      // If no script is selected, send empty vizId to clear/reset the scene
+      tsvscode.postMessage({
+        type: "setScript",
+        value: { vizId: "", selectedLayer, hostname, port },
+      });
+      return;
+    }
+    tsvscode.postMessage({
+      type: "setScript",
+      value: { vizId: selectedScript.vizId, selectedLayer, hostname, port },
+    });
+  };
 
-	const handleResetScripts = () => {
-		tsvscode.postMessage({
-			type: "resetScripts",
-		});
-	};
+  const handleResetScripts = () => {
+    tsvscode.postMessage({
+      type: "resetScripts",
+    });
+  };
 
-	const handleLayerChange = (event: Event) => {
-		const target = event.target as HTMLInputElement;
-		console.log("Target", target);
-		const currentState = tsvscode.getState() || {};
+  const handleLayerChange = (event: Event) => {
+    const target = event.target as HTMLInputElement;
+    console.log("Target", target);
+    const currentState = tsvscode.getState() || {};
 
-		const previousLayer = currentState.selectedLayer;
-		const newLayer = target.value;
+    const prevLayer = currentState.selectedLayer;
+    const newLayer = target.value;
 
-		if (previousLayer !== newLayer) {
-			vizscripts = [];
-			selectedScriptId = '';
-			handleResetScripts();
-		};
+    if (prevLayer !== newLayer) {
+      vizscripts = [];
+      selectedScriptId = '';
+      handleResetScripts();
+    };
 
-		const updatedState = {
-			...currentState,
-			selectedLayer: target.value
-		};
+    const updatedState = {
+      ...currentState,
+      selectedLayer: target.value
+    };
 
-		console.log("Updated state", updatedState);
+    console.log("Updated state", updatedState);
 
-		tsvscode.setState(updatedState);
-	};
+    tsvscode.setState(updatedState);
+  };
 
-  // Parameter handling functions - moved to ScriptParameters component
-  function handleGetScriptParameters(event: CustomEvent) {
+  // Parameter handling functions
+  function handleGetScriptParameters(detail: { scriptId: string; hostname: string; port: number }) {
     tsvscode.postMessage({
       type: "getScriptParameters",
-      value: event.detail
+      value: detail
     });
   }
 
-  function handleSetScriptParameter(event: CustomEvent) {
+  function handleSetScriptParameter(detail: { scriptId: string; parameterName: string; value: string; hostname: string; port: number }) {
     tsvscode.postMessage({
       type: "setScriptParameter",
-      value: event.detail
+      value: detail
     });
   }
 
-  function handleInvokeScriptParameter(event: CustomEvent) {
+  function handleInvokeScriptParameter(detail: { scriptId: string; parameterName: string; hostname: string; port: number }) {
     tsvscode.postMessage({
       type: "invokeScriptParameter",
-      value: event.detail
+      value: detail
     });
   }
 
@@ -249,8 +249,8 @@
     }
   };
 
-  const handleScriptDoubleClick = (event: CustomEvent) => {
-    selectedScriptId = event.detail.script.vizId;
+  const handleScriptDoubleClick = (detail: { script: VizScriptObject }) => {
+    selectedScriptId = detail.script.vizId;
     
     // Check setting for double-click action
     const doubleClickAction = sidebarSettings?.doubleClickAction || 'preview';
@@ -262,8 +262,8 @@
     }
   };
 
-  const handleScriptSelection = (event: CustomEvent) => {
-    const { script, isShiftClick } = event.detail;
+  const handleScriptSelection = (detail: { script: VizScriptObject; isShiftClick: boolean }) => {
+    const { script, isShiftClick } = detail;
     
     if (isShiftClick && script.type === "Container" && !script.isGroup) {
       // Multi-select for container scripts only
@@ -368,13 +368,13 @@
     tsvscode.postMessage({ type: "getSettings" });
     tsvscode.postMessage({ type: "loadState" });
 
-		const currentState = tsvscode.getState() || {};
-		console.log("Current state", currentState);
+    const currentState = tsvscode.getState() || {};
+    console.log("Current state", currentState);
 
-		selectedScriptId = currentState.selectedScriptId;
-		selectedScriptIds = currentState.selectedScriptIds || [];
-		selectedLayer = currentState.selectedLayer || "MAIN_SCENE";
-		previousLayer = selectedLayer;
+    selectedScriptId = currentState.selectedScriptId;
+    selectedScriptIds = currentState.selectedScriptIds || [];
+    selectedLayer = currentState.selectedLayer || "MAIN_SCENE";
+    previousLayer = selectedLayer;
 
     // Restore resizer state
     if (currentState.scriptListHeight !== undefined) {
@@ -402,10 +402,10 @@
   });
 </script>
 
-<!-- svelte-ignore a11y-click-events-have-key-events -->
-<!-- svelte-ignore a11y-no-static-element-interactions -->
+<!-- svelte-ignore a11y_click_events_have_key_events -->
+<!-- svelte-ignore a11y_no_static_element_interactions -->
 
-<div class="h-full relative whitespace-nowrap w-full overflow-hidden" 	data-vscode-context={JSON.stringify({
+<div class="h-full relative whitespace-nowrap w-full overflow-hidden" data-vscode-context={JSON.stringify({
     "preventDefaultContextMenuItems": true
   })}>
   <div class="h-full overflow-hidden">
@@ -415,56 +415,56 @@
           type="checkbox" 
           id="use-global-settings" 
           bind:checked={useGlobalSettings} 
-          on:change={handleGlobalSettingsToggle}
+          onchange={handleGlobalSettingsToggle}
           class="rounded"
         />
         <label for="use-global-settings" class="text-sm">Use global connection settings</label>
       </div>
       <div class="flex gap-2">
         <input 
-					type="Text" 
-					placeholder="Hostname" 
-					bind:value={hostname} 
-					disabled={useGlobalSettings}
-					on:change={handleManualConnectionChange}
-					class="w-1/2 bg-vscode-input-background text-vscode-input-foreground border border-vscode-input-border px-2 py-1 rounded text-sm focus:outline-none focus:border-vscode-focusBorder disabled:opacity-50 disabled:cursor-not-allowed" 
-				/>
+          type="Text" 
+          placeholder="Hostname" 
+          bind:value={hostname} 
+          disabled={useGlobalSettings}
+          onchange={handleManualConnectionChange}
+          class="w-1/2 bg-vscode-input-background text-vscode-input-foreground border border-vscode-input-border px-2 py-1 rounded text-sm focus:outline-none focus:border-vscode-focusBorder disabled:opacity-50 disabled:cursor-not-allowed" 
+        />
         <input 
-					type="Text" 
-					placeholder="Port" 
-					bind:value={port} 
-					disabled={useGlobalSettings}
-					on:change={handleManualConnectionChange}
-					class="w-1/4 bg-vscode-input-background text-vscode-input-foreground border border-vscode-input-border px-2 py-1 rounded text-sm focus:outline-none focus:border-vscode-focusBorder disabled:opacity-50 disabled:cursor-not-allowed" 
-				/>
+          type="Text" 
+          placeholder="Port" 
+          bind:value={port} 
+          disabled={useGlobalSettings}
+          onchange={handleManualConnectionChange}
+          class="w-1/4 bg-vscode-input-background text-vscode-input-foreground border border-vscode-input-border px-2 py-1 rounded text-sm focus:outline-none focus:border-vscode-focusBorder disabled:opacity-50 disabled:cursor-not-allowed" 
+        />
       </div>
-			<div class="flex gap-2 justify-between px-20">
-				Viz Layer:
-				<div class="flex gap-1">
-					<input type="radio" id="front-layer" name="layer" value="FRONT_SCENE" bind:group={selectedLayer} on:change={handleLayerChange} />
-					<label for="front-layer">Front</label>
-				</div>
-				<div class="flex gap-1">
-					<input type="radio" id="main-layer" name="layer" value="MAIN_SCENE" bind:group={selectedLayer} on:change={handleLayerChange} />
-					<label for="main-layer">Mid</label>
-				</div>
-				<div class="flex gap-1">
-					<input type="radio" id="back-layer" name="layer" value="BACK_SCENE" bind:group={selectedLayer} on:change={handleLayerChange} />
-					<label for="back-layer">Back</label>
-				</div>
-			</div>
-			<button 
-				on:click={handleGetScripts}
-				class="w-full bg-vscode-button-background text-vscode-button-foreground border-0 px-4 py-2 rounded cursor-pointer hover:bg-vscode-button-hoverBackground focus:outline-none focus:bg-vscode-button-hoverBackground transition-colors duration-150"
-			>
-				Get scripts from Viz
-			</button>
-			
+      <div class="flex gap-2 justify-between px-20">
+        Viz Layer:
+        <div class="flex gap-1">
+          <input type="radio" id="front-layer" name="layer" value="FRONT_SCENE" bind:group={selectedLayer} onchange={handleLayerChange} />
+          <label for="front-layer">Front</label>
+        </div>
+        <div class="flex gap-1">
+          <input type="radio" id="main-layer" name="layer" value="MAIN_SCENE" bind:group={selectedLayer} onchange={handleLayerChange} />
+          <label for="main-layer">Mid</label>
+        </div>
+        <div class="flex gap-1">
+          <input type="radio" id="back-layer" name="layer" value="BACK_SCENE" bind:group={selectedLayer} onchange={handleLayerChange} />
+          <label for="back-layer">Back</label>
+        </div>
+      </div>
+      <button 
+        onclick={handleGetScripts}
+        class="w-full bg-vscode-button-background text-vscode-button-foreground border-0 px-4 py-2 rounded cursor-pointer hover:bg-vscode-button-hoverBackground focus:outline-none focus:bg-vscode-button-hoverBackground transition-colors duration-150"
+      >
+        Get scripts from Viz
+      </button>
+      
     </div>
 
     <div class="h-full flex flex-col bg-vscode-sideBar-background">
       <div class="flex flex-col border-b border-vscode-editorGroup-border" style="height: {effectiveScriptListHeight}%">
-        <div class="flex-1 overflow-auto" on:click={handleContainerClick}>
+        <div class="flex-1 overflow-auto" onclick={handleContainerClick}>
           {#if selectedScriptIds.length > 1}
             <div class="px-2 py-1 bg-vscode-editorGroupHeader-tabsBackground text-vscode-textLink-foreground text-xs">
               {selectedScriptIds.length} items selected (Shift+Click to select more, click empty space to deselect)
@@ -485,9 +485,8 @@
               selectedScriptId={selectedScriptId}
               selectedScriptIds={selectedScriptIds}
               {sidebarSettings}
-              on:doubleClick={handleScriptDoubleClick}
-              on:scriptSelected={handleScriptSelection}
-              on:preview={handleScriptPreviewEvent}
+              onDoubleClick={handleScriptDoubleClick}
+              onScriptSelected={handleScriptSelection}
             />
           {:else}
             {#each Object.values(vizscripts) as script}
@@ -496,9 +495,8 @@
                 {selectedScriptId}
                 {selectedScriptIds}
                 {sidebarSettings}
-                on:doubleClick={handleScriptDoubleClick}
-                on:scriptSelected={handleScriptSelection}
-                on:preview={handleScriptPreviewEvent}
+                onDoubleClick={handleScriptDoubleClick}
+                onScriptSelected={handleScriptSelection}
               />
             {/each}
           {/if}
@@ -525,14 +523,14 @@
               <div class="flex gap-2 mb-2">
                 <div class="flex-1 flex gap-1">
                   <button 
-                    on:click={handleScriptEdit}
+                    onclick={handleScriptEdit}
                     class="flex-1 bg-vscode-button-background text-vscode-button-foreground border-0 px-2 py-1 rounded text-md cursor-pointer hover:bg-vscode-button-hoverBackground transition-colors"
                   >
                     Edit
                   </button>
                 </div>
                 <button 
-                  on:click={handleScriptPreview}
+                  onclick={handleScriptPreview}
                   class="flex-1 bg-vscode-button-background text-vscode-button-foreground border-0 px-2 py-1 rounded text-md cursor-pointer hover:bg-vscode-button-hoverBackground transition-colors"
                 >
                   Preview
@@ -540,7 +538,7 @@
               </div>
               
               <button 
-                on:click={handleScriptSet}
+                onclick={handleScriptSet}
                 class="w-full bg-vscode-button-background text-vscode-button-foreground border-0 px-2 py-1 rounded text-md cursor-pointer hover:bg-vscode-button-hoverBackground transition-colors"
               >
                 Set script in Viz
@@ -587,7 +585,7 @@
       {#if showParameters}
         <div 
           class="h-1 bg-vscode-editorGroup-border hover:bg-vscode-focusBorder cursor-row-resize flex items-center justify-center relative group select-none"
-          on:mousedown={startResize}
+          onmousedown={startResize}
         >
           <div class="w-8 h-0.5 bg-vscode-descriptionForeground group-hover:bg-vscode-foreground rounded transition-colors"></div>
         </div>
@@ -607,9 +605,9 @@
         bind:parametersData
         bind:parametersCache
         bind:showParameters
-        on:getParameters={handleGetScriptParameters}
-        on:setParameter={handleSetScriptParameter}
-        on:invokeParameter={handleInvokeScriptParameter}
+        onGetParameters={handleGetScriptParameters}
+        onSetParameter={handleSetScriptParameter}
+        onInvokeParameter={handleInvokeScriptParameter}
       />
       </div> <!-- Close Bottom Section Container -->
     </div>

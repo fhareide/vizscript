@@ -1,17 +1,29 @@
 <script lang="ts">
-  import { createEventDispatcher } from 'svelte';
   import type { VizScriptObject, ScriptParameter, ScriptParametersData } from "../../src/shared/types";
 
-  const dispatch = createEventDispatcher();
+  interface Props {
+    selectedScript: VizScriptObject | undefined;
+    hostname: string;
+    port: number;
+    parametersData?: ScriptParametersData | null;
+    parametersCache?: { [scriptId: string]: ScriptParametersData };
+    showParameters?: boolean;
+    onGetParameters?: (detail: { scriptId: string; hostname: string; port: number }) => void;
+    onSetParameter?: (detail: { scriptId: string; parameterName: string; value: string; hostname: string; port: number }) => void;
+    onInvokeParameter?: (detail: { scriptId: string; parameterName: string; hostname: string; port: number }) => void;
+  }
 
-  // Props
-  export let selectedScript: VizScriptObject | undefined;
-  export let hostname: string;
-  export let port: number;
-  export let parametersData: ScriptParametersData | null = null;
-  export let parametersCache: { [scriptId: string]: ScriptParametersData } = {};
-  export let showParameters = true;
-
+  let { 
+    selectedScript,
+    hostname,
+    port,
+    parametersData = $bindable(null),
+    parametersCache = $bindable({}),
+    showParameters = $bindable(true),
+    onGetParameters,
+    onSetParameter,
+    onInvokeParameter
+  }: Props = $props();
 
   // Functions
   export function fetchParametersForSelectedScript(script?: VizScriptObject, forceRefresh = false) {
@@ -39,7 +51,7 @@
     console.log("Fetching parameters for script:", targetScript.vizId, "from", hostname, ":", port);
     parametersData = { scriptId: targetScript.vizId, parameters: [], currentValues: {} }; // Set loading state
     
-    dispatch('getParameters', {
+    onGetParameters?.({
       scriptId: targetScript.vizId,
       hostname: hostname,
       port: port
@@ -66,7 +78,7 @@
     }
 
     console.log(`Setting parameter ${parameter.name} to ${processedValue}`);
-    dispatch('setParameter', {
+    onSetParameter?.({
       scriptId: selectedScript.vizId,
       parameterName: parameter.name,
       value: processedValue,
@@ -79,7 +91,7 @@
     if (!selectedScript?.vizId) return;
 
     console.log(`Invoking parameter ${parameter.name}`);
-    dispatch('invokeParameter', {
+    onInvokeParameter?.({
       scriptId: selectedScript.vizId,
       parameterName: parameter.name,
       hostname: hostname,
@@ -106,7 +118,7 @@
     handleParameterChange(parameter, target.checked ? "1" : "0");
   }
 
-	function handleStringParameterChange(parameter: ScriptParameter, event: Event) {
+  function handleStringParameterChange(parameter: ScriptParameter, event: Event) {
     const target = event.target as HTMLInputElement;
     handleParameterChange(parameter, target.value);
   }
@@ -129,14 +141,24 @@
     
     console.log("Parameters data set to:", parametersData);
   }
+
+  function toggleShowParameters() {
+    showParameters = !showParameters;
+  }
+
+  function handleKeydown(e: KeyboardEvent) {
+    if (e.key === 'Enter' || e.key === ' ') {
+      toggleShowParameters();
+    }
+  }
 </script>
 
 <!-- Script Parameters Section -->
 <div class="{showParameters ? 'flex-1' : 'h-auto min-h-40'} flex flex-col border-t border-vscode-editorGroup-border">
   <div 
     class="flex items-center justify-between p-2 bg-vscode-sideBarSectionHeader-background hover:bg-vscode-list-hoverBackground cursor-pointer select-none {showParameters ? 'border-b border-vscode-editorGroup-border' : ''}"
-    on:click={() => showParameters = !showParameters}
-    on:keydown={(e) => (e.key === 'Enter' || e.key === ' ') && (showParameters = !showParameters)}
+    onclick={toggleShowParameters}
+    onkeydown={handleKeydown}
     tabindex="0"
     role="button"
     title="Click to {showParameters ? 'collapse' : 'expand'} parameters panel"
@@ -152,7 +174,7 @@
       {#if selectedScript}
         <div class="p-2">
           <button 
-            on:click={handleRefreshParameters}
+            onclick={handleRefreshParameters}
             class="w-full mb-2 px-2 py-1 text-xs bg-vscode-button-background text-vscode-button-foreground hover:bg-vscode-button-hoverBackground border-none rounded cursor-pointer"
           >
             Refresh Parameters
@@ -174,19 +196,19 @@
                           {parameter.value || parameter.description || ''}
                         </div>
                       </details>
-										{:else if parameter.type === "STRING"}
-											<div class="flex items-center justify-between">
+                    {:else if parameter.type === "STRING"}
+                      <div class="flex items-center justify-between">
                         <span class="text-sm text-vscode-foreground">{parameter.displayName}</span>
                         <input
                           type="text"
                           value={parameter.value}
-                          on:change={(e) => handleStringParameterChange(parameter, e)}
+                          onchange={(e) => handleStringParameterChange(parameter, e)}
                           class="w-20 px-2 py-1 text-sm bg-vscode-input-background text-vscode-input-foreground border border-vscode-input-border rounded focus:outline-none focus:border-vscode-focusBorder text-right"
                         />
                       </div>
                     {:else if parameter.type === "PUSHBUTTON"}
                       <button
-                        on:click={() => handleParameterInvoke(parameter)}
+                        onclick={() => handleParameterInvoke(parameter)}
                         class="w-full px-3 py-2 bg-gray-500 text-white hover:bg-gray-700 border-none rounded cursor-pointer transition-colors text-sm font-medium"
                       >
                         {parameter.displayName}
@@ -197,7 +219,7 @@
                           type="checkbox"
                           id="param-{parameter.name}"
                           checked={parameter.value === "1" || parameter.value === 1 || parameter.value === true}
-                          on:change={(e) => handleBoolParameterChange(parameter, e)}
+                          onchange={(e) => handleBoolParameterChange(parameter, e)}
                           class="rounded"
                         />
                         <label for="param-{parameter.name}" class="text-sm text-vscode-foreground cursor-pointer">
@@ -212,7 +234,7 @@
                           value={parameter.value}
                           min={parameter.min}
                           max={parameter.max}
-                          on:change={(e) => handleNumberInput(e, parameter)}
+                          onchange={(e) => handleNumberInput(e, parameter)}
                           class="w-20 px-2 py-1 text-sm bg-vscode-input-background text-vscode-input-foreground border border-vscode-input-border rounded focus:outline-none focus:border-vscode-focusBorder text-right"
                         />
                       </div>
@@ -222,7 +244,7 @@
                         <input
                           type="color"
                           value={parameter.value || "#000000"}
-                          on:change={(e) => handleColorParameterChange(parameter, e)}
+                          onchange={(e) => handleColorParameterChange(parameter, e)}
                           class="w-8 h-8 rounded border border-vscode-input-border cursor-pointer"
                         />
                       </div>
@@ -261,33 +283,6 @@
   
   .parameter-item:hover {
     background-color: var(--vscode-list-hoverBackground);
-  }
-  
-  input[type="range"] {
-    -webkit-appearance: none;
-    appearance: none;
-    height: 4px;
-    background: var(--vscode-progressBar-background);
-    border-radius: 2px;
-  }
-  
-  input[type="range"]::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    appearance: none;
-    height: 12px;
-    width: 12px;
-    border-radius: 50%;
-    background: var(--vscode-button-background);
-    cursor: pointer;
-  }
-  
-  input[type="range"]::-moz-range-thumb {
-    height: 12px;
-    width: 12px;
-    border-radius: 50%;
-    background: var(--vscode-button-background);
-    cursor: pointer;
-    border: none;
   }
 
   /* Custom styling for INFO parameter sections */
@@ -333,4 +328,4 @@
   .min-h-40 {
     min-height: 40px;
   }
-</style> 
+</style>

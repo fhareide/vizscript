@@ -4,6 +4,10 @@
   "typescript.preferences.quoteStyle": "single",
   "editor.codeActionsOnSave": {
     "source.fixAll.eslint": "explicit"
-	},
-	"svn.ignoreMissingSvnWarning": true
+  },
+  "svn.ignoreMissingSvnWarning": true,
+  "svelte.enable-ts-plugin": true,
+  "svelte.plugin.svelte.compilerWarnings": {
+    "state_referenced_locally": "ignore"
+  }
 }

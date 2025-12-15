@@ -15,6 +15,19 @@ module.exports = {
   env: {
     es6: true,
     node: true,
+    browser: true,
+  },
+  globals: {
+    // Svelte 5 runes
+    $state: "readonly",
+    $derived: "readonly",
+    $effect: "readonly",
+    $props: "readonly",
+    $bindable: "readonly",
+    $inspect: "readonly",
+    $host: "readonly",
+    // VSCode webview API
+    tsvscode: "readonly",
   },
   parser: "@typescript-eslint/parser",
   parserOptions: {
@@ -46,6 +59,6 @@ module.exports = {
       return warning.code === "a11y-click-events-have-key-events";
     },
   },
-  ignorePatterns: [".eslintrc.js"],
+  ignorePatterns: [".eslintrc.js", "**/*.svelte"],
   extends: ["prettier"],
 };

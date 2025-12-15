@@ -1,54 +1,59 @@
 <script lang="ts">
   import ContainerIcon from "../icons/Container.svelte";
   import SceneIcon from "../icons/Scene.svelte";
-	import { createEventDispatcher } from "svelte";
   import type { VizScriptObject } from "../../src/shared/types";
 
-  export let script: VizScriptObject;
-  export let selectedScriptId: string;
-  export let selectedScriptIds: string[] = [];
-  export let sidebarSettings: any = null;
+  interface Props {
+    script: VizScriptObject;
+    selectedScriptId: string;
+    selectedScriptIds?: string[];
+    sidebarSettings?: any;
+    onScriptSelected?: (detail: { script: VizScriptObject; isShiftClick: boolean }) => void;
+    onDoubleClick?: (detail: { script: VizScriptObject }) => void;
+  }
+
+  let { 
+    script, 
+    selectedScriptId, 
+    selectedScriptIds = [], 
+    sidebarSettings = null,
+    onScriptSelected,
+    onDoubleClick
+  }: Props = $props();
 
   // selectedItem as class names
   const buttonStyles: string = "bg-vscode-list-activeSelectionBackground border-vscode-inputOption-activeBackground border-[1.8px] hover:bg-vscode-menu-selectionBackground/50 ";
 
-	const dispatch = createEventDispatcher();
-
   const handleScriptSelected = (event: MouseEvent) => {
     // Dispatch selection event to parent component
-    dispatch('scriptSelected', {
+    onScriptSelected?.({
       script: script,
       isShiftClick: event.shiftKey
     });
-
   };
 
-	const handleDoubleClick = () => {
-    dispatch('doubleClick', { script });
+  const handleDoubleClick = () => {
+    onDoubleClick?.({ script });
   };
 
   const handleRightClick = (event: MouseEvent) => {
     // Select the script so VS Code commands know which script to act on
-    dispatch('scriptSelected', {
+    onScriptSelected?.({
       script: script,
       isShiftClick: false
     });
     // Don't prevent default - let VS Code show its built-in context menu
   };
-
-
-
-
 </script>
 
-<!-- svelte-ignore a11y-click-events-have-key-events -->
-<!-- svelte-ignore a11y-no-static-element-interactions -->
+<!-- svelte-ignore a11y_click_events_have_key_events -->
+<!-- svelte-ignore a11y_no_static_element_interactions -->
 
 <div
   title={sidebarSettings?.doubleClickAction ? `Double-click ${sidebarSettings.doubleClickAction === 'edit' ? 'to edit' : 'to preview'}` : ''}
-  on:click={handleScriptSelected}
-	on:dblclick={handleDoubleClick}
-	data-vscode-context={JSON.stringify({
+  onclick={handleScriptSelected}
+  ondblclick={handleDoubleClick}
+  data-vscode-context={JSON.stringify({
     "webviewSection": "scriptItem", 
     "preventDefaultContextMenuItems": true,
     "script": script,
@@ -93,5 +98,3 @@
     </div>
   </div>
 </div>
-
-

@@ -1,4 +1,5 @@
 import "../pages/global.css";
+import { mount } from "svelte";
 import App from "../components/App.svelte";
 
 declare global {
@@ -7,7 +8,7 @@ declare global {
   }
 }
 
-const app = new App({
+const app = mount(App, {
   target: document.body,
   props: {
     viewId: window.viewId || "default", // Access the global variable set in the HTML
