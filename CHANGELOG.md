@@ -1,3 +1,6 @@
+### 0.6.5
+  - **Fix**: Fixed issue where formatter would sometimes mess up indenting on lines with inline comments
+
 ### 0.6.4
   - **Fix**: Fixed a bug where filepath was cleared on groups when refetching scripts
 
