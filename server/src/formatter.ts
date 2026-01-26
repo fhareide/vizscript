@@ -646,11 +646,16 @@ export class VizScriptFormatter {
     const thenIndex = thenMatch.index!;
     const afterThen = lowerLine.substring(thenIndex + 4).trim();
 
-    // If there's content after "then", it's a single-line if statement
-    // If there's no content after "then", it's a multi-line if block
-    const isMultiLine = afterThen === "";
+    // Strip comment if present (anything after ' character)
+    // This ensures "if condition then 'comment" is treated as multi-line
+    const commentIndex = afterThen.indexOf("'");
+    const afterThenWithoutComment = commentIndex >= 0 ? afterThen.substring(0, commentIndex).trim() : afterThen;
 
-    console.log(`[DEBUG] isMultiLineIfStatement: "${lowerLine}" -> ${isMultiLine} (afterThen: "${afterThen}")`);
+    // If there's content after "then" (excluding comments), it's a single-line if statement
+    // If there's no content after "then" (or only a comment), it's a multi-line if block
+    const isMultiLine = afterThenWithoutComment === "";
+
+    console.log(`[DEBUG] isMultiLineIfStatement: "${lowerLine}" -> ${isMultiLine} (afterThen: "${afterThen}", afterThenWithoutComment: "${afterThenWithoutComment}")`);
     return isMultiLine;
   }
 
