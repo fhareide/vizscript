@@ -1,3 +1,6 @@
+### 0.6.4
+  - **Fix**: Fixed a bug where filepath was cleared on groups when refetching scripts
+
 ### 0.6.2
 - **New**: Added the ability to rename collections in the sidebar
 
