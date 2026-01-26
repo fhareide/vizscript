@@ -118,10 +118,9 @@ export async function showUntitledWindow(
   let finalContent = contentWithoutMetadata;
 
   if (existingMetadata) {
-    // Existing metadata found - always preserve it but clear filePath for untitled
+    // Existing metadata found - preserve it including filePath if user has set it
     const finalMetadata = {
       ...existingMetadata,
-      filePath: "", // Clear filePath for untitled documents
     };
 
     // Sort metadata fields in the same order as MetadataService
