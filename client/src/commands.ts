@@ -1008,57 +1008,67 @@ async function processScriptWithMetadata(
         } else {
           // Metadata is complete - check if user wants to update with current script info
           // Only prompt if there are meaningful differences and not in preview mode
-          // Skip prompts for collections (groups) as they're virtual groupings
-          if (shouldPromptForMetadataUpdate(existingMetadata, suggestedMetadata) && !options.preview && !scriptObject.isGroup) {
+          if (shouldPromptForMetadataUpdate(existingMetadata, suggestedMetadata) && !options.preview) {
             // Create suggested metadata that preserves existing UUID and other important fields
             const properSuggestedMetadata = metadataService.mergeMetadata(existingMetadata, suggestedMetadata);
 
-            const dialogOptions: MetadataDialogOptions = {
-              currentMetadata: existingMetadata,
-              suggestedMetadata: properSuggestedMetadata,
-              scriptName: scriptObject.name,
-            };
-
-            const dialogResult = await showMetadataUpdateDialog(dialogOptions);
-
-            if (dialogResult.action === "update" && dialogResult.metadata) {
-              const updateResult = await metadataService.updateMetadataInContent(
-                originalContent,
-                dialogResult.metadata,
-              );
+            if (scriptObject.isGroup) {
+              // Groups are virtual containers — silently auto-merge without prompting the user
+              const updateResult = await metadataService.updateMetadataInContent(originalContent, properSuggestedMetadata);
               if (updateResult.success) {
                 return {
-                  content: updateResult.content, // Use the updated content
+                  content: updateResult.content,
                   message: `Metadata updated for "${scriptObject.name}"`,
                 };
               }
-            } else if (dialogResult.action === "setFilePath" && dialogResult.metadata) {
-              // Handle filePath setting
-              const fileService = new FileService();
-              const scenePathForSuggestion = Array.isArray(existingMetadata.scenePath)
-                ? existingMetadata.scenePath[0] || ""
-                : existingMetadata.scenePath || "";
-              const suggestedPath = fileService.generateSuggestedFilePath(
-                scriptObject.name,
-                scriptObject.type,
-                scenePathForSuggestion,
-              );
+            } else {
+              const dialogOptions: MetadataDialogOptions = {
+                currentMetadata: existingMetadata,
+                suggestedMetadata: properSuggestedMetadata,
+                scriptName: scriptObject.name,
+              };
 
-              const newFilePath = await showFilePathDialog(
-                existingMetadata.filePath || "",
-                scriptObject.name,
-                suggestedPath,
-              );
+              const dialogResult = await showMetadataUpdateDialog(dialogOptions);
 
-              if (newFilePath) {
-                // Update metadata with new filePath
-                const updatedMetadata = { ...existingMetadata, filePath: newFilePath };
-                const updateResult = await metadataService.updateMetadataInContent(originalContent, updatedMetadata);
+              if (dialogResult.action === "update" && dialogResult.metadata) {
+                const updateResult = await metadataService.updateMetadataInContent(
+                  originalContent,
+                  dialogResult.metadata,
+                );
                 if (updateResult.success) {
                   return {
                     content: updateResult.content,
-                    message: `File path set to "${newFilePath}" for "${scriptObject.name}"`,
+                    message: `Metadata updated for "${scriptObject.name}"`,
                   };
+                }
+              } else if (dialogResult.action === "setFilePath" && dialogResult.metadata) {
+                // Handle filePath setting
+                const fileService = new FileService();
+                const scenePathForSuggestion = Array.isArray(existingMetadata.scenePath)
+                  ? existingMetadata.scenePath[0] || ""
+                  : existingMetadata.scenePath || "";
+                const suggestedPath = fileService.generateSuggestedFilePath(
+                  scriptObject.name,
+                  scriptObject.type,
+                  scenePathForSuggestion,
+                );
+
+                const newFilePath = await showFilePathDialog(
+                  existingMetadata.filePath || "",
+                  scriptObject.name,
+                  suggestedPath,
+                );
+
+                if (newFilePath) {
+                  // Update metadata with new filePath
+                  const updatedMetadata = { ...existingMetadata, filePath: newFilePath };
+                  const updateResult = await metadataService.updateMetadataInContent(originalContent, updatedMetadata);
+                  if (updateResult.success) {
+                    return {
+                      content: updateResult.content,
+                      message: `File path set to "${newFilePath}" for "${scriptObject.name}"`,
+                    };
+                  }
                 }
               }
             }
@@ -2096,11 +2106,23 @@ async function resolveScriptVizIdByUUID(
   }
 
   try {
+    const metadataService = new MetadataService(client);
+
+    // Check local storage cache first — groups (#c0, #c1, etc.) are synthetic and
+    // only exist locally, so they will never appear in live Viz data
+    const cachedScripts = await loadFromStorage(context);
+    for (const cached of cachedScripts) {
+      const cachedMeta = await metadataService.extractMetadataFromContent(cached.code);
+      if (cachedMeta.success && cachedMeta.metadata?.UUID === metadata.UUID) {
+        console.log(`Resolved script UUID ${metadata.UUID} to cached vizId: ${cached.vizId}`);
+        return cached.vizId;
+      }
+    }
+
     // Fetch current scripts from Viz
     const currentScripts = await getVizScripts(hostName, hostPort, context, selectedLayer);
 
     // Find script with matching UUID
-    const metadataService = new MetadataService(client);
     let matchingScript: VizScriptObject | undefined;
 
     for (const script of currentScripts) {
