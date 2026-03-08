@@ -163,115 +163,15 @@
     role="button"
     title="Click to {showParameters ? 'collapse' : 'expand'} parameters panel"
   >
-    <h3 class="text-sm font-medium text-vscode-sideBarSectionHeader-foreground">Script Parameters</h3>
+    <h3 class="text-sm font-medium text-vscode-sideBarSectionHeader-foreground">Script Tools</h3>
     <div class="text-xs transition-transform duration-150 {showParameters ? '' : 'rotate-180'}">
       ▼
     </div>
   </div>
   
   {#if showParameters}
-    <div class="flex-1 min-h-0 overflow-hidden bg-vscode-sideBar-background">
-      {#if selectedScript}
-        <div class="p-2">
-          <button 
-            onclick={handleRefreshParameters}
-            class="w-full mb-2 px-2 py-1 text-xs bg-vscode-button-background text-vscode-button-foreground hover:bg-vscode-button-hoverBackground border-none rounded cursor-pointer"
-          >
-            Refresh Parameters
-          </button>
-        </div>
-        
-        {#if parametersData && parametersData.parameters.length > 0}
-          <div class="overflow-y-auto px-2 pb-2">
-            <div class="space-y-1">
-              {#each parametersData.parameters as parameter (parameter.name)}
-                <div class="parameter-item py-1">
-                  <div class="parameter-control">
-                    {#if parameter.type === "INFO"}
-                      <details class="mb-2">
-                        <summary class="cursor-pointer text-sm text-vscode-foreground hover:text-vscode-textLink-foreground">
-                          ▶ {parameter.displayName || parameter.name}
-                        </summary>
-                        <div class="mt-1 ml-4 text-xs text-vscode-descriptionForeground bg-vscode-textBlockQuote-background p-2 rounded">
-                          {parameter.value || parameter.description || ''}
-                        </div>
-                      </details>
-                    {:else if parameter.type === "STRING"}
-                      <div class="flex items-center justify-between">
-                        <span class="text-sm text-vscode-foreground">{parameter.displayName}</span>
-                        <input
-                          type="text"
-                          value={parameter.value}
-                          onchange={(e) => handleStringParameterChange(parameter, e)}
-                          class="w-20 px-2 py-1 text-sm bg-vscode-input-background text-vscode-input-foreground border border-vscode-input-border rounded focus:outline-none focus:border-vscode-focusBorder text-right"
-                        />
-                      </div>
-                    {:else if parameter.type === "PUSHBUTTON"}
-                      <button
-                        onclick={() => handleParameterInvoke(parameter)}
-                        class="w-full px-3 py-2 bg-gray-500 text-white hover:bg-gray-700 border-none rounded cursor-pointer transition-colors text-sm font-medium"
-                      >
-                        {parameter.displayName}
-                      </button>
-                    {:else if parameter.type === "BOOL"}
-                      <div class="flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          id="param-{parameter.name}"
-                          checked={parameter.value === "1" || parameter.value === 1 || parameter.value === true}
-                          onchange={(e) => handleBoolParameterChange(parameter, e)}
-                          class="rounded"
-                        />
-                        <label for="param-{parameter.name}" class="text-sm text-vscode-foreground cursor-pointer">
-                          {parameter.displayName}
-                        </label>
-                      </div>
-                    {:else if parameter.type === "INT"}
-                      <div class="flex items-center justify-between">
-                        <span class="text-sm text-vscode-foreground">{parameter.displayName}</span>
-                        <input
-                          type="number"
-                          value={parameter.value}
-                          min={parameter.min}
-                          max={parameter.max}
-                          onchange={(e) => handleNumberInput(e, parameter)}
-                          class="w-20 px-2 py-1 text-sm bg-vscode-input-background text-vscode-input-foreground border border-vscode-input-border rounded focus:outline-none focus:border-vscode-focusBorder text-right"
-                        />
-                      </div>
-                    {:else if parameter.type === "COLOR"}
-                      <div class="flex items-center justify-between">
-                        <span class="text-sm text-vscode-foreground">{parameter.displayName}</span>
-                        <input
-                          type="color"
-                          value={parameter.value || "#000000"}
-                          onchange={(e) => handleColorParameterChange(parameter, e)}
-                          class="w-8 h-8 rounded border border-vscode-input-border cursor-pointer"
-                        />
-                      </div>
-                    {:else}
-                      <div class="text-xs text-vscode-descriptionForeground">
-                        Parameter type "{parameter.type}" not yet supported
-                      </div>
-                    {/if}
-                  </div>
-                </div>
-              {/each}
-            </div>
-          </div>
-        {:else if parametersData}
-          <div class="p-2 text-center text-vscode-descriptionForeground text-xs">
-            No parameters found for this script
-          </div>
-        {:else}
-          <div class="p-2 text-center text-vscode-descriptionForeground text-xs">
-            Loading parameters...
-          </div>
-        {/if}
-      {:else}
-        <div class="p-2 text-center text-vscode-descriptionForeground text-xs">
-          Select a script to view its parameters
-        </div>
-      {/if}
+    <div class="flex-1 min-h-0 bg-vscode-sideBar-background flex items-center justify-center p-4">
+      <span class="text-xs text-vscode-descriptionForeground text-center">Script parameter support is in the works</span>
     </div>
   {/if}
 </div>
