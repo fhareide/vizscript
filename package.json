@@ -157,12 +157,12 @@
 					"when": "webviewId == 'vizscript-sidebar' && webviewSection == 'scriptItem'",
 					"group": "2_clipboard@1"
 				},
-			{
-				"command": "vizscript.sidebar.copyVizId",
-				"when": "webviewId == 'vizscript-sidebar' && webviewSection == 'scriptItem'",
-				"group": "2_clipboard@2"
-			}
-		],
+				{
+					"command": "vizscript.sidebar.copyVizId",
+					"when": "webviewId == 'vizscript-sidebar' && webviewSection == 'scriptItem'",
+					"group": "2_clipboard@2"
+				}
+			],
 			"commandPalette": [
 				{
 					"command": "vizscript.compile",

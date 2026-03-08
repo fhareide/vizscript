@@ -2349,15 +2349,17 @@ export async function getScriptParameters(
 }
 
 /**
- * Sets a script parameter value and refreshes the parameters
+ * Sets a script parameter value and optionally refreshes the parameters.
+ * Pass skipRefresh: true during continuous updates (e.g. drag) to avoid
+ * round-trip re-fetches that cause value flickering.
  */
 export async function setScriptParameter(
   context: ExtensionContext,
-  data: { scriptId: string; parameterName: string; value: any; hostname: string; port: number },
+  data: { scriptId: string; parameterName: string; value: any; hostname: string; port: number; skipRefresh?: boolean },
   sidebarProvider: SidebarProvider,
 ): Promise<void> {
   try {
-    const { scriptId, parameterName, value, hostname, port } = data;
+    const { scriptId, parameterName, value, hostname, port, skipRefresh } = data;
 
     if (!scriptId || !parameterName) {
       throw new Error("Script ID and parameter name are required");
@@ -2365,8 +2367,9 @@ export async function setScriptParameter(
 
     await setScriptParameterValue(hostname, port, scriptId, parameterName, value);
 
-    // Refresh parameters to show updated values
-    await getScriptParameters(context, { scriptId, hostname, port }, sidebarProvider);
+    if (!skipRefresh) {
+      await getScriptParameters(context, { scriptId, hostname, port }, sidebarProvider);
+    }
   } catch (error) {
     vscode.window.showErrorMessage(`Failed to set script parameter: ${error.message}`);
     console.error("Error setting script parameter:", error);

@@ -11,15 +11,38 @@ export type VizScriptObject = {
   treePath?: string | string[]; // Path in the scene tree structure
 };
 
+export type ScriptParameterType =
+  | "INT"
+  | "FLOAT"
+  | "DOUBLE"
+  | "SLIDERINT"
+  | "SLIDERDOUBLE"
+  | "STRING"
+  | "TEXT"
+  | "BOOL"
+  | "COLOR"
+  | "CONTAINER"
+  | "IMAGE"
+  | "DROPDOWN"
+  | "LIST"
+  | "HLIST"
+  | "LABEL"
+  | "PUSHBUTTON"
+  | "RADIOBUTTON"
+  | "INFO";
+
 export type ScriptParameter = {
   name: string;
   displayName: string;
-  type: "INT" | "PUSHBUTTON" | "FLOAT" | "STRING" | "BOOL" | "INFO" | "COLOR";
+  type: ScriptParameterType;
   value?: any;
   min?: number;
   max?: number;
   defaultValue?: any;
   description?: string;
+  entries?: string[];
+  separator?: string;
+  maxLength?: number;
 };
 
 export type ScriptParametersData = {

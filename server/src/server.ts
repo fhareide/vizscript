@@ -2903,16 +2903,18 @@ connection.onRequest("getVizConnectionInfo", () => {
 connection.onRequest("showDiagnostics", (vizReply: string) => {
   let error = GetRegexResult(vizReply, /\{(.*?)\}/gi);
   if (error != undefined) {
-    let errorRange = GetRegexResult(error[1], /\(([^)]*)\)[^(]*$/gi);
+    let errorRange = GetRegexResult(error[1], /\((\d+)\/(\d+)\)\s*$/g);
     if (errorRange == undefined) {
       return [error[1], ""];
     } else {
-      let rangesplit = errorRange[1].split("/");
-      let line = parseInt(rangesplit[0]);
-      let char = parseInt(rangesplit[1]);
+      let line = parseInt(errorRange[1]);
+      let char = parseInt(errorRange[2]);
+      if (isNaN(line) || isNaN(char)) {
+        return [error[1], ""];
+      }
       let range = ls.Range.create(line - 1, char - 1, line - 1, char);
       DisplayDiagnostics(documentUri, range, error[1]);
-      return [error[1], errorRange[1]];
+      return [error[1], `${line}/${char}`];
     }
   }
 });

@@ -4,7 +4,7 @@
  * ------------------------------------------------------------------------------------------ */
 
 import * as net from "net";
-import type { ScriptParameter, ScriptParametersData } from "./shared/types";
+import type { ScriptParameter, ScriptParameterType, ScriptParametersData } from "./shared/types";
 
 function GetRegexResult(line: string, regex: RegExp): string[] {
   let result = regex.exec(line);
@@ -46,48 +46,146 @@ function parseVizResponse(response: string): string[] {
   return blocks;
 }
 
+function tokenizeBlock(block: string): string[] {
+  const tokens: string[] = [];
+  let i = 0;
+  while (i < block.length) {
+    if (block[i] === '"') {
+      const end = block.indexOf('"', i + 1);
+      if (end === -1) break;
+      tokens.push(block.substring(i + 1, end));
+      i = end + 1;
+    } else if (/\s/.test(block[i])) {
+      i++;
+    } else {
+      let end = i;
+      while (end < block.length && !/\s/.test(block[end]) && block[end] !== '"') end++;
+      tokens.push(block.substring(i, end));
+      i = end;
+    }
+  }
+  return tokens;
+}
+
 function parseParameterDefinition(block: string): ScriptParameter | null {
-  // Parse format: "Test" "Test" PUSHBUTTON or "FormationOffsetX" "Formation Offset X" INT  70 -10000 10000
-  const parts = block.match(/"([^"]+)"\s+"([^"]+)"\s+(\w+)(?:\s+(\d+)\s+(-?\d+)\s+(-?\d+))?/);
+  const tokens = tokenizeBlock(block);
+  if (tokens.length < 3) return null;
 
-  if (!parts) return null;
+  const knownTypes: ScriptParameterType[] = [
+    "INT", "FLOAT", "DOUBLE", "SLIDERINT", "SLIDERDOUBLE",
+    "STRING", "TEXT", "BOOL", "COLOR", "CONTAINER", "IMAGE",
+    "DROPDOWN", "LIST", "HLIST", "LABEL", "PUSHBUTTON", "RADIOBUTTON", "INFO",
+  ];
 
-  const [, name, displayName, type, defaultVal, min, max] = parts;
+  const name = tokens[0];
+  let displayName: string;
+  let type: ScriptParameterType;
+  let rest: string[];
 
-  const parameter: ScriptParameter = {
-    name,
-    displayName,
-    type: type as any,
-  };
+  // Viz always sends "name" "displayName" TYPE ... (3-token format).
+  // However, if there are only 2 tokens and the second is a known type,
+  // treat it as a no-label parameter.
+  if (tokens.length >= 3 && knownTypes.includes(tokens[2].toUpperCase() as ScriptParameterType)) {
+    displayName = tokens[1];
+    type = tokens[2].toUpperCase() as ScriptParameterType;
+    rest = tokens.slice(3);
+  } else if (knownTypes.includes(tokens[1].toUpperCase() as ScriptParameterType)) {
+    displayName = name;
+    type = tokens[1].toUpperCase() as ScriptParameterType;
+    rest = tokens.slice(2);
+  } else {
+    return null;
+  }
 
-  if (type === "INT" && defaultVal !== undefined) {
-    parameter.defaultValue = parseInt(defaultVal);
-    parameter.min = min ? parseInt(min) : undefined;
-    parameter.max = max ? parseInt(max) : undefined;
+  const parameter: ScriptParameter = { name, displayName, type };
+
+  switch (type) {
+    case "INT":
+    case "SLIDERINT": {
+      if (rest.length >= 1) parameter.defaultValue = parseInt(rest[0]);
+      if (rest.length >= 2) parameter.min = parseInt(rest[1]);
+      if (rest.length >= 3) parameter.max = parseInt(rest[2]);
+      break;
+    }
+    case "FLOAT":
+    case "DOUBLE":
+    case "SLIDERDOUBLE": {
+      if (rest.length >= 1) parameter.defaultValue = parseFloat(rest[0]);
+      if (rest.length >= 2) parameter.min = parseFloat(rest[1]);
+      if (rest.length >= 3) parameter.max = parseFloat(rest[2]);
+      break;
+    }
+    case "BOOL": {
+      if (rest.length >= 1) {
+        parameter.defaultValue = rest[0] === "1" || rest[0].toLowerCase() === "true";
+      }
+      break;
+    }
+    case "STRING": {
+      if (rest.length >= 1) parameter.defaultValue = rest[0];
+      if (rest.length >= 3) parameter.maxLength = parseInt(rest[2]);
+      break;
+    }
+    case "TEXT": {
+      if (rest.length >= 1) parameter.defaultValue = rest[0];
+      break;
+    }
+    case "COLOR": {
+      if (rest.length >= 1) parameter.defaultValue = rest[0];
+      break;
+    }
+    case "DROPDOWN":
+    case "LIST": {
+      if (rest.length >= 1) parameter.defaultValue = parseInt(rest[0]);
+      const entries: string[] = [];
+      let idx = 1;
+      while (idx < rest.length && isNaN(Number(rest[idx]))) {
+        entries.push(rest[idx]);
+        idx++;
+      }
+      if (entries.length > 0) parameter.entries = entries;
+      break;
+    }
+    case "HLIST": {
+      if (rest.length >= 1) parameter.defaultValue = parseInt(rest[0]);
+      const hEntries: string[] = [];
+      let hIdx = 1;
+      while (hIdx < rest.length && isNaN(Number(rest[hIdx]))) {
+        hEntries.push(rest[hIdx]);
+        hIdx++;
+      }
+      if (hEntries.length > 0) parameter.entries = hEntries;
+      if (hIdx < rest.length) parameter.separator = rest[hIdx];
+      break;
+    }
+    case "RADIOBUTTON": {
+      if (rest.length >= 1) parameter.defaultValue = parseInt(rest[0]);
+      const btnNames = rest.slice(1);
+      if (btnNames.length > 0) parameter.entries = btnNames;
+      break;
+    }
+    case "PUSHBUTTON": {
+      if (rest.length >= 1) parameter.defaultValue = parseInt(rest[0]);
+      break;
+    }
   }
 
   return parameter;
 }
 
 function parseCurrentValues(response: string): { [key: string]: any } {
-  // Parse format: { - 1 1 }  { 68 1 1 1 }  { 70 1 1 1 }  { 960 1 1 1 }  { 670 1 1 1 }
   const blocks = parseVizResponse(response);
   const values: { [key: string]: any } = {};
 
-  // First block is usually metadata, skip it if it starts with "-"
   let startIndex = 0;
   if (blocks.length > 0 && blocks[0].trim().startsWith("-")) {
     startIndex = 1;
   }
 
-  // Extract values from remaining blocks
   for (let i = startIndex; i < blocks.length; i++) {
-    const parts = blocks[i].trim().split(/\s+/);
-    if (parts.length > 0) {
-      const value = parseInt(parts[0]);
-      if (!isNaN(value)) {
-        values[`param_${i - startIndex}`] = value;
-      }
+    const tokens = tokenizeBlock(blocks[i]);
+    if (tokens.length > 0) {
+      values[`param_${i - startIndex}`] = tokens[0];
     }
   }
 
@@ -104,7 +202,7 @@ export function getScriptParameters(host: string, port: number, scriptId: string
 
     socket.on("data", (data) => {
       const message = data.toString();
-      const answer = GetRegexResult(message, /^([^\s]+)(\s?)(.*)/gi);
+      const answer = GetRegexResult(message, /^([^\s]+)(\s?)([\s\S]*)/gi);
 
       if (answer[1] === "1") {
         receivedData = answer[3].replace(String.fromCharCode(0), "");
@@ -146,7 +244,7 @@ export function getScriptCurrentValues(host: string, port: number, scriptId: str
 
     socket.on("data", (data) => {
       const message = data.toString();
-      const answer = GetRegexResult(message, /^([^\s]+)(\s?)(.*)/gi);
+      const answer = GetRegexResult(message, /^([^\s]+)(\s?)([\s\S]*)/gi);
 
       if (answer[1] === "1") {
         receivedData = answer[3].replace(String.fromCharCode(0), "");

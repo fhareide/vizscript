@@ -239,7 +239,7 @@
     });
   }
 
-  function handleSetScriptParameter(detail: { scriptId: string; parameterName: string; value: string; hostname: string; port: number }) {
+  function handleSetScriptParameter(detail: { scriptId: string; parameterName: string; value: string; hostname: string; port: number; skipRefresh?: boolean }) {
     tsvscode.postMessage({
       type: "setScriptParameter",
       value: detail
