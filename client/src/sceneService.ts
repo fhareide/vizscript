@@ -7,10 +7,11 @@ import { VizScriptObject } from "./shared/types";
  */
 export class SceneService {
   /**
-   * Validates that a script's scene path matches the current scene
+   * Validates that a script's scene path matches the current scene.
+   * expectedScenePath may be a single path or an array of allowed paths.
    */
   async validateScenePath(
-    expectedScenePath: string,
+    expectedScenePath: string | string[],
     host: string,
     port: number,
     layer: string = "MAIN_SCENE",
@@ -41,14 +42,15 @@ export class SceneService {
           }
 
           const currentScenePath = answer[3];
-          const isValid = currentScenePath === expectedScenePath;
+          const allowedPaths = Array.isArray(expectedScenePath) ? expectedScenePath : [expectedScenePath];
+          const isValid = allowedPaths.includes(currentScenePath);
 
           resolve({
             isValid,
             currentScenePath,
             error: isValid
               ? undefined
-              : `Scene path mismatch. Expected: ${expectedScenePath}, Current: ${currentScenePath}`,
+              : `Scene path mismatch. Expected: ${allowedPaths.join(" or ")}, Current: ${currentScenePath}`,
           });
 
           socket.end();

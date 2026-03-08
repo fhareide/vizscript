@@ -232,10 +232,12 @@ export class MetadataProcessor {
 
     // scenePath is required for Scene scripts but optional for Container scripts
     if (metadata["scriptType"] === "Scene") {
-      if (
-        !metadata["scenePath"] ||
-        (typeof metadata["scenePath"] === "string" && metadata["scenePath"].trim() === "")
-      ) {
+      const sp = metadata["scenePath"];
+      const isEmpty =
+        !sp ||
+        (typeof sp === "string" && sp.trim() === "") ||
+        (Array.isArray(sp) && sp.length === 0);
+      if (isEmpty) {
         errors.push("scenePath is required for Scene scripts");
       }
     }

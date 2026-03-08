@@ -1035,10 +1035,13 @@ async function processScriptWithMetadata(
             } else if (dialogResult.action === "setFilePath" && dialogResult.metadata) {
               // Handle filePath setting
               const fileService = new FileService();
+              const scenePathForSuggestion = Array.isArray(existingMetadata.scenePath)
+                ? existingMetadata.scenePath[0] || ""
+                : existingMetadata.scenePath || "";
               const suggestedPath = fileService.generateSuggestedFilePath(
                 scriptObject.name,
                 scriptObject.type,
-                existingMetadata.scenePath || "",
+                scenePathForSuggestion,
               );
 
               const newFilePath = await showFilePathDialog(
@@ -1106,7 +1109,10 @@ function shouldPromptForMetadataUpdate(current: any, suggested: any): boolean {
   const importantFields = ["scenePath", "scriptType", "fileName", "vizVersion"];
 
   for (const field of importantFields) {
-    if (current[field] !== suggested[field]) {
+    const a = current[field];
+    const b = suggested[field];
+    // Use JSON serialization to handle array scenePath comparisons
+    if (JSON.stringify(a) !== JSON.stringify(b)) {
       return true;
     }
   }
@@ -1220,7 +1226,11 @@ async function validateAndHandleMetadataForScriptSetting(
         }
 
         // Validate scene path if present
-        if (updatedMetadata.scenePath) {
+        const hasScenePath = Array.isArray(updatedMetadata.scenePath)
+          ? updatedMetadata.scenePath.length > 0
+          : !!updatedMetadata.scenePath;
+
+        if (hasScenePath) {
           const sceneValidation = await sceneService.validateScenePath(
             updatedMetadata.scenePath,
             hostName,
@@ -1235,23 +1245,47 @@ async function validateAndHandleMetadataForScriptSetting(
                 modal: true,
                 detail: sceneValidation.error || "Unknown scene validation error",
               },
+              { title: "Add to Metadata" },
+              { title: "Replace Metadata" },
               { title: "Continue Anyway" },
-              { title: "Update Metadata" },
               { title: "Cancel", isCloseAffordance: true },
             );
 
             if (choice?.title === "Cancel" || !choice) {
               throw new Error("Script setting cancelled due to scene path mismatch");
-            } else if (choice?.title === "Update Metadata") {
-              // Update metadata with current scene path
-              updatedMetadata.scenePath = sceneValidation.currentScenePath || "";
+            } else if (choice?.title === "Add to Metadata") {
+              // Add the current scene path to the existing path(s)
+              const currentPath = sceneValidation.currentScenePath || "";
+              const existingPaths = Array.isArray(updatedMetadata.scenePath)
+                ? updatedMetadata.scenePath
+                : [updatedMetadata.scenePath];
+              updatedMetadata.scenePath = [...existingPaths, currentPath];
 
-              // Sort the metadata to ensure consistent field order
               updatedMetadata = metadataService.mergeMetadata({}, updatedMetadata);
 
               const updateResult = await metadataService.updateMetadataInContent(content, updatedMetadata);
               if (updateResult.success) {
-                // Apply updated content to the active document
+                content = updateResult.content;
+                const editor = vscode.window.activeTextEditor;
+                if (editor) {
+                  const edit = new vscode.WorkspaceEdit();
+                  const fullRange = new vscode.Range(
+                    editor.document.positionAt(0),
+                    editor.document.positionAt(content.length),
+                  );
+                  edit.replace(editor.document.uri, fullRange, updateResult.content);
+                  await vscode.workspace.applyEdit(edit);
+                }
+              }
+            } else if (choice?.title === "Replace Metadata") {
+              // Replace scene path with only the current scene path
+              updatedMetadata.scenePath = sceneValidation.currentScenePath || "";
+
+              updatedMetadata = metadataService.mergeMetadata({}, updatedMetadata);
+
+              const updateResult = await metadataService.updateMetadataInContent(content, updatedMetadata);
+              if (updateResult.success) {
+                content = updateResult.content;
                 const editor = vscode.window.activeTextEditor;
                 if (editor) {
                   const edit = new vscode.WorkspaceEdit();
@@ -1990,9 +2024,12 @@ export async function renameCollection(context: ExtensionContext, client: Langua
           
           // Check if this metadata belongs to our collection
           // Use oldName for matching since collection.name has already been updated
+          const scenePathMatches = Array.isArray(metadata.scenePath)
+            ? metadata.scenePath.includes(collection.scenePath)
+            : metadata.scenePath === collection.scenePath;
           if (metadata.isGroup && (
             (metadata.UUID && metadata.UUID === uuidByString(`vizscript-${vizId}`)) ||
-            (metadata.scenePath === collection.scenePath && metadata.fileName === oldName)
+            (scenePathMatches && metadata.fileName === oldName)
           )) {
             // Update the metadata with new name
             metadata.fileName = newName.trim();
