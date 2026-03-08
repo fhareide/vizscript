@@ -1,3 +1,7 @@
+### 0.6.6
+  - **New**: Added support for multiple Scene paths in script
+  - **Fix**: Fixed issue where metadata would not propagate to all containers in a group when setting the script in Viz
+
 ### 0.6.5
   - **Fix**: Fixed issue where formatter would sometimes mess up indenting on lines with inline comments
 
