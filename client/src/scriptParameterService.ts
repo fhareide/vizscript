@@ -74,24 +74,37 @@ function parseParameterDefinition(block: string): ScriptParameter | null {
   const knownTypes: ScriptParameterType[] = [
     "INT", "FLOAT", "DOUBLE", "SLIDERINT", "SLIDERDOUBLE",
     "STRING", "TEXT", "BOOL", "COLOR", "CONTAINER", "IMAGE",
-    "DROPDOWN", "LIST", "HLIST", "LABEL", "PUSHBUTTON", "RADIOBUTTON", "INFO",
+    "DROPDOWN", "LIST", "HLIST", "LABEL", "PUSHBUTTON", "RADIOBUTTON", "INFO", "DIR", "FILE",
   ];
+
+  // Viz wire-format aliases → internal type names
+  const typeAliases: Record<string, ScriptParameterType> = {
+    "SLIDER_INT": "SLIDERINT",
+    "SLIDER_FLOAT": "SLIDERDOUBLE",
+  };
 
   const name = tokens[0];
   let displayName: string;
   let type: ScriptParameterType;
   let rest: string[];
 
-  // Viz always sends "name" "displayName" TYPE ... (3-token format).
-  // However, if there are only 2 tokens and the second is a known type,
-  // treat it as a no-label parameter.
-  if (tokens.length >= 3 && knownTypes.includes(tokens[2].toUpperCase() as ScriptParameterType)) {
+  function resolveType(raw: string): ScriptParameterType | null {
+    const upper = raw.toUpperCase();
+    if (typeAliases[upper]) return typeAliases[upper];
+    if (knownTypes.includes(upper as ScriptParameterType)) return upper as ScriptParameterType;
+    return null;
+  }
+
+  const type2 = resolveType(tokens[2]);
+  const type1 = resolveType(tokens[1]);
+
+  if (tokens.length >= 3 && type2) {
     displayName = tokens[1];
-    type = tokens[2].toUpperCase() as ScriptParameterType;
+    type = type2;
     rest = tokens.slice(3);
-  } else if (knownTypes.includes(tokens[1].toUpperCase() as ScriptParameterType)) {
+  } else if (type1) {
     displayName = name;
-    type = tokens[1].toUpperCase() as ScriptParameterType;
+    type = type1;
     rest = tokens.slice(2);
   } else {
     return null;
@@ -99,6 +112,7 @@ function parseParameterDefinition(block: string): ScriptParameter | null {
 
   const parameter: ScriptParameter = { name, displayName, type };
 
+  // Viz wire format: currentValue min max [extra...]
   switch (type) {
     case "INT":
     case "SLIDERINT": {
@@ -123,7 +137,7 @@ function parseParameterDefinition(block: string): ScriptParameter | null {
     }
     case "STRING": {
       if (rest.length >= 1) parameter.defaultValue = rest[0];
-      if (rest.length >= 3) parameter.maxLength = parseInt(rest[2]);
+      if (rest.length >= 2) parameter.maxLength = parseInt(rest[1]);
       break;
     }
     case "TEXT": {
@@ -166,6 +180,22 @@ function parseParameterDefinition(block: string): ScriptParameter | null {
     }
     case "PUSHBUTTON": {
       if (rest.length >= 1) parameter.defaultValue = parseInt(rest[0]);
+      break;
+    }
+    case "INFO":
+    case "LABEL": {
+      if (rest.length >= 1) parameter.defaultValue = rest[0];
+      break;
+    }
+    case "DIR": {
+      if (rest.length >= 1) parameter.defaultValue = rest[0];
+      break;
+    }
+    case "FILE": {
+      // Wire: "defaultFile" "defaultPath" "*.csv"
+      if (rest.length >= 1) parameter.defaultValue = rest[0];
+      if (rest.length >= 2) parameter.defaultPath = rest[1];
+      if (rest.length >= 3) parameter.filter = rest[2];
       break;
     }
   }

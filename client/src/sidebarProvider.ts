@@ -129,6 +129,49 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           vscode.commands.executeCommand("vizscript.invokescriptparameter", data.value);
           break;
         }
+        case "browseFile": {
+          const { parameterName, defaultPath, filter } = data.value;
+          const filters: { [key: string]: string[] } = {};
+          if (filter) {
+            const ext = filter.replace(/^\*\./, "");
+            filters[ext.toUpperCase()] = [ext];
+          }
+          filters["All Files"] = ["*"];
+          const uris = await vscode.window.showOpenDialog({
+            defaultUri: defaultPath ? vscode.Uri.file(defaultPath) : undefined,
+            canSelectMany: false,
+            openLabel: "Select",
+            filters: Object.keys(filters).length > 1 ? filters : undefined,
+          });
+          if (uris && uris.length > 0) {
+            webviewView.webview.postMessage({
+              type: "browseResult",
+              value: { parameterName, path: uris[0].fsPath },
+            });
+          }
+          break;
+        }
+        case "browseDir": {
+          const { parameterName, currentPath } = data.value;
+          let defaultUri: vscode.Uri | undefined;
+          if (currentPath) {
+            try { defaultUri = vscode.Uri.file(currentPath.replace(/\//g, '\\')); } catch {}
+          }
+          const uris = await vscode.window.showOpenDialog({
+            defaultUri,
+            canSelectMany: false,
+            canSelectFolders: true,
+            canSelectFiles: false,
+            openLabel: "Select Folder",
+          });
+          if (uris && uris.length > 0) {
+            webviewView.webview.postMessage({
+              type: "browseResult",
+              value: { parameterName, path: uris[0].fsPath },
+            });
+          }
+          break;
+        }
       }
     });
   }

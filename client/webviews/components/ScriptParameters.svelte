@@ -11,6 +11,8 @@
     onGetParameters?: (detail: { scriptId: string; hostname: string; port: number }) => void;
     onSetParameter?: (detail: { scriptId: string; parameterName: string; value: string; hostname: string; port: number; skipRefresh?: boolean }) => void;
     onInvokeParameter?: (detail: { scriptId: string; parameterName: string; hostname: string; port: number }) => void;
+    onBrowseFile?: (detail: { parameterName: string; defaultPath?: string; filter?: string }) => void;
+    onBrowseDir?: (detail: { parameterName: string; currentPath?: string }) => void;
   }
 
   let { 
@@ -22,7 +24,9 @@
     showParameters = $bindable(true),
     onGetParameters,
     onSetParameter,
-    onInvokeParameter
+    onInvokeParameter,
+    onBrowseFile,
+    onBrowseDir,
   }: Props = $props();
 
   let isLoadingParameters = $state(false);
@@ -68,8 +72,10 @@
       case "SLIDERINT": {
         const numValue = parseInt(newValue);
         if (isNaN(numValue)) return;
-        if (parameter.min !== undefined && numValue < parameter.min) processedValue = parameter.min.toString();
-        if (parameter.max !== undefined && numValue > parameter.max) processedValue = parameter.max.toString();
+        const min = parameter.min !== undefined && parameter.max !== undefined ? Math.min(parameter.min, parameter.max) : parameter.min;
+        const max = parameter.min !== undefined && parameter.max !== undefined ? Math.max(parameter.min, parameter.max) : parameter.max;
+        if (min !== undefined && numValue < min) processedValue = min.toString();
+        if (max !== undefined && numValue > max) processedValue = max.toString();
         break;
       }
       case "FLOAT":
@@ -77,8 +83,10 @@
       case "SLIDERDOUBLE": {
         const numValue = parseFloat(newValue);
         if (isNaN(numValue)) return;
-        if (parameter.min !== undefined && numValue < parameter.min) processedValue = parameter.min.toString();
-        if (parameter.max !== undefined && numValue > parameter.max) processedValue = parameter.max.toString();
+        const min = parameter.min !== undefined && parameter.max !== undefined ? Math.min(parameter.min, parameter.max) : parameter.min;
+        const max = parameter.min !== undefined && parameter.max !== undefined ? Math.max(parameter.min, parameter.max) : parameter.max;
+        if (min !== undefined && numValue < min) processedValue = min.toString();
+        if (max !== undefined && numValue > max) processedValue = max.toString();
         break;
       }
       case "BOOL": {
@@ -136,6 +144,60 @@
   function handleColorParameterChange(parameter: ScriptParameter, event: Event) {
     const target = event.target as HTMLInputElement;
     handleParameterChange(parameter, target.value);
+  }
+
+  function argbToRgba(argb: number): { r: number; g: number; b: number; a: number } {
+    const u = argb >>> 0;
+    return {
+      r: (u >>> 24) & 0xff,
+      g: (u >>> 16) & 0xff,
+      b: (u >>> 8)  & 0xff,
+      a:  u         & 0xff,
+    };
+  }
+
+  function rgbaToArgb(r: number, g: number, b: number, a: number): number {
+    return (((r & 0xff) << 24) | ((g & 0xff) << 16) | ((b & 0xff) << 8) | (a & 0xff)) >>> 0;
+  }
+
+  function getColorRgba(parameter: ScriptParameter): { r: number; g: number; b: number; a: number } {
+    const raw = getParameterDisplayValue(parameter);
+    const n = parseInt(raw);
+    if (!isNaN(n)) return argbToRgba(n);
+    return { r: 0, g: 0, b: 0, a: 255 };
+  }
+
+  function rgbaToHex(r: number, g: number, b: number, a = 255): string {
+    return "#" + [r, g, b, a].map(v => v.toString(16).padStart(2, "0")).join("");
+  }
+
+  function handleColorSwatchChange(parameter: ScriptParameter, event: Event, commit: boolean) {
+    const hex = (event.target as HTMLInputElement).value;
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    const a = hex.length >= 9 ? parseInt(hex.slice(7, 9), 16) : getColorRgba(parameter).a;
+    const newVal = rgbaToArgb(r, g, b, a).toString();
+    parameter.value = newVal;
+    if (commit) {
+      handleParameterChange(parameter, newVal, false);
+    } else {
+      onSetParameter?.({
+        scriptId: selectedScript!.vizId,
+        parameterName: parameter.name,
+        value: newVal,
+        hostname,
+        port,
+        skipRefresh: true,
+      });
+    }
+  }
+
+  function handleColorChannelChange(parameter: ScriptParameter, channel: "r"|"g"|"b"|"a", value: number) {
+    const { r, g, b, a } = getColorRgba(parameter);
+    const clamped = Math.max(0, Math.min(255, Math.round(value)));
+    const updated = { r, g, b, a, [channel]: clamped };
+    handleParameterChange(parameter, rgbaToArgb(updated.r, updated.g, updated.b, updated.a).toString());
   }
 
   function handleSelectParameterChange(parameter: ScriptParameter, event: Event) {
@@ -212,6 +274,9 @@
     dragStartX = dragPendingEvent.clientX;
     dragStartValue = currentVal;
     dragIsFloat = isFloat;
+    dragLastStep = isFloat ? 1 : 1;
+    dragLastVal = currentVal;
+    dragLastX = dragPendingEvent.clientX;
 
     if (parameter.min !== undefined && parameter.max !== undefined) {
       const range = parameter.max - parameter.min;
@@ -241,13 +306,36 @@
     dragPendingEvent = null;
   }
 
+  let dragLastStep = 1;
+  let dragLastVal = 0;
+  let dragLastX = 0;
+
   function onDragMove(event: MouseEvent) {
     if (!dragParam) return;
     const dx = event.clientX - dragStartX;
-    let newVal = dragStartValue + dx * dragStep;
+
+    let step = dragStep;
+    if (dragIsFloat) {
+      if (event.ctrlKey && event.shiftKey) step = 0.01;
+      else if (event.ctrlKey) step = 0.1;
+      else step = 1;
+    }
+
+    // When modifier changes mid-drag, re-anchor so value doesn't jump
+    if (step !== dragLastStep) {
+      dragStartX = dragLastX;
+      dragStartValue = dragLastVal;
+      dragLastStep = step;
+    }
+
+    dragLastX = event.clientX;
+    const newDx = event.clientX - dragStartX;
+    let newVal = dragStartValue + newDx * step;
     if (dragParam.min !== undefined && newVal < dragParam.min) newVal = dragParam.min;
     if (dragParam.max !== undefined && newVal > dragParam.max) newVal = dragParam.max;
-    const formatted = dragIsFloat ? parseFloat(newVal.toFixed(2)).toString() : Math.round(newVal).toString();
+    dragLastVal = newVal;
+    const decimals = step === 0.01 ? 4 : step === 0.1 ? 3 : 2;
+    const formatted = dragIsFloat ? parseFloat(newVal.toFixed(decimals)).toString() : Math.round(newVal).toString();
     handleParameterChange(dragParam, formatted, true);
   }
 
@@ -261,51 +349,6 @@
     if (endedParam && selectedScript?.vizId) {
       handleParameterChange(endedParam, getParameterDisplayValue(endedParam), false);
     }
-  }
-
-  let sliderDragParam: ScriptParameter | null = $state(null);
-
-  function getSliderPercent(parameter: ScriptParameter): number {
-    const min = parameter.min ?? 0;
-    const max = parameter.max ?? 100;
-    const val = parseFloat(getParameterDisplayValue(parameter)) || 0;
-    if (max === min) return 0;
-    return Math.max(0, Math.min(100, ((val - min) / (max - min)) * 100));
-  }
-
-  function sliderPointerDown(event: PointerEvent, parameter: ScriptParameter) {
-    const track = (event.currentTarget as HTMLElement);
-    track.setPointerCapture(event.pointerId);
-    sliderDragParam = parameter;
-    updateSliderFromPointer(event, parameter);
-  }
-
-  function sliderPointerMove(event: PointerEvent, parameter: ScriptParameter) {
-    if (sliderDragParam !== parameter) return;
-    updateSliderFromPointer(event, parameter);
-  }
-
-  function sliderPointerUp(event: PointerEvent, parameter: ScriptParameter) {
-    if (sliderDragParam !== parameter) return;
-    const track = (event.currentTarget as HTMLElement);
-    track.releasePointerCapture(event.pointerId);
-    sliderDragParam = null;
-    handleParameterChange(parameter, getParameterDisplayValue(parameter), false);
-  }
-
-  function updateSliderFromPointer(event: PointerEvent, parameter: ScriptParameter) {
-    const track = (event.currentTarget as HTMLElement);
-    const rect = track.getBoundingClientRect();
-    const ratio = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
-    const min = parameter.min ?? 0;
-    const max = parameter.max ?? 100;
-    const isFloat = isFloatType(parameter.type);
-    const step = isFloat ? 0.01 : 1;
-    let val = min + ratio * (max - min);
-    val = Math.round(val / step) * step;
-    val = Math.max(min, Math.min(max, val));
-    const formatted = isFloat ? parseFloat(val.toFixed(2)).toString() : Math.round(val).toString();
-    handleParameterChange(parameter, formatted, true);
   }
 
   export function handleParametersReceived(receivedData: ScriptParametersData) {
@@ -329,7 +372,7 @@
   );
 </script>
 
-<div class="{showParameters ? 'flex-1' : 'h-auto min-h-40'} flex flex-col border-t border-vscode-editorGroup-border">
+<div class="{showParameters ? 'flex-1 min-h-0 overflow-hidden' : 'h-auto min-h-40'} flex flex-col border-t border-vscode-editorGroup-border">
   <div 
     class="flex items-center justify-between p-2 bg-vscode-sideBarSectionHeader-background hover:bg-vscode-list-hoverBackground cursor-pointer select-none {showParameters ? 'border-b border-vscode-editorGroup-border' : ''}"
     onclick={toggleShowParameters}
@@ -338,7 +381,7 @@
     role="button"
     title="Click to {showParameters ? 'collapse' : 'expand'} parameters panel"
   >
-    <h3 class="text-sm font-medium text-vscode-sideBarSectionHeader-foreground">Parameters</h3>
+    <h3 class="text-sm font-medium text-vscode-sideBarSectionHeader-foreground">Script Parameters</h3>
     <div class="flex items-center gap-1">
       {#if showParameters && selectedScript?.vizId}
         <!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -376,9 +419,16 @@
           {#each parametersData!.parameters as parameter (parameter.name)}
 
             {#if parameter.type === "INFO"}
-              <div class="param-section-header">
-                <span>{parameter.displayName}</span>
-              </div>
+              {#if parameter.displayName}
+                <div class="param-section-header">
+                  <span>{parameter.displayName}</span>
+                </div>
+              {/if}
+              {#if getParameterDisplayValue(parameter)}
+                <div class="param-info-text">
+                  <pre>{getParameterDisplayValue(parameter).trim()}</pre>
+                </div>
+              {/if}
 
             {:else if parameter.type === "LABEL"}
               <div class="param-row">
@@ -405,25 +455,27 @@
               </div>
 
             {:else if isSliderType(parameter.type)}
+              {@const sliderMin = Math.min(parameter.min ?? 0, parameter.max ?? 100)}
+              {@const sliderMax = Math.max(parameter.min ?? 0, parameter.max ?? 100)}
               <div class="param-row">
                 <span class="param-label">{parameter.displayName}</span>
                 <div class="param-slider-wrap">
-                  <!-- svelte-ignore a11y_no_static_element_interactions -->
-                  <div
-                    class="param-slider-track"
-                    onpointerdown={(e) => sliderPointerDown(e, parameter)}
-                    onpointermove={(e) => sliderPointerMove(e, parameter)}
-                    onpointerup={(e) => sliderPointerUp(e, parameter)}
-                  >
-                    <div class="param-slider-fill" style="width: {getSliderPercent(parameter)}%"></div>
-                    <div class="param-slider-thumb" style="left: {getSliderPercent(parameter)}%"></div>
-                  </div>
+                  <input
+                    type="range"
+                    bind:value={parameter.value}
+                    min={sliderMin}
+                    max={sliderMax}
+                    step={isFloatType(parameter.type) ? "0.01" : "1"}
+                    oninput={(e) => handleParameterChange(parameter, (e.target as HTMLInputElement).value, true)}
+                    onchange={(e) => handleParameterChange(parameter, (e.target as HTMLInputElement).value, false)}
+                    class="param-range"
+                  />
                   <input
                     id="param-{parameter.name}"
                     type="number"
                     value={getParameterDisplayValue(parameter)}
-                    min={parameter.min}
-                    max={parameter.max}
+                    min={sliderMin}
+                    max={sliderMax}
                     step={isFloatType(parameter.type) ? "0.01" : "1"}
                     onchange={(e) => handleNumberInput(e, parameter)}
                     onmousedown={(e) => startDrag(e, parameter)}
@@ -474,14 +526,17 @@
               </div>
 
             {:else if parameter.type === "COLOR"}
+              {@const rgba = getColorRgba(parameter)}
               <div class="param-row param-row-inline">
                 <span class="param-label">{parameter.displayName}</span>
                 <input
-                  id="param-{parameter.name}"
                   type="color"
-                  value={getParameterDisplayValue(parameter) || "#000000"}
-                  onchange={(e) => handleColorParameterChange(parameter, e)}
-                  class="param-color"
+                  {...{"alpha": true}}
+                  value={rgbaToHex(rgba.r, rgba.g, rgba.b, rgba.a)}
+                  oninput={(e) => handleColorSwatchChange(parameter, e, false)}
+                  onchange={(e) => handleColorSwatchChange(parameter, e, true)}
+                  class="param-color-swatch"
+                  title="Pick color"
                 />
               </div>
 
@@ -537,6 +592,44 @@
                       </label>
                     {/each}
                   {/if}
+                </div>
+              </div>
+
+            {:else if parameter.type === "DIR"}
+              <div class="param-row">
+                <span class="param-label">{parameter.displayName}</span>
+                <div class="param-dir-wrap">
+                  <input
+                    id="param-{parameter.name}"
+                    type="text"
+                    value={getParameterDisplayValue(parameter)}
+                    onchange={(e) => handleStringParameterChange(parameter, e)}
+                    class="param-input-text"
+                  />
+                  <button
+                    class="param-browse-btn"
+                    onclick={() => onBrowseDir?.({ parameterName: parameter.name, currentPath: getParameterDisplayValue(parameter) })}
+                    title="Browse for folder..."
+                  ><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M14.5 3H7.71l-.85-.85L6.51 2h-5l-.5.5v11l.5.5h13l.5-.5v-10L14.5 3zm-.51 8.49V13h-12V7h12v4.49zm0-5.49h-12V3h4.29l.85.85.36.15H14v2.5z"/></svg></button>
+                </div>
+              </div>
+
+            {:else if parameter.type === "FILE"}
+              <div class="param-row">
+                <span class="param-label">{parameter.displayName}</span>
+                <div class="param-dir-wrap">
+                  <input
+                    id="param-{parameter.name}"
+                    type="text"
+                    value={getParameterDisplayValue(parameter)}
+                    onchange={(e) => handleStringParameterChange(parameter, e)}
+                    class="param-input-text"
+                  />
+                  <button
+                    class="param-browse-btn"
+                    onclick={() => onBrowseFile?.({ parameterName: parameter.name, defaultPath: parameter.defaultPath, filter: parameter.filter })}
+                    title="Browse for file{parameter.filter ? ` (${parameter.filter})` : ''}..."
+                  ><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M13.71 4.29l-3-3L10 1H4L3 2v12l1 1h9l1-1V5l-.29-.71zM13 14H4V2h5v4h4v8zm-3-9V2l3 3h-3z"/></svg></button>
                 </div>
               </div>
 
@@ -623,6 +716,22 @@
     color: var(--vscode-sideBarSectionHeader-foreground);
   }
 
+  /* ── Info text ── */
+  .param-info-text {
+    padding: 6px 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  .param-info-text pre {
+    margin: 0;
+    font-family: var(--vscode-font-family);
+    font-size: 11px;
+    color: var(--vscode-descriptionForeground);
+    white-space: pre-wrap;
+    word-break: break-word;
+    line-height: 1.5;
+  }
+
   /* ── Shared input base ── */
   .param-input-text,
   .param-input-number,
@@ -660,41 +769,12 @@
     gap: 6px;
   }
 
-  .param-slider-track {
+  .param-range {
     flex: 1;
     min-width: 0;
-    height: 20px;
-    background: #2a2a2a;
-    border-radius: 3px;
-    position: relative;
+    height: 4px;
+    accent-color: #4a9fc5;
     cursor: pointer;
-    touch-action: none;
-    overflow: hidden;
-  }
-
-  .param-slider-fill {
-    position: absolute;
-    top: 0;
-    left: 0;
-    height: 100%;
-    background: #2a6a8a;
-    border-radius: 3px 0 0 3px;
-    pointer-events: none;
-  }
-
-  .param-slider-thumb {
-    position: absolute;
-    top: 0;
-    width: 4px;
-    height: 100%;
-    background: #5bb8de;
-    transform: translateX(-50%);
-    pointer-events: none;
-    border-radius: 1px;
-  }
-
-  .param-slider-track:hover .param-slider-thumb {
-    background: #6cc8ee;
   }
 
   .param-slider-number {
@@ -746,9 +826,9 @@
   }
 
   /* ── Color ── */
-  .param-color {
-    width: 28px;
-    height: 20px;
+  .param-color-swatch {
+    width: 36px;
+    height: 22px;
     padding: 0;
     border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 2px;
@@ -757,13 +837,47 @@
     flex-shrink: 0;
   }
 
-  .param-color::-webkit-color-swatch-wrapper {
+  .param-color-swatch::-webkit-color-swatch-wrapper {
     padding: 1px;
   }
 
-  .param-color::-webkit-color-swatch {
+  .param-color-swatch::-webkit-color-swatch {
     border: none;
     border-radius: 1px;
+  }
+
+
+  /* ── Dir selector ── */
+  .param-dir-wrap {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+  }
+
+  .param-dir-wrap .param-input-text {
+    flex: 1;
+    min-width: 0;
+    width: 0;
+  }
+
+  .param-browse-btn {
+    flex-shrink: 0;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--vscode-descriptionForeground);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 2px;
+    padding: 0;
+    cursor: pointer;
+  }
+
+  .param-browse-btn:hover {
+    background: rgba(255, 255, 255, 0.14);
+    color: var(--vscode-foreground);
   }
 
   /* ── Container / Image ref ── */
@@ -782,6 +896,13 @@
   .param-textarea {
     resize: vertical;
     min-height: 48px;
+  }
+
+  .param-textarea::-webkit-resizer {
+    background: transparent;
+    border: none;
+    border-right: 2px solid rgba(255, 255, 255, 0.15);
+    border-bottom: 2px solid rgba(255, 255, 255, 0.15);
   }
 
   /* ── Radio group ── */

@@ -199,6 +199,14 @@
       type: "setScript",
       value: { vizId: selectedScript.vizId, selectedLayer, hostname, port },
     });
+    setTimeout(() => {
+      if (selectedScript && hostname && port) {
+        tsvscode.postMessage({
+          type: "getScriptParameters",
+          value: { scriptId: selectedScript.vizId, hostname, port },
+        });
+      }
+    }, 1500);
   };
 
   const handleResetScripts = () => {
@@ -251,6 +259,14 @@
       type: "invokeScriptParameter",
       value: detail
     });
+  }
+
+  function handleBrowseFile(detail: { parameterName: string; defaultPath?: string; filter?: string }) {
+    tsvscode.postMessage({ type: "browseFile", value: detail });
+  }
+
+  function handleBrowseDir(detail: { parameterName: string; currentPath?: string }) {
+    tsvscode.postMessage({ type: "browseDir", value: detail });
   }
 
   // Resizer functions
@@ -374,6 +390,19 @@
         parametersData = message.value;
         if (parametersData && parametersData.scriptId) {
           parametersCache[parametersData.scriptId] = parametersData;
+        }
+      }
+    } else if (message.type === "browseResult") {
+      const { parameterName } = message.value;
+      const path = (message.value.path as string).replace(/\\/g, '/');
+      if (parametersData) {
+        const param = parametersData.parameters.find(p => p.name === parameterName);
+        if (param) {
+          param.value = path;
+          tsvscode.postMessage({
+            type: "setScriptParameter",
+            value: { scriptId: parametersData.scriptId, parameterName, value: path, hostname, port }
+          });
         }
       }
     }
@@ -869,7 +898,7 @@
       {/if}
 
       <!-- Bottom Section Container -->
-      <div class="flex flex-col" style="height: {100 - effectiveScriptListHeight}%">
+      <div class="flex flex-col min-h-0" style="height: {100 - effectiveScriptListHeight}%">
         <!-- Script Info and Controls Section -->
 
 
@@ -885,6 +914,8 @@
         onGetParameters={handleGetScriptParameters}
         onSetParameter={handleSetScriptParameter}
         onInvokeParameter={handleInvokeScriptParameter}
+        onBrowseFile={handleBrowseFile}
+        onBrowseDir={handleBrowseDir}
       />
       </div> <!-- Close Bottom Section Container -->
     </div>

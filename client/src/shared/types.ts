@@ -29,7 +29,9 @@ export type ScriptParameterType =
   | "LABEL"
   | "PUSHBUTTON"
   | "RADIOBUTTON"
-  | "INFO";
+  | "INFO"
+  | "DIR"
+  | "FILE";
 
 export type ScriptParameter = {
   name: string;
@@ -43,6 +45,8 @@ export type ScriptParameter = {
   entries?: string[];
   separator?: string;
   maxLength?: number;
+  filter?: string;
+  defaultPath?: string;
 };
 
 export type ScriptParametersData = {
