@@ -11,22 +11,32 @@ export interface MetadataDialogResult {
   metadata?: any;
 }
 
+/** Fields whose change is significant enough to auto-open the diff view */
+const SIGNIFICANT_FIELDS = ["scenePath", "scriptType"];
+
 /**
- * Shows a dialog to prompt user about metadata updates
+ * Shows a QuickPick to prompt the user about metadata updates.
+ * If a significant field (scenePath, scriptType) changed, the diff view
+ * opens automatically before the QuickPick appears.
  */
 export async function showMetadataUpdateDialog(options: MetadataDialogOptions): Promise<MetadataDialogResult> {
   const { currentMetadata, suggestedMetadata, scriptName } = options;
 
-  // Create a detailed comparison to show what would change
   const comparison = createMetadataComparison(currentMetadata, suggestedMetadata);
   const hasChanges = comparison !== "No changes detected";
 
   if (!hasChanges) {
-    // No changes needed, just return keep
     return { action: "keep", metadata: currentMetadata };
   }
 
-  // Create quick pick items with detailed change information
+  // Auto-open diff for significant field changes so the user can review while deciding
+  const hasSignificantChange = SIGNIFICANT_FIELDS.some(
+    (f) => JSON.stringify(currentMetadata?.[f]) !== JSON.stringify(suggestedMetadata?.[f]),
+  );
+  if (hasSignificantChange) {
+    await showDetailedMetadataView(currentMetadata, suggestedMetadata);
+  }
+
   const items: vscode.QuickPickItem[] = [
     {
       label: "$(sync) Update Metadata",
@@ -66,7 +76,6 @@ export async function showMetadataUpdateDialog(options: MetadataDialogOptions): 
     case "$(check) Keep Existing":
       return { action: "keep", metadata: currentMetadata };
     case "$(info) Show Full Details":
-      // Show detailed view and return to main dialog
       await showDetailedMetadataView(currentMetadata, suggestedMetadata);
       return showMetadataUpdateDialog(options);
     default:
@@ -75,44 +84,156 @@ export async function showMetadataUpdateDialog(options: MetadataDialogOptions): 
 }
 
 /**
- * Shows detailed metadata comparison dialog
+ * Shows a QuickPick when metadata exists but is missing required fields.
+ * Replaces the inline toast in commands.ts.
  */
-export async function showMetadataComparisonDialog(options: MetadataDialogOptions): Promise<MetadataDialogResult> {
-  const { currentMetadata, suggestedMetadata, scriptName } = options;
+export async function showIncompleteMetadataDialog(
+  scriptName: string,
+  missingFields: string[],
+): Promise<{ action: "update" | "keep" | "skip" }> {
+  const items: vscode.QuickPickItem[] = [
+    {
+      label: "$(sync) Update Metadata",
+      description: "Auto-complete the missing fields",
+      detail: `Missing: ${missingFields.join(", ")}`,
+    },
+    {
+      label: "$(check) Keep Existing",
+      description: "Keep current metadata unchanged",
+      detail: "Missing fields will not be filled in",
+    },
+    {
+      label: "$(x) Skip",
+      description: "Continue without changes",
+      detail: "Metadata will remain incomplete",
+    },
+  ];
 
-  // Create a formatted comparison string
-  const comparison = createMetadataComparison(currentMetadata, suggestedMetadata);
+  const selected = await vscode.window.showQuickPick(items, {
+    title: `Metadata Incomplete for "${scriptName}"`,
+    placeHolder: "Some required metadata fields are missing:",
+    ignoreFocusOut: true,
+  });
 
-  const choice = await vscode.window.showInformationMessage(
-    `Metadata exists for "${scriptName}". Would you like to update it?`,
+  if (!selected) {
+    return { action: "skip" };
+  }
+
+  switch (selected.label) {
+    case "$(sync) Update Metadata":
+      return { action: "update" };
+    case "$(check) Keep Existing":
+      return { action: "keep" };
+    default:
+      return { action: "skip" };
+  }
+}
+
+/**
+ * Shows a blocking modal warning when the metadata scenePath does not match
+ * the scene currently loaded in Viz. Replaces the inline showWarningMessage in commands.ts.
+ */
+export async function showScenePathMismatchDialog(
+  detail: string,
+): Promise<{ action: "add" | "replace" | "continueAnyway" | "cancel" }> {
+  const choice = await vscode.window.showWarningMessage(
+    "Scene Path Mismatch",
     {
       modal: true,
-      detail: comparison,
+      detail,
     },
-    { title: "Update" },
-    { title: "Keep Current", isCloseAffordance: true },
-    { title: "Show Details" },
-    { title: "Set File Path" },
+    { title: "Add to Metadata" },
+    { title: "Replace Metadata" },
+    { title: "Continue Anyway" },
+    { title: "Cancel", isCloseAffordance: true },
   );
 
   switch (choice?.title) {
-    case "Update":
-      return { action: "update", metadata: suggestedMetadata };
-    case "Keep Current":
-      return { action: "keep", metadata: currentMetadata };
-    case "Show Details":
-      // Show detailed view and return to main dialog
-      await showDetailedMetadataView(currentMetadata, suggestedMetadata);
-      return showMetadataUpdateDialog(options);
-    case "Set File Path":
-      return { action: "setFilePath", metadata: currentMetadata };
+    case "Add to Metadata":
+      return { action: "add" };
+    case "Replace Metadata":
+      return { action: "replace" };
+    case "Continue Anyway":
+      return { action: "continueAnyway" };
     default:
-      return { action: "skip" };
+      return { action: "cancel" };
   }
 }
 
 /**
- * Shows a read-only view of metadata differences
+ * Shows a non-modal toast when no metadata is found during the set/compile flow.
+ * Replaces the inline showInformationMessage in commands.ts.
+ */
+export async function showNoMetadataSetFlowDialog(): Promise<{ action: "add" | "skip" }> {
+  const choice = await vscode.window.showInformationMessage(
+    "No metadata found. Add metadata to track this script?",
+    {
+      modal: false,
+      detail: "Metadata helps track script relationships with Viz scenes and enables better version control.",
+    },
+    { title: "Add Metadata" },
+    { title: "Skip", isCloseAffordance: true },
+  );
+
+  return choice?.title === "Add Metadata" ? { action: "add" } : { action: "skip" };
+}
+
+/**
+ * Shows a non-modal toast when no metadata is found during the open/fetch flow.
+ */
+export async function showMetadataInjectionDialog(
+  scriptName: string,
+): Promise<{ inject: boolean; dontAskAgain: boolean }> {
+  const choice = await vscode.window.showInformationMessage(
+    `No metadata found for "${scriptName}". Add metadata to track this script?`,
+    {
+      modal: false,
+    },
+    "Add Metadata",
+    "Always Add",
+    "Skip",
+  );
+
+  switch (choice) {
+    case "Add Metadata":
+      return { inject: true, dontAskAgain: false };
+    case "Always Add":
+      return { inject: true, dontAskAgain: true };
+    default:
+      return { inject: false, dontAskAgain: false };
+  }
+}
+
+/**
+ * Shows an input box to set or update the filePath metadata field.
+ */
+export async function showFilePathDialog(
+  currentFilePath: string = "",
+  scriptName: string,
+  suggestedPath?: string,
+): Promise<string | null> {
+  const inputBox = await vscode.window.showInputBox({
+    title: `Set File Path for "${scriptName}"`,
+    prompt: "Enter the relative path where this script should be saved",
+    value: currentFilePath || suggestedPath || "",
+    placeHolder: "e.g., scripts/myScene/script.vs",
+    ignoreFocusOut: true,
+    validateInput: (value) => {
+      if (!value || value.trim() === "") {
+        return "File path cannot be empty";
+      }
+      if (value.includes("\\")) {
+        return "Please use forward slashes (/) for file paths";
+      }
+      return null;
+    },
+  });
+
+  return inputBox || null;
+}
+
+/**
+ * Shows a read-only view of metadata differences beside the current editor.
  */
 async function showDetailedMetadataView(current: any, suggested: any): Promise<void> {
   const content = `Current Metadata:
@@ -136,19 +257,16 @@ ${createDetailedChanges(current, suggested)}`;
 }
 
 /**
- * Creates a formatted comparison string showing differences
+ * Creates a brief summary string of metadata field differences.
  */
 function createMetadataComparison(current: any, suggested: any): string {
   const changes: string[] = [];
 
-  // Get all keys but exclude UUID from comparison display
-  // UUID should never change
   const allKeys = new Set([...Object.keys(current || {}), ...Object.keys(suggested || {})]);
   const excludeFromDisplay = ["UUID"];
-  const deprecatedFields = ["lastModified"]; // Fields that will be removed
+  const deprecatedFields = ["lastModified"];
 
   for (const key of allKeys) {
-    // Skip fields that shouldn't be shown in the comparison
     if (excludeFromDisplay.includes(key)) {
       continue;
     }
@@ -156,13 +274,12 @@ function createMetadataComparison(current: any, suggested: any): string {
     const currentValue = current?.[key];
     const suggestedValue = suggested?.[key];
 
-    // Handle deprecated fields - they will be removed regardless of suggested value
     if (deprecatedFields.includes(key) && currentValue !== undefined && currentValue !== null) {
       changes.push(`• Remove deprecated field ${key}: ${formatValue(currentValue)}`);
       continue;
     }
 
-    if (currentValue !== suggestedValue) {
+    if (JSON.stringify(currentValue) !== JSON.stringify(suggestedValue)) {
       if (currentValue === undefined || currentValue === null) {
         changes.push(`• Add ${key}: ${formatValue(suggestedValue)}`);
       } else if (suggestedValue === undefined || suggestedValue === null) {
@@ -173,15 +290,6 @@ function createMetadataComparison(current: any, suggested: any): string {
     }
   }
 
-  // Helper function for formatting values
-  function formatValue(value: any): string {
-    if (value === null || value === undefined) return "(empty)";
-    if (value === "") return "(empty string)";
-    if (typeof value === "string") return `"${value}"`;
-    return String(value);
-  }
-
-  // Add a note about automatic fields
   if (changes.length > 0) {
     changes.push("", "Note: UUID is preserved");
   }
@@ -189,8 +297,16 @@ function createMetadataComparison(current: any, suggested: any): string {
   return changes.length > 0 ? changes.join("\n") : "No changes detected";
 }
 
+function formatValue(value: any): string {
+  if (value === null || value === undefined) return "(empty)";
+  if (value === "") return "(empty string)";
+  if (Array.isArray(value)) return `[${value.map((v) => `"${v}"`).join(", ")}]`;
+  if (typeof value === "string") return `"${value}"`;
+  return String(value);
+}
+
 /**
- * Creates detailed change description
+ * Creates a verbose change description for the full diff view.
  */
 function createDetailedChanges(current: any, suggested: any): string {
   const changes: string[] = [];
@@ -201,7 +317,7 @@ function createDetailedChanges(current: any, suggested: any): string {
     const currentValue = current?.[key];
     const suggestedValue = suggested?.[key];
 
-    if (currentValue !== suggestedValue) {
+    if (JSON.stringify(currentValue) !== JSON.stringify(suggestedValue)) {
       if (currentValue === undefined) {
         changes.push(`NEW: ${key} will be set to "${suggestedValue}"`);
       } else if (suggestedValue === undefined) {
@@ -213,95 +329,4 @@ function createDetailedChanges(current: any, suggested: any): string {
   }
 
   return changes.length > 0 ? changes.join("\n") : "No changes would be made";
-}
-
-/**
- * Shows a simple confirmation dialog for metadata injection
- */
-export async function showMetadataInjectionDialog(
-  scriptName: string,
-): Promise<{ inject: boolean; dontAskAgain: boolean }> {
-  const choice = await vscode.window.showInformationMessage(
-    `No metadata found for "${scriptName}". Add default metadata?`,
-    {
-      modal: false,
-    },
-    "Add Metadata",
-    "Skip",
-    "Always Add",
-  );
-
-  switch (choice) {
-    case "Add Metadata":
-      return { inject: true, dontAskAgain: false };
-    case "Always Add":
-      return { inject: true, dontAskAgain: true };
-    default:
-      return { inject: false, dontAskAgain: false };
-  }
-}
-
-/**
- * Shows a dialog to set or update the filePath in metadata
- */
-export async function showFilePathDialog(
-  currentFilePath: string = "",
-  scriptName: string,
-  suggestedPath?: string,
-): Promise<string | null> {
-  const currentDisplay = currentFilePath ? `Current: ${currentFilePath}` : "No file path set";
-  const suggestedDisplay = suggestedPath ? `Suggested: ${suggestedPath}` : "";
-
-  const inputBox = await vscode.window.showInputBox({
-    title: `Set File Path for "${scriptName}"`,
-    prompt: "Enter the relative path where this script should be saved",
-    value: currentFilePath || suggestedPath || "",
-    placeHolder: "e.g., scripts/myScene/script.vs",
-    ignoreFocusOut: true,
-    validateInput: (value) => {
-      if (!value || value.trim() === "") {
-        return "File path cannot be empty";
-      }
-      if (value.includes("\\")) {
-        return "Please use forward slashes (/) for file paths";
-      }
-      return null;
-    },
-  });
-
-  return inputBox || null;
-}
-
-/**
- * Shows metadata validation errors to the user
- */
-export async function showMetadataValidationErrors(
-  errors: string[],
-  scriptName: string,
-): Promise<{ action: "fix" | "ignore" | "cancel"; dontAskAgain: boolean }> {
-  const choice = await vscode.window.showWarningMessage(
-    `Metadata validation errors found in "${scriptName}":`,
-    {
-      modal: true,
-      detail: errors.join("\n"),
-    },
-    { title: "Fix Automatically" },
-    { title: "Ignore Errors" },
-    { title: "Always Fix" },
-    { title: "Always Ignore" },
-    { title: "Cancel", isCloseAffordance: true },
-  );
-
-  switch (choice?.title) {
-    case "Fix Automatically":
-      return { action: "fix", dontAskAgain: false };
-    case "Ignore Errors":
-      return { action: "ignore", dontAskAgain: false };
-    case "Always Fix":
-      return { action: "fix", dontAskAgain: true };
-    case "Always Ignore":
-      return { action: "ignore", dontAskAgain: true };
-    default:
-      return { action: "cancel", dontAskAgain: false };
-  }
 }

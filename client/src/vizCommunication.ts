@@ -658,16 +658,16 @@ export function compileScriptId(
         if (cachedScenePath && currentScenePath && cachedScenePath !== currentScenePath) {
           window
             .showWarningMessage(
-              `Scene mismatch detected!`,
+              `Scene Mismatch`,
               {
                 modal: true,
                 detail: `Script was fetched from: ${cachedScenePath}\nCurrent scene in ${selectedLayer}: ${currentScenePath}\n\nDo you want to continue anyway?`,
               },
-              "Continue",
+              "Continue Anyway",
               "Cancel",
             )
             .then((choice) => {
-              if (choice === "Continue") {
+              if (choice === "Continue Anyway") {
                 socket.write("-1 " + scriptId + "*SCRIPT*PLUGIN STOP " + String.fromCharCode(0));
                 socket.write("3 " + scriptId + "*SCRIPT*PLUGIN*SOURCE_CODE SET " + text + " " + String.fromCharCode(0));
               } else {

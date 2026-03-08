@@ -39,7 +39,9 @@ import uuidByString from "uuid-by-string";
 import {
   showMetadataUpdateDialog,
   showMetadataInjectionDialog,
-  showMetadataValidationErrors,
+  showIncompleteMetadataDialog,
+  showScenePathMismatchDialog,
+  showNoMetadataSetFlowDialog,
   showFilePathDialog,
   MetadataDialogOptions,
 } from "./metadataDialog";
@@ -369,7 +371,7 @@ async function handleCompareAndOpen(
         edit.replace(localFileUri, fullRange, scriptObject.code);
         await vscode.workspace.applyEdit(edit);
         await fileService.openFile(localFileUri);
-        vscode.window.showInformationMessage("Local file updated with Viz script content");
+        vscode.window.setStatusBarMessage("$(check) Local file updated with Viz script content", 5000);
         break;
 
       case "Merge Manually":
@@ -377,7 +379,7 @@ async function handleCompareAndOpen(
         await fileService.openFile(localFileUri, { viewColumn: vscode.ViewColumn.One });
         await openScriptInTextEditor(context, client, vizId, true);
         await vscode.commands.executeCommand("workbench.action.focusSecondEditorGroup");
-        vscode.window.showInformationMessage("Files opened side by side for manual merging");
+        vscode.window.setStatusBarMessage("$(check) Files opened side by side for manual merging", 5000);
         break;
 
       default:
@@ -483,7 +485,7 @@ export async function openScriptInTextEditor(
         });
 
         // Show success message
-        window.showInformationMessage(`Current file replaced with script "${scriptObject.name}"`);
+        window.setStatusBarMessage(`$(check) Replaced with "${scriptObject.name}"`, 5000);
       } else {
         // Check if this script is already open in an editor
         const existingEditor = await findExistingScriptEditor(vizId, scriptObject.name, scriptObject.extension);
@@ -557,7 +559,7 @@ export async function openScriptInTextEditor(
             // Restore cursor position
             existingEditor.selection = new vscode.Selection(currentPosition, currentPosition);
 
-            window.showInformationMessage(`Script "${scriptObject.name}" content updated`);
+            window.setStatusBarMessage(`$(check) "${scriptObject.name}" content updated`, 5000);
           } else {
             // Fallback to just focusing if edit fails
             await window.showTextDocument(existingEditor.document);
@@ -580,9 +582,9 @@ export async function openScriptInTextEditor(
       }
     }
 
-    // Show metadata processing result to user if needed
+    // Show metadata processing result in status bar if present
     if (processedScript.message) {
-      window.showInformationMessage(processedScript.message);
+      window.setStatusBarMessage(`$(check) ${processedScript.message}`, 5000);
     }
   } catch (error) {
     showMessage(error);
@@ -684,7 +686,7 @@ export async function openScriptInTextEditorForceRefresh(
         // Restore cursor position
         existingEditor.selection = new vscode.Selection(currentPosition, currentPosition);
 
-        window.showInformationMessage(`Script "${scriptObject.name}" content refreshed`);
+        window.setStatusBarMessage(`$(check) "${scriptObject.name}" content refreshed`, 5000);
       } else {
         window.showErrorMessage(`Failed to refresh content for "${scriptObject.name}"`);
       }
@@ -698,12 +700,12 @@ export async function openScriptInTextEditorForceRefresh(
         context,
         scriptObject,
       );
-      window.showInformationMessage(`Script "${scriptObject.name}" opened (was not previously open)`);
+      window.setStatusBarMessage(`$(check) "${scriptObject.name}" opened`, 5000);
     }
 
-    // Show metadata processing result to user if needed
+    // Show metadata processing result in status bar if present
     if (processedScript.message) {
-      window.showInformationMessage(processedScript.message);
+      window.setStatusBarMessage(`$(check) ${processedScript.message}`, 5000);
     }
   } catch (error) {
     showMessage(error);
@@ -983,14 +985,10 @@ async function processScriptWithMetadata(
               };
             }
           } else {
-            // Show prompt for incomplete metadata
-            const choice = await vscode.window.showInformationMessage(
-              `Metadata is incomplete for "${scriptObject.name}". Missing: ${missingFields.join(", ")}`,
-              "Auto-complete",
-              "Continue anyway",
-            );
+            // Show QuickPick for incomplete metadata
+            const choice = await showIncompleteMetadataDialog(scriptObject.name, missingFields);
 
-            if (choice === "Auto-complete") {
+            if (choice.action === "update") {
               const mergedMetadata = metadataService.mergeMetadata(existingMetadata, suggestedMetadata);
               const updateResult = await metadataService.updateMetadataInContent(originalContent, mergedMetadata);
 
@@ -1000,10 +998,8 @@ async function processScriptWithMetadata(
                   message: `Metadata auto-completed for "${scriptObject.name}". Added: ${missingFields.join(", ")}`,
                 };
               }
-            } else if (choice === undefined) {
-              throw new Error("Script opening cancelled due to incomplete metadata");
             }
-            // If "Continue anyway", fall through to return original content
+            // "keep" or "skip" — fall through to return original content
           }
         } else {
           // Metadata is complete - check if user wants to update with current script info
@@ -1249,21 +1245,13 @@ async function validateAndHandleMetadataForScriptSetting(
           );
 
           if (!sceneValidation.isValid) {
-            const choice = await vscode.window.showWarningMessage(
-              `Scene path mismatch detected!`,
-              {
-                modal: true,
-                detail: sceneValidation.error || "Unknown scene validation error",
-              },
-              { title: "Add to Metadata" },
-              { title: "Replace Metadata" },
-              { title: "Continue Anyway" },
-              { title: "Cancel", isCloseAffordance: true },
+            const choice = await showScenePathMismatchDialog(
+              sceneValidation.error || "Unknown scene validation error",
             );
 
-            if (choice?.title === "Cancel" || !choice) {
+            if (choice.action === "cancel") {
               throw new Error("Script setting cancelled due to scene path mismatch");
-            } else if (choice?.title === "Add to Metadata") {
+            } else if (choice.action === "add") {
               // Add the current scene path to the existing path(s)
               const currentPath = sceneValidation.currentScenePath || "";
               const existingPaths = Array.isArray(updatedMetadata.scenePath)
@@ -1287,7 +1275,7 @@ async function validateAndHandleMetadataForScriptSetting(
                   await vscode.workspace.applyEdit(edit);
                 }
               }
-            } else if (choice?.title === "Replace Metadata") {
+            } else if (choice.action === "replace") {
               // Replace scene path with only the current scene path
               updatedMetadata.scenePath = sceneValidation.currentScenePath || "";
 
@@ -1308,7 +1296,7 @@ async function validateAndHandleMetadataForScriptSetting(
                 }
               }
             }
-            // If "Continue Anyway" was selected, don't update metadata
+            // If "continueAnyway" was selected, don't update metadata
           }
         }
 
@@ -1320,17 +1308,9 @@ async function validateAndHandleMetadataForScriptSetting(
     }
   } else {
     // No metadata found - offer to create it
-    const shouldCreateMetadata = await vscode.window.showInformationMessage(
-      "No metadata found in this script. Create metadata automatically?",
-      {
-        modal: false,
-        detail: "Metadata helps track script relationships with Viz scenes and enables better version control.",
-      },
-      { title: "Create Metadata" },
-      { title: "Skip", isCloseAffordance: true },
-    );
+    const result = await showNoMetadataSetFlowDialog();
 
-    if (shouldCreateMetadata?.title === "Create Metadata") {
+    if (result.action === "add") {
       try {
         // Get script objects to find the current one
         const scriptObjects = await loadFromStorage(context);
@@ -1350,13 +1330,13 @@ async function validateAndHandleMetadataForScriptSetting(
               edit.replace(editor.document.uri, fullRange, injectionResult.content);
               await vscode.workspace.applyEdit(edit);
 
-              vscode.window.showInformationMessage("Metadata created successfully!");
+              window.setStatusBarMessage("$(check) Metadata added", 5000);
             }
           }
         }
       } catch (error) {
         console.error("Error creating metadata:", error);
-        vscode.window.showWarningMessage("Failed to create metadata automatically.");
+        vscode.window.showWarningMessage("Failed to add metadata automatically.");
       }
     }
   }
@@ -1475,14 +1455,15 @@ export async function compileCurrentScript(
 
     await compileScriptId(context, updatedContent, hostName, hostPort, vizId, selectedLayer);
 
-    // Create success message with count if multiple scripts are being set
-    let successMessage = "Script set successfully in Viz!";
+    // Show success in the status bar (same item as compile results)
+    let successLabel = "$(check) Script set in Viz";
     if (config?.scriptCount && config.scriptCount > 1) {
       const currentIndex = config.currentIndex || 1;
-      successMessage = `Script ${currentIndex} of ${config.scriptCount} set successfully in Viz!`;
+      successLabel = `$(check) Script ${currentIndex}/${config.scriptCount} set in Viz`;
     }
-
-    window.showInformationMessage(successMessage);
+    compileMessage.text = successLabel;
+    compileMessage.backgroundColor = new ThemeColor("statusBarItem.successBackground");
+    showStatusMessage(compileMessage);
   } catch (error) {
     showMessage(error);
   }
@@ -1650,8 +1631,9 @@ export async function splitScriptGroup(context: ExtensionContext, groupVizId: st
     // Refresh sidebar with current state (don't re-fetch from Viz to avoid auto-grouping)
     vscode.commands.executeCommand("vizscript.refreshsidebar");
 
-    vscode.window.showInformationMessage(
-      `Split group "${group.name}" into ${individualScripts.length} individual scripts`,
+    vscode.window.setStatusBarMessage(
+      `$(check) Split "${group.name}" into ${individualScripts.length} scripts`,
+      5000,
     );
   } catch (error) {
     vscode.window.showErrorMessage(`Failed to split group: ${error.message}`);
@@ -1945,7 +1927,7 @@ export async function mergeScriptsIntoGroup(context: ExtensionContext, vizIds: s
     // Refresh sidebar with current state
     vscode.commands.executeCommand("vizscript.refreshsidebar");
 
-    vscode.window.showInformationMessage(`Merged ${scriptsToMerge.length} scripts into group "${groupScript.name}"`);
+    vscode.window.setStatusBarMessage(`$(check) Merged ${scriptsToMerge.length} scripts into "${groupScript.name}"`, 5000);
   } catch (error) {
     vscode.window.showErrorMessage(`Failed to merge scripts: ${error.message}`);
   }
@@ -2067,7 +2049,7 @@ export async function renameCollection(context: ExtensionContext, client: Langua
     // Refresh sidebar to show updated name
     vscode.commands.executeCommand("vizscript.refreshsidebar");
 
-    vscode.window.showInformationMessage(`Collection renamed to "${newName}"`);
+    vscode.window.setStatusBarMessage(`$(check) Collection renamed to "${newName}"`, 5000);
   } catch (error) {
     vscode.window.showErrorMessage(`Failed to rename collection: ${error.message}`);
   }
