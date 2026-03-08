@@ -110,21 +110,6 @@
 				"icon": "$(tag)"
 			},
 			{
-				"command": "vizscript.sidebar.renameCollection",
-				"title": "Rename Collection",
-				"icon": "$(edit)"
-			},
-			{
-				"command": "vizscript.sidebar.splitGroup",
-				"title": "Split Group",
-				"icon": "$(split-horizontal)"
-			},
-			{
-				"command": "vizscript.sidebar.mergeScripts",
-				"title": "Merge into Group",
-				"icon": "$(group-by-ref-type)"
-			},
-			{
 				"command": "vizscript.toggleCompletionSystem",
 				"title": "VizScript: Toggle Completion System (Old/New)"
 			},
@@ -172,27 +157,12 @@
 					"when": "webviewId == 'vizscript-sidebar' && webviewSection == 'scriptItem'",
 					"group": "2_clipboard@1"
 				},
-				{
-					"command": "vizscript.sidebar.copyVizId",
-					"when": "webviewId == 'vizscript-sidebar' && webviewSection == 'scriptItem'",
-					"group": "2_clipboard@2"
-				},
-				{
-					"command": "vizscript.sidebar.renameCollection",
-					"when": "webviewId == 'vizscript-sidebar' && webviewSection == 'scriptItem' && isGroup",
-					"group": "3_groups@1"
-				},
-				{
-					"command": "vizscript.sidebar.splitGroup",
-					"when": "webviewId == 'vizscript-sidebar' && webviewSection == 'scriptItem' && isGroup",
-					"group": "3_groups@2"
-				},
-				{
-					"command": "vizscript.sidebar.mergeScripts",
-					"when": "webviewId == 'vizscript-sidebar' && webviewSection == 'scriptItem'",
-					"group": "3_groups@3"
-				}
-			],
+			{
+				"command": "vizscript.sidebar.copyVizId",
+				"when": "webviewId == 'vizscript-sidebar' && webviewSection == 'scriptItem'",
+				"group": "2_clipboard@2"
+			}
+		],
 			"commandPalette": [
 				{
 					"command": "vizscript.compile",
@@ -484,6 +454,26 @@
 					],
 					"default": "edit",
 					"description": "Action to perform when double-clicking a script in the sidebar",
+					"scope": "resource"
+				},
+				"vizscript.sidebar.defaultSortOrder": {
+					"type": "string",
+					"enum": [
+						"default",
+						"name-asc",
+						"name-desc",
+						"type",
+						"grouped"
+					],
+					"enumDescriptions": [
+						"Original Viz Engine tree order",
+						"Alphabetical A → Z",
+						"Alphabetical Z → A",
+						"Scene first, then Containers, then Groups",
+						"Identical-code containers grouped together with collapse support"
+					],
+					"default": "default",
+					"description": "Default sort order for the script list in the sidebar",
 					"scope": "resource"
 				},
 				"vizscript.formatting.enabled": {

@@ -252,15 +252,14 @@ export class FileService {
     fileName: string,
   ): Promise<"openLocal" | "openRemote" | "showDiff" | "cancel"> {
     const choice = await vscode.window.showInformationMessage(
-      `Found local file "${fileName}" but content differs from Viz script.`,
+      `Content mismatch for "${fileName}"`,
       {
         modal: true,
-        detail: `Local file: ${filePath}\n\nWhat would you like to do?`,
+        detail: `A local file matching this script's metadata was found, but its content differs from the current Viz script.\n\nLocal file: ${filePath}\n\nWhich version would you like to open?`,
       },
       "Local File",
       "Viz Script",
       "Show Diff",
-      "Cancel",
     );
 
     switch (choice) {
@@ -283,17 +282,16 @@ export class FileService {
     fileName: string,
     contentMatches: boolean,
   ): Promise<"openLocal" | "openRemote" | "showDiff" | "cancel"> {
-    const matchText = contentMatches ? "Content matches" : "Content differs";
+    const matchText = contentMatches ? "Content matches the Viz script." : "Content differs from the Viz script.";
     const choice = await vscode.window.showInformationMessage(
-      `Found local file "${fileName}". ${matchText}.`,
+      `Local file found for "${fileName}"`,
       {
         modal: true,
-        detail: `Local file: ${filePath}\n\nWhat would you like to do?`,
+        detail: `A local file matching this script's metadata was found. ${matchText}\n\nLocal file: ${filePath}\n\nWhich version would you like to open?`,
       },
       "Local File",
       "Viz Script",
       ...(contentMatches ? [] : ["Show Diff"]),
-      "Cancel",
     );
 
     switch (choice) {

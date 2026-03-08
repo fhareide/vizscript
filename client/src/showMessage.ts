@@ -12,6 +12,11 @@ export function showMessage(err) {
 
   const message = err.message || err;
 
+  // Silently ignore user-initiated cancellations
+  if (typeof message === 'string' && message.includes('cancelled by user')) {
+    return;
+  }
+
   if (err.type === 'info') {
     return window.showInformationMessage(message);
   } else if (err.type === 'warn') {

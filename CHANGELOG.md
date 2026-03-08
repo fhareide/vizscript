@@ -1,3 +1,11 @@
+### 1.0.0
+  - **New**: Fully reworked the entire group logic to be collapsible and give access to all group children directly.
+  - **New**: Added search script content feature with the ability to jump to code in editor.
+  - **New**: Added the possibility to set multiple script at the same time by shift selecting them. Effectivly making them a group and overwriting the content of all of them.
+  - **Removed**: Removed all split and merge groups logic as this can now be done by just setting a different script on a single child container.
+	- **Fix**: Cleaned up modals,dialogs and toasts. Moved a lot of toasts to the status bar at the bottom to avoid interuptions in the ui.
+
+
 ### 0.6.6
   - **New**: Added support for multiple Scene paths in script
   - **Fix**: Fixed issue where metadata would not propagate to all containers in a group when setting the script in Viz

@@ -289,6 +289,10 @@ export function getVizScripts(
             }
           }
 
+          // Build a lookup for original tree order: vizId -> index in scriptObjects
+          const treeOrderIndex = new Map<string, number>();
+          scriptObjects.forEach((s, i) => treeOrderIndex.set(s.vizId, i));
+
           // Add scene script to the final list
           finalScriptObjects.push(...sceneScript);
 
@@ -362,6 +366,12 @@ export function getVizScripts(
 
               finalScriptObjects.push(collectionScript);
 
+              // Also push each individual child script so they can be shown when the group is expanded
+              for (const vizId of vizIds) {
+                const childScript = scriptMap.get(vizId);
+                if (childScript) finalScriptObjects.push({ ...childScript, isGroupChild: true });
+              }
+
               // Only increment if we created a new collection (not reusing an existing one)
               if (!existingCollection) {
                 collectionIndex++;
@@ -373,8 +383,24 @@ export function getVizScripts(
             }
           }
 
-          // Replace scriptObjects with the final list
-          scriptObjects = finalScriptObjects;
+          // Re-sort finalScriptObjects (after the scene script) by original tree order.
+          // Groups sort by the position of their first child; individual scripts by their own position.
+          const getTreeOrder = (s: VizScriptObject): number => {
+            if (s.isGroup) {
+              const firstChildIdx = s.children.reduce((min, id) => {
+                const idx = treeOrderIndex.get(id) ?? Infinity;
+                return idx < min ? idx : min;
+              }, Infinity);
+              return firstChildIdx;
+            }
+            return treeOrderIndex.get(s.vizId) ?? Infinity;
+          };
+
+          // Keep scene scripts at the front, sort the rest
+          const sceneItems = finalScriptObjects.filter(s => s.type === "Scene");
+          const nonSceneItems = finalScriptObjects.filter(s => s.type !== "Scene");
+          nonSceneItems.sort((a, b) => getTreeOrder(a) - getTreeOrder(b));
+          scriptObjects = [...sceneItems, ...nonSceneItems];
 
           console.log("Scripts fetched successfully without tree path enrichment");
 

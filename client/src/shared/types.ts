@@ -7,6 +7,7 @@ export type VizScriptObject = {
   vizId: string;
   children: string[];
   isGroup?: boolean; // Flag to identify if this is a grouped collection
+  isGroupChild?: boolean; // Flag to identify if this is an individual child of a group
   treePath?: string | string[]; // Path in the scene tree structure
 };
 

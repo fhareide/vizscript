@@ -437,7 +437,7 @@ export async function openScriptInTextEditor(
   vizId: string,
   newFile: boolean,
   preview: boolean = false,
-) {
+): Promise<vscode.TextEditor | undefined> {
   try {
     const state = await loadFromStorage(context);
     const scriptObjects: VizScriptObject[] = state;
@@ -463,10 +463,14 @@ export async function openScriptInTextEditor(
 
       const fileService = new FileService();
       await fileService.openFile(processedScript.localFileUri);
+      // Local file opens are handled by VS Code — return the active editor
+      return window.activeTextEditor;
     } else {
+      let editor: vscode.TextEditor | undefined;
+
       // Open as untitled, preview, or add to current file
       if (preview) {
-        await showPreviewWindow(
+        editor = await showPreviewWindow(
           vizIdStripped,
           scriptObject.name,
           scriptObject.extension,
@@ -475,7 +479,7 @@ export async function openScriptInTextEditor(
         );
       } else if (!newFile && window.activeTextEditor) {
         // Replace entire content of current file
-        const editor = window.activeTextEditor;
+        editor = window.activeTextEditor;
         const document = editor.document;
 
         // Replace the entire document content
@@ -553,8 +557,7 @@ export async function openScriptInTextEditor(
             // Save cursor position and selection
             const currentPosition = existingEditor.selection.active;
 
-            // Simply focus the editor - the WorkspaceEdit should be sufficient for most cases
-            await window.showTextDocument(existingEditor.document);
+            editor = await window.showTextDocument(existingEditor.document);
 
             // Restore cursor position
             existingEditor.selection = new vscode.Selection(currentPosition, currentPosition);
@@ -562,7 +565,7 @@ export async function openScriptInTextEditor(
             window.setStatusBarMessage(`$(check) "${scriptObject.name}" content updated`, 5000);
           } else {
             // Fallback to just focusing if edit fails
-            await window.showTextDocument(existingEditor.document);
+            editor = await window.showTextDocument(existingEditor.document);
             window.showErrorMessage(`Failed to update content for "${scriptObject.name}"`);
           }
         } else {
@@ -570,7 +573,7 @@ export async function openScriptInTextEditor(
           await closePreviewTabForScript(scriptObject.name, scriptObject.extension);
 
           // Create new untitled file
-          await showUntitledWindow(
+          editor = await showUntitledWindow(
             vizIdStripped,
             scriptObject.name,
             scriptObject.extension,
@@ -580,15 +583,19 @@ export async function openScriptInTextEditor(
           );
         }
       }
-    }
 
-    // Show metadata processing result in status bar if present
-    if (processedScript.message) {
-      window.setStatusBarMessage(`$(check) ${processedScript.message}`, 5000);
+      // Show metadata processing result in status bar if present
+      if (processedScript.message) {
+        window.setStatusBarMessage(`$(check) ${processedScript.message}`, 5000);
+      }
+
+      return editor;
     }
   } catch (error) {
     showMessage(error);
-    throw error;
+    if (!(error instanceof Error && error.message.includes("cancelled by user"))) {
+      throw error;
+    }
   }
 }
 
@@ -709,7 +716,9 @@ export async function openScriptInTextEditorForceRefresh(
     }
   } catch (error) {
     showMessage(error);
-    throw error;
+    if (!(error instanceof Error && error.message.includes("cancelled by user"))) {
+      throw error;
+    }
   }
 }
 
@@ -786,6 +795,13 @@ async function processScriptWithLocalFileIntegration(
                   localFileUri: searchResult.uri,
                 };
 
+              case "openRemote":
+                // User explicitly chose the Viz version — open it directly without further prompts
+                return {
+                  content: originalContent,
+                  message: `Opening Viz script: ${scriptObject.name}`,
+                };
+
               case "showDiff":
                 // Show diff first, then let user decide
                 await fileService.showDiff(
@@ -811,21 +827,28 @@ async function processScriptWithLocalFileIntegration(
                     openLocalFile: true,
                     localFileUri: searchResult.uri,
                   };
-                } else if (afterDiffChoice === "Cancel") {
+                } else if (afterDiffChoice === "Viz Script") {
+                  // User explicitly chose Viz version after diff — open without further prompts
+                  return {
+                    content: originalContent,
+                    message: `Opening Viz script: ${scriptObject.name}`,
+                  };
+                } else if (afterDiffChoice === "Cancel" || afterDiffChoice === undefined) {
                   throw new Error("Script opening cancelled by user");
                 }
-                // Fall through to open remote content
                 break;
 
               case "cancel":
                 throw new Error("Script opening cancelled by user");
-
-              // case "openRemote" or default - continue with remote content
             }
           }
         }
       }
     } catch (error) {
+      // Re-throw cancellations so the whole open flow stops
+      if (error instanceof Error && error.message.includes("cancelled by user")) {
+        throw error;
+      }
       console.warn("Error checking for local file:", error);
       // Continue with normal metadata processing
     }
@@ -1008,9 +1031,12 @@ async function processScriptWithMetadata(
             // Create suggested metadata that preserves existing UUID and other important fields
             const properSuggestedMetadata = metadataService.mergeMetadata(existingMetadata, suggestedMetadata);
 
-            if (scriptObject.isGroup) {
-              // Groups are virtual containers — silently auto-merge without prompting the user
-              const updateResult = await metadataService.updateMetadataInContent(originalContent, properSuggestedMetadata);
+            if (scriptObject.isGroup || scriptObject.isGroupChild) {
+              // Groups and their children are virtual — silently auto-merge without prompting the user
+              const updateResult = await metadataService.updateMetadataInContent(
+                originalContent,
+                properSuggestedMetadata,
+              );
               if (updateResult.success) {
                 return {
                   content: updateResult.content,
@@ -1245,9 +1271,7 @@ async function validateAndHandleMetadataForScriptSetting(
           );
 
           if (!sceneValidation.isValid) {
-            const choice = await showScenePathMismatchDialog(
-              sceneValidation.error || "Unknown scene validation error",
-            );
+            const choice = await showScenePathMismatchDialog(sceneValidation.error || "Unknown scene validation error");
 
             if (choice.action === "cancel") {
               throw new Error("Script setting cancelled due to scene path mismatch");
@@ -1396,6 +1420,7 @@ export async function compileCurrentScript(
     scriptCount?: number;
     currentIndex?: number;
   },
+  sidebarProvider?: SidebarProvider,
 ) {
   try {
     const connectionInfo = await getConfig();
@@ -1431,7 +1456,13 @@ export async function compileCurrentScript(
       );
 
       if (resolvedVizId) {
-        vizId = resolvedVizId;
+        // Don't override an explicitly provided vizId with a group (#c...) vizId —
+        // the sidebar passes the real container vizId which should always win over
+        // a synthetic group reference derived from shared metadata.
+        const resolvedIsGroup = resolvedVizId.startsWith("#c");
+        if (!resolvedIsGroup || !vizId) {
+          vizId = resolvedVizId;
+        }
       }
     }
 
@@ -1464,6 +1495,18 @@ export async function compileCurrentScript(
     compileMessage.text = successLabel;
     compileMessage.backgroundColor = new ThemeColor("statusBarItem.successBackground");
     showStatusMessage(compileMessage);
+
+    // Silently re-fetch scripts from Viz so the sidebar stays in sync
+    if (sidebarProvider) {
+      try {
+        const scripts = await getVizScripts(hostName, hostPort, context, selectedLayer);
+        if (sidebarProvider._view?.webview) {
+          sidebarProvider._view.webview.postMessage({ type: "receiveScripts", value: scripts });
+        }
+      } catch (refreshError) {
+        console.warn("Post-set sidebar refresh failed:", refreshError);
+      }
+    }
   } catch (error) {
     showMessage(error);
   }
@@ -1472,22 +1515,120 @@ export async function compileCurrentScript(
 /**
  * Set script in main layer (MAIN_SCENE)
  */
-export async function setScriptInMainLayer(context: ExtensionContext, client: LanguageClient) {
-  await compileCurrentScript(context, client, { selectedLayer: "MAIN_SCENE" });
+export async function setScriptInMainLayer(
+  context: ExtensionContext,
+  client: LanguageClient,
+  sidebarProvider?: SidebarProvider,
+) {
+  await compileCurrentScript(context, client, { selectedLayer: "MAIN_SCENE" }, sidebarProvider);
 }
 
 /**
  * Set script in front layer (FRONT_LAYER)
  */
-export async function setScriptInFrontLayer(context: ExtensionContext, client: LanguageClient) {
-  await compileCurrentScript(context, client, { selectedLayer: "FRONT_LAYER" });
+export async function setScriptInFrontLayer(
+  context: ExtensionContext,
+  client: LanguageClient,
+  sidebarProvider?: SidebarProvider,
+) {
+  await compileCurrentScript(context, client, { selectedLayer: "FRONT_LAYER" }, sidebarProvider);
 }
 
 /**
  * Set script in back layer (BACK_LAYER)
  */
-export async function setScriptInBackLayer(context: ExtensionContext, client: LanguageClient) {
-  await compileCurrentScript(context, client, { selectedLayer: "BACK_LAYER" });
+export async function setScriptInBackLayer(
+  context: ExtensionContext,
+  client: LanguageClient,
+  sidebarProvider?: SidebarProvider,
+) {
+  await compileCurrentScript(context, client, { selectedLayer: "BACK_LAYER" }, sidebarProvider);
+}
+
+/**
+ * Set the current editor's script content to multiple Viz containers at once.
+ * Shows a confirmation dialog listing the target scripts before proceeding.
+ */
+export async function setMultipleScripts(
+  context: ExtensionContext,
+  client: LanguageClient,
+  config: { vizIds: string[]; selectedLayer: string; hostname: string; port: number },
+  sidebarProvider?: SidebarProvider,
+) {
+  try {
+    const { vizIds, selectedLayer, hostname, port } = config;
+    if (!vizIds || vizIds.length < 2) {
+      throw new Error("At least 2 scripts must be selected.");
+    }
+
+    if (!window.activeTextEditor) {
+      throw new Error("No active text editor. Please open a script first.");
+    }
+
+    const content = window.activeTextEditor.document.getText();
+
+    // Load script names for the confirmation dialog
+    const scriptObjects = await loadFromStorage(context);
+    const targets = vizIds.map((id) => {
+      const found = scriptObjects.find((s) => s.vizId === id);
+      return found ? `• ${found.name} (${id})` : `• ${id}`;
+    });
+
+    const n = vizIds.length;
+    const choice = await vscode.window.showWarningMessage(
+      `Set ${n} scripts in Viz?`,
+      {
+        modal: true,
+        detail: `The content currently open in the editor will overwrite all ${n} selected containers in Viz:\n\n${targets.join("\n")}\n\nThis cannot be undone.`,
+      },
+      `Set All (${n} scripts)`,
+    );
+
+    if (choice !== `Set All (${n} scripts)`) {
+      return;
+    }
+
+    // Single syntax check before sending to all containers
+    try {
+      await syntaxCheckCurrentScript(context, client, selectedLayer);
+    } catch {
+      throw new Error("Syntax error in script. Please correct before trying to set again.");
+    }
+
+    // Send the same editor content to each container directly
+    let successCount = 0;
+    for (let i = 0; i < vizIds.length; i++) {
+      try {
+        await compileScriptId(context, content, hostname, port, vizIds[i], selectedLayer);
+        successCount++;
+        compileMessage.text = `$(check) Script ${i + 1}/${n} set in Viz`;
+        compileMessage.backgroundColor = new ThemeColor("statusBarItem.successBackground");
+        showStatusMessage(compileMessage);
+      } catch (error) {
+        vscode.window.showWarningMessage(`Failed to set script ${vizIds[i]}: ${error.message}`);
+      }
+    }
+
+    if (successCount > 0) {
+      compileMessage.text = `$(check) ${successCount}/${n} scripts set in Viz`;
+      compileMessage.backgroundColor = new ThemeColor("statusBarItem.successBackground");
+      showStatusMessage(compileMessage);
+    }
+
+    // Refresh sidebar after all scripts are set
+    if (sidebarProvider) {
+      try {
+        const scripts = await getVizScripts(hostname, port, context, selectedLayer);
+        if (sidebarProvider._view?.webview) {
+          sidebarProvider._view.webview.postMessage({ type: "receiveScripts", value: scripts });
+        }
+      } catch (refreshError) {
+        console.warn("Post-set sidebar refresh failed:", refreshError);
+      }
+    }
+  } catch (error) {
+    showMessage(error);
+  }
 }
 
 /**
@@ -1631,10 +1772,7 @@ export async function splitScriptGroup(context: ExtensionContext, groupVizId: st
     // Refresh sidebar with current state (don't re-fetch from Viz to avoid auto-grouping)
     vscode.commands.executeCommand("vizscript.refreshsidebar");
 
-    vscode.window.setStatusBarMessage(
-      `$(check) Split "${group.name}" into ${individualScripts.length} scripts`,
-      5000,
-    );
+    vscode.window.setStatusBarMessage(`$(check) Split "${group.name}" into ${individualScripts.length} scripts`, 5000);
   } catch (error) {
     vscode.window.showErrorMessage(`Failed to split group: ${error.message}`);
   }
@@ -1927,7 +2065,10 @@ export async function mergeScriptsIntoGroup(context: ExtensionContext, vizIds: s
     // Refresh sidebar with current state
     vscode.commands.executeCommand("vizscript.refreshsidebar");
 
-    vscode.window.setStatusBarMessage(`$(check) Merged ${scriptsToMerge.length} scripts into "${groupScript.name}"`, 5000);
+    vscode.window.setStatusBarMessage(
+      `$(check) Merged ${scriptsToMerge.length} scripts into "${groupScript.name}"`,
+      5000,
+    );
   } catch (error) {
     vscode.window.showErrorMessage(`Failed to merge scripts: ${error.message}`);
   }
@@ -1936,7 +2077,11 @@ export async function mergeScriptsIntoGroup(context: ExtensionContext, vizIds: s
 /**
  * Renames a collection and updates its metadata
  */
-export async function renameCollection(context: ExtensionContext, client: LanguageClient, vizId: string): Promise<void> {
+export async function renameCollection(
+  context: ExtensionContext,
+  client: LanguageClient,
+  vizId: string,
+): Promise<void> {
   try {
     const scriptObjects = await loadFromStorage(context);
     const collectionIndex = scriptObjects.findIndex((script) => script.vizId === vizId && script.isGroup);
@@ -1947,7 +2092,7 @@ export async function renameCollection(context: ExtensionContext, client: Langua
 
     const collection = scriptObjects[collectionIndex];
     const oldName = collection.name; // Save old name for matching in open documents
-    
+
     // Prompt user for new name
     const newName = await vscode.window.showInputBox({
       prompt: "Enter new collection name",
@@ -1957,7 +2102,7 @@ export async function renameCollection(context: ExtensionContext, client: Langua
           return "Collection name cannot be empty";
         }
         return null;
-      }
+      },
     });
 
     if (!newName || newName === collection.name) {
@@ -1969,14 +2114,14 @@ export async function renameCollection(context: ExtensionContext, client: Langua
 
     // Update collection name
     collection.name = newName.trim();
-    
+
     // Save updated collection to storage
     scriptObjects[collectionIndex] = collection;
     await saveToStorage(context, scriptObjects);
-    
+
     console.log(`[renameCollection] Saved to storage. Verifying...`);
     const verifyScripts = await loadFromStorage(context);
-    const verifyCollection = verifyScripts.find(s => s.vizId === vizId);
+    const verifyCollection = verifyScripts.find((s) => s.vizId === vizId);
     console.log(`[renameCollection] Verified collection name in storage:`, verifyCollection?.name);
 
     // Find any open editors with this collection and update their metadata
@@ -1984,12 +2129,12 @@ export async function renameCollection(context: ExtensionContext, client: Langua
     for (const doc of openDocuments) {
       // Check if this document contains our collection
       const content = doc.getText();
-      
+
       // Look for metadata with matching UUID or vizId
       const lines = content.split(/\r?\n/g);
       let inMetaSection = false;
       let metadataJson = "";
-      
+
       for (const line of lines) {
         if (line.includes("VSCODE-META-START") && line.includes("VSCODE-META-END")) {
           // Single-line format
@@ -2013,29 +2158,27 @@ export async function renameCollection(context: ExtensionContext, client: Langua
       if (metadataJson) {
         try {
           const metadata = JSON.parse(metadataJson);
-          
+
           // Check if this metadata belongs to our collection
           // Use oldName for matching since collection.name has already been updated
           const scenePathMatches = Array.isArray(metadata.scenePath)
             ? metadata.scenePath.includes(collection.scenePath)
             : metadata.scenePath === collection.scenePath;
-          if (metadata.isGroup && (
-            (metadata.UUID && metadata.UUID === uuidByString(`vizscript-${vizId}`)) ||
-            (scenePathMatches && metadata.fileName === oldName)
-          )) {
+          if (
+            metadata.isGroup &&
+            ((metadata.UUID && metadata.UUID === uuidByString(`vizscript-${vizId}`)) ||
+              (scenePathMatches && metadata.fileName === oldName))
+          ) {
             // Update the metadata with new name
             metadata.fileName = newName.trim();
-            
+
             // Update the document
             const metadataService = new MetadataService(client);
             const result = await metadataService.updateMetadataInContent(content, metadata);
-            
+
             if (result.success) {
               const edit = new vscode.WorkspaceEdit();
-              const fullRange = new vscode.Range(
-                doc.positionAt(0),
-                doc.positionAt(content.length)
-              );
+              const fullRange = new vscode.Range(doc.positionAt(0), doc.positionAt(content.length));
               edit.replace(doc.uri, fullRange, result.content);
               await vscode.workspace.applyEdit(edit);
             }
@@ -2054,7 +2197,6 @@ export async function renameCollection(context: ExtensionContext, client: Langua
     vscode.window.showErrorMessage(`Failed to rename collection: ${error.message}`);
   }
 }
-
 
 /**
  * Refreshes the sidebar with current stored scripts without re-fetching from Viz

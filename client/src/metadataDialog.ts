@@ -37,6 +37,15 @@ export async function showMetadataUpdateDialog(options: MetadataDialogOptions): 
     await showDetailedMetadataView(currentMetadata, suggestedMetadata);
   }
 
+  return showMetadataQuickPick(options, comparison);
+}
+
+async function showMetadataQuickPick(
+  options: MetadataDialogOptions,
+  comparison: string,
+): Promise<MetadataDialogResult> {
+  const { currentMetadata, suggestedMetadata, scriptName } = options;
+
   const items: vscode.QuickPickItem[] = [
     {
       label: "$(sync) Update Metadata",
@@ -76,8 +85,9 @@ export async function showMetadataUpdateDialog(options: MetadataDialogOptions): 
     case "$(check) Keep Existing":
       return { action: "keep", metadata: currentMetadata };
     case "$(info) Show Full Details":
+      // Open detail view then re-show only the QuickPick (not the full dialog entry point)
       await showDetailedMetadataView(currentMetadata, suggestedMetadata);
-      return showMetadataUpdateDialog(options);
+      return showMetadataQuickPick(options, comparison);
     default:
       return { action: "skip" };
   }

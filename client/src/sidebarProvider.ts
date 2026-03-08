@@ -82,12 +82,20 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           vscode.commands.executeCommand("vizscript.editscript", data.value);
           break;
         }
+        case "openAndSearch": {
+          vscode.commands.executeCommand("vizscript.sidebar.openAndSearch", data.value);
+          break;
+        }
         case "editScriptForceRefresh": {
           vscode.commands.executeCommand("vizscript.editscriptforcerefresh", data.value);
           break;
         }
         case "setScript": {
           vscode.commands.executeCommand("vizscript.setscript", data.value);
+          break;
+        }
+        case "setScripts": {
+          vscode.commands.executeCommand("vizscript.setscript.multi", data.value);
           break;
         }
         case "resetScripts": {
@@ -103,18 +111,6 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
             sidebar: sidebarSettings,
           };
           webviewView.webview.postMessage({ type: "receiveSettings", value: allSettings });
-          break;
-        }
-        case "splitGroup": {
-          vscode.commands.executeCommand("vizscript.splitscriptgroup", data.value);
-          break;
-        }
-        case "mergeScripts": {
-          vscode.commands.executeCommand("vizscript.mergescripts");
-          break;
-        }
-        case "mergeSelectedScripts": {
-          vscode.commands.executeCommand("vizscript.mergeselectedscripts", data.value);
           break;
         }
         case "executeCommand": {

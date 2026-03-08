@@ -335,6 +335,41 @@ export function activate(context: vscode.ExtensionContext) {
   );
 
   context.subscriptions.push(
+    vscode.commands.registerCommand(
+      "vizscript.sidebar.openAndSearch",
+      async (data: { vizId: string; searchTerm: string }) => {
+        const editor = await Commands.openScriptInTextEditor.bind(this)(context, client, data.vizId, true);
+        if (!editor || !data.searchTerm) return;
+
+        const text = editor.document.getText();
+        const idx = text.toLowerCase().indexOf(data.searchTerm.toLowerCase());
+        if (idx === -1) return;
+
+        // Ensure the editor is focused before opening the find widget
+        const focusedEditor = await vscode.window.showTextDocument(editor.document, { preview: false, preserveFocus: false });
+
+        const startPos = focusedEditor.document.positionAt(idx);
+        const endPos = focusedEditor.document.positionAt(idx + data.searchTerm.length);
+        const range = new vscode.Range(startPos, endPos);
+
+        focusedEditor.selection = new vscode.Selection(startPos, endPos);
+        focusedEditor.revealRange(range, vscode.TextEditorRevealType.InCenter);
+
+        // Small delay to ensure the editor tab is fully active before opening the find widget
+        await new Promise(resolve => setTimeout(resolve, 150));
+
+        // Fill the editor find widget and open it — user can then F3/Shift+F3 through matches
+        await vscode.commands.executeCommand("editor.actions.findWithArgs", {
+          searchString: data.searchTerm,
+          isRegex: false,
+          matchWholeWord: false,
+          isCaseSensitive: false,
+        });
+      },
+    ),
+  );
+
+  context.subscriptions.push(
     vscode.commands.registerCommand("vizscript.editscriptforcerefresh", async (vizId: string) => {
       await Commands.openScriptInTextEditorForceRefresh.bind(this)(context, client, vizId);
     }),
@@ -344,7 +379,16 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand(
       "vizscript.setscript",
       async (config: { vizId: string; selectedLayer: string; hostname: string; port: number }) => {
-        await Commands.compileCurrentScript.bind(this)(context, client, config);
+        await Commands.compileCurrentScript.bind(this)(context, client, config, sidebarProvider);
+      },
+    ),
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
+      "vizscript.setscript.multi",
+      async (config: { vizIds: string[]; selectedLayer: string; hostname: string; port: number }) => {
+        await Commands.setMultipleScripts.bind(this)(context, client, config, sidebarProvider);
       },
     ),
   );
@@ -515,18 +559,6 @@ export function activate(context: vscode.ExtensionContext) {
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("vizscript.mergescripts", async () => {
-      await Commands.showMergeScriptsQuickPick.bind(this)(context);
-    }),
-  );
-
-  context.subscriptions.push(
-    vscode.commands.registerCommand("vizscript.mergeselectedscripts", async (vizIds: string[]) => {
-      await Commands.mergeScriptsIntoGroup.bind(this)(context, vizIds);
-    }),
-  );
-
-  context.subscriptions.push(
     vscode.commands.registerCommand("vizscript.refreshsidebar", async () => {
       await Commands.refreshSidebar.bind(this)(context, sidebarProvider);
     }),
@@ -654,92 +686,23 @@ export function activate(context: vscode.ExtensionContext) {
   );
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("vizscript.sidebar.splitGroup", async (contextData?: any) => {
-      let groupVizId: string | null = null;
-
-      // Try to get script from context data first (right-click menu)
-      if (contextData?.script?.vizId && contextData?.isGroup) {
-        groupVizId = contextData.script.vizId;
-      } else {
-        // Fallback to the old method for other invocations
-        const selectedScript = await getSelectedScriptFromSidebar(sidebarProvider);
-        if (selectedScript) {
-          groupVizId = selectedScript;
-        }
-      }
-
-      if (groupVizId) {
-        await Commands.splitScriptGroup.bind(this)(context, groupVizId);
-      }
-    }),
-  );
-
-  context.subscriptions.push(
-    vscode.commands.registerCommand("vizscript.sidebar.renameCollection", async (contextData?: any) => {
-      let collectionVizId: string | null = null;
-
-      // Try to get script from context data first (right-click menu)
-      if (contextData?.script?.vizId && contextData?.isGroup) {
-        collectionVizId = contextData.script.vizId;
-      } else {
-        // Fallback to the old method for other invocations
-        const selectedScript = await getSelectedScriptFromSidebar(sidebarProvider);
-        if (selectedScript) {
-          collectionVizId = selectedScript;
-        }
-      }
-
-      if (collectionVizId) {
-        await Commands.renameCollection.bind(this)(context, client, collectionVizId);
-      }
-    }),
-  );
-
-  context.subscriptions.push(
-    vscode.commands.registerCommand("vizscript.sidebar.mergeScripts", async (contextData?: any) => {
-      let vizIds: string[] = [];
-
-      // Try to get selected scripts from context data first (right-click menu)
-      if (contextData?.selectedScriptIds && contextData.selectedScriptIds.length > 0) {
-        vizIds = contextData.selectedScriptIds;
-
-        // Only proceed if we have multiple items or show a message
-        if (vizIds.length < 2) {
-          vscode.window.showInformationMessage(
-            "Please select multiple container scripts to merge into a group. Use Shift+Click to select multiple items.",
-          );
-          return;
-        }
-      } else {
-        // Fallback to the old method for other invocations - show quick pick
-        await Commands.showMergeScriptsQuickPick.bind(this)(context);
-        return;
-      }
-
-      if (vizIds.length > 1) {
-        await Commands.mergeScriptsIntoGroup.bind(this)(context, vizIds);
-      }
-    }),
-  );
-
-  context.subscriptions.push(
     vscode.commands.registerTextEditorCommand(
       "vizscript.setscript.main",
-      Commands.setScriptInMainLayer.bind(this, context, client),
+      Commands.setScriptInMainLayer.bind(this, context, client, sidebarProvider),
     ),
   );
 
   context.subscriptions.push(
     vscode.commands.registerTextEditorCommand(
       "vizscript.setscript.front",
-      Commands.setScriptInFrontLayer.bind(this, context, client),
+      Commands.setScriptInFrontLayer.bind(this, context, client, sidebarProvider),
     ),
   );
 
   context.subscriptions.push(
     vscode.commands.registerTextEditorCommand(
       "vizscript.setscript.back",
-      Commands.setScriptInBackLayer.bind(this, context, client),
+      Commands.setScriptInBackLayer.bind(this, context, client, sidebarProvider),
     ),
   );
 
