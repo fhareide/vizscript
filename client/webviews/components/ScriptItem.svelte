@@ -174,15 +174,19 @@
         {/each}
       </div>
       <div class="text-vscode-descriptionForeground flex gap-2 text-sm truncate">
-        {#if !script.isGroup}<span>{script.type}</span>{/if}
-        {#if !script.isGroup}<span>{script.vizId}</span>{/if}
         {#if codeMatches}
           <span class="text-xs bg-yellow-500/20 text-yellow-300 rounded px-1 shrink-0">in code</span>
         {/if}
-        {#if script.treePath}
-          <span class="text-vscode-textLink-foreground text-xs truncate">
-            {Array.isArray(script.treePath) ? script.treePath.slice(0, 2).join(', ') + (script.treePath.length > 2 ? '...' : '') : script.treePath}
+        {#if script.treePath && !Array.isArray(script.treePath)}
+          <span class="text-vscode-textLink-foreground text-xs truncate" title={script.treePath}>
+            {script.treePath}
           </span>
+        {:else if Array.isArray(script.treePath) && script.treePath.length > 0}
+          <span class="text-vscode-textLink-foreground text-xs truncate" title={script.treePath.join('\n')}>
+            {script.treePath[0]}{script.treePath.length > 1 ? ` +${script.treePath.length - 1}` : ''}
+          </span>
+        {:else if !script.isGroup}
+          <span>{script.type}</span>
         {/if}
       </div>
       <div class="text-xs text-vscode-descriptionForeground">{script.extension}</div>

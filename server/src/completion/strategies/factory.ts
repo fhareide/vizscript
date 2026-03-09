@@ -134,6 +134,13 @@ export class CompletionStrategyFactory {
   }
 
   /**
+   * Register which container vizId a document URI belongs to.
+   */
+  public updateDocumentVizId(uri: string, vizId: string): void {
+    this.stringArgumentStrategy.updateDocumentVizId(uri, vizId);
+  }
+
+  /**
    * Create appropriate strategy for the given context
    */
   public createStrategy(context: CompletionContext): CompletionStrategy {

@@ -104,6 +104,104 @@ async function getSelectedScriptNameFromSidebar(sidebarProvider: SidebarProvider
   });
 }
 
+/**
+ * Reads the metadata embedded in `editor`'s document, recovers the vizId and
+ * scenePath, re-registers the document→vizId mapping on the language server,
+ * and re-fetches the scene tree if the scenePath has changed.
+ *
+ * Called both from onDidChangeActiveTextEditor (lightweight guard prevents
+ * duplicate fetches) and from the manual `vizscript.refreshSceneTreeForActiveScript`
+ * command (which forces a re-fetch regardless of the cached path).
+ */
+async function restoreSceneContextForEditor(
+  context: vscode.ExtensionContext,
+  lspClient: LanguageClient,
+  editor: vscode.TextEditor,
+  forceRefresh = false,
+): Promise<void> {
+  const langId = editor.document.languageId;
+  const isVizScript = /^viz/.test(langId);
+  if (!isVizScript) return;
+
+  try {
+    const content = editor.document.getText();
+    const metadataService = new MetadataService(lspClient);
+    const result = await metadataService.extractMetadataFromContent(content);
+    if (!result.success || !result.metadata) return;
+
+    const { UUID: metaUuid, scenePath } = result.metadata;
+
+    // Recover vizId: the UUID is deterministically generated from vizId via
+    // uuidByString("vizscript-${vizId}"), so we search stored scripts for a match.
+    let vizId: string | null = null;
+    if (metaUuid) {
+      const scripts = await Commands.loadFromStorage(context);
+      if (scripts) {
+        const match = scripts.find((s: any) => {
+          if (!s.vizId) return false;
+          return metadataService.generateDeterministicUUID(s.vizId) === metaUuid;
+        });
+        if (match) vizId = match.vizId;
+      }
+    }
+
+    // Re-register the document→vizId mapping so container-aware completions work.
+    if (vizId) {
+      try {
+        await lspClient.sendRequest("registerDocumentVizId", {
+          uri: editor.document.uri.toString(),
+          vizId,
+        });
+      } catch {
+        // Non-fatal.
+      }
+
+      // Also trigger the standard ensureSceneTree path so the tree is loaded
+      // when the script was opened via the sidebar originally.
+      if (!forceRefresh) {
+        await ensureSceneTreeForScript(context, lspClient, vizId);
+        return;
+      }
+    }
+
+    // Force-refresh path: fetch scene tree directly using the scenePath from metadata.
+    if (forceRefresh && scenePath) {
+      if (sceneTreeFetchInProgress) return;
+      sceneTreeFetchInProgress = true;
+      try {
+        const config = await Commands.getConfig();
+        const layer = "MAIN_SCENE";
+        const tree = await getFullSceneTree(config.hostName, config.hostPort, layer, true);
+        await cacheTree(context, tree);
+        try {
+          await lspClient.sendRequest("updateSceneTree", {
+            scenePath: tree.scenePath,
+            sceneObjectId: tree.sceneObjectId,
+            layer: tree.layer,
+            fetchedAt: tree.fetchedAt,
+            root: tree.root,
+            flatMap: tree.flatMap,
+          });
+        } catch (err) {
+          console.warn("Failed to send scene tree to language server:", err);
+        }
+        cachedSceneTreePath = tree.scenePath;
+        const nodeCount = Object.keys(tree.flatMap).length;
+        vscode.window.setStatusBarMessage(
+          `$(check) Scene tree refreshed: ${nodeCount} containers from ${tree.scenePath}`,
+          5000,
+        );
+      } catch (error) {
+        vscode.window.showErrorMessage(`Failed to refresh scene tree: ${error}`);
+      } finally {
+        sceneTreeFetchInProgress = false;
+      }
+    }
+  } catch (error) {
+    console.warn("Failed to restore scene context for editor:", error);
+  }
+}
+
 async function ensureSceneTreeForScript(
   context: vscode.ExtensionContext,
   lspClient: LanguageClient,
@@ -683,6 +781,26 @@ export function activate(context: vscode.ExtensionContext) {
     }),
   );
 
+  context.subscriptions.push(
+    vscode.commands.registerCommand("vizscript.refreshSceneTreeForActiveScript", async () => {
+      const editor = vscode.window.activeTextEditor;
+      if (!editor) {
+        vscode.window.showWarningMessage("No active editor.");
+        return;
+      }
+      await vscode.window.withProgress(
+        {
+          location: vscode.ProgressLocation.Notification,
+          title: "Refreshing scene tree for active script...",
+          cancellable: false,
+        },
+        async () => {
+          await restoreSceneContextForEditor(context, client, editor, true);
+        },
+      );
+    }),
+  );
+
   // Sidebar context menu commands
   context.subscriptions.push(
     vscode.commands.registerCommand("vizscript.sidebar.editScript", async (contextData?: any) => {
@@ -848,6 +966,9 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.window.onDidChangeActiveTextEditor((editor) => {
       if (editor != undefined) {
         client.sendRequest("setDocumentUri", editor.document.uri.toString());
+        // Restore vizId registration and scene tree if needed whenever the active
+        // editor changes to a viz script — handles reopened sessions, local files, etc.
+        restoreSceneContextForEditor(context, client, editor).catch(() => {});
       }
     }),
   );

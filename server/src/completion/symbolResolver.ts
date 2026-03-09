@@ -17,6 +17,16 @@ export class SymbolResolver {
   }
 
   /**
+   * Update the document URI and script type for the current completion request.
+   * Must be called at the start of each request so document-symbol lookups use
+   * the correct per-document cache entry.
+   */
+  public setContext(documentUri: string, scriptType: string): void {
+    this.documentUri = documentUri;
+    this.scriptType = scriptType;
+  }
+
+  /**
    * Resolve a symbol chain (e.g., "System.Scene.Camera")
    */
   public resolveSymbolChain(parts: string[], position: ls.Position, mode: ResolutionMode): SymbolResolutionResult {

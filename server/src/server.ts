@@ -914,6 +914,7 @@ connection.onCompletion((params: ls.CompletionParams, cancelToken: ls.Cancellati
           params.position.character,
           params.textDocument.uri,
           documents.get(params.textDocument.uri)?.languageId || "",
+          documents.get(params.textDocument.uri)?.getText() || "",
         );
 
         console.log(`NEW System: ${completions.length} completions returned`);
@@ -2997,6 +2998,14 @@ connection.onRequest("updateSceneTree", (tree: any) => {
   console.log(
     `Scene tree cached: ${Object.keys(tree?.flatMap || {}).length} containers from ${tree?.scenePath || "unknown"}`,
   );
+  return { success: true };
+});
+
+connection.onRequest("registerDocumentVizId", (params: { uri: string; vizId: string }) => {
+  if (newCompletionService && params?.uri && params?.vizId) {
+    newCompletionService.updateDocumentVizId(params.uri, params.vizId);
+    console.log(`Registered document vizId: ${params.uri} → ${params.vizId}`);
+  }
   return { success: true };
 });
 

@@ -444,6 +444,36 @@ export function formatTreeAsText(tree: VizSceneTree): string {
 }
 
 /**
+ * Build a lookup of vizId -> full container name path (root to this container).
+ * Path is formatted as "Root > Parent > Container".
+ */
+export function buildContainerPathLookup(
+  flatMap: { [vizId: string]: VizContainerNode }
+): { [vizId: string]: string } {
+  // Build a treePath string -> node lookup
+  const pathMap: { [treePath: string]: VizContainerNode } = {};
+  for (const node of Object.values(flatMap)) {
+    pathMap[node.treePath] = node;
+  }
+
+  const result: { [vizId: string]: string } = {};
+  for (const node of Object.values(flatMap)) {
+    const segments = node.treePath.split("/");
+    const names: string[] = [];
+    for (let i = 1; i <= segments.length; i++) {
+      const partialPath = segments.slice(0, i).join("/");
+      const ancestor = pathMap[partialPath];
+      if (ancestor) {
+        names.push(ancestor.name);
+      }
+    }
+    result[node.vizId] = names.join(" > ");
+  }
+
+  return result;
+}
+
+/**
  * Write the tree to a text file in the workspace.
  */
 export async function writeTreeToFile(tree: VizSceneTree, outputPath: string): Promise<void> {

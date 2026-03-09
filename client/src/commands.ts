@@ -32,6 +32,7 @@ import { showMessage } from "./showMessage";
 import { showPreviewWindow } from "./showPreviewWindow";
 import { showUntitledWindow } from "./showUntitledWindow";
 import { compileScript, compileScriptId, getVizScripts } from "./vizCommunication";
+import { buildContainerPathLookup, getFullSceneTree } from "./sceneTreeService";
 import { MetadataService } from "./metadataService";
 import { FileService } from "./fileService";
 import { SceneService } from "./sceneService";
@@ -417,6 +418,31 @@ export async function getAndPostVizScripts(
           progress.report({ increment: 30, message: "Fetching fresh scripts from Viz Engine..." });
           const scripts = await getVizScripts(hostName, hostPort, context, selectedLayer, progress);
 
+          // Now the script-fetch socket is closed; enrich with container paths from the scene tree
+          progress.report({ increment: 80, message: "Building container paths..." });
+          try {
+            const tree = await getFullSceneTree(hostName, Number(hostPort), selectedLayer, true);
+            const containerPaths = buildContainerPathLookup(tree.flatMap);
+
+            for (const script of scripts) {
+              if (script.isGroup) {
+                const childPaths = script.children
+                  .map((id) => containerPaths[id])
+                  .filter(Boolean);
+                if (childPaths.length > 0) {
+                  script.treePath = childPaths;
+                }
+              } else if (containerPaths[script.vizId]) {
+                script.treePath = containerPaths[script.vizId];
+              }
+            }
+
+            // Persist the enriched scripts
+            await saveToStorage(context, scripts);
+          } catch (treeError) {
+            console.warn("Failed to enrich scripts with container paths:", treeError);
+          }
+
           sidebarProvider._view?.webview.postMessage({ type: "receiveScripts", value: scripts });
           return scripts;
         } catch (error) {
@@ -464,7 +490,18 @@ export async function openScriptInTextEditor(
       const fileService = new FileService();
       await fileService.openFile(processedScript.localFileUri);
       // Local file opens are handled by VS Code — return the active editor
-      return window.activeTextEditor;
+      const localEditor = window.activeTextEditor;
+      if (localEditor) {
+        try {
+          await client.sendRequest("registerDocumentVizId", {
+            uri: localEditor.document.uri.toString(),
+            vizId,
+          });
+        } catch {
+          // Non-fatal: completions will fall back to scene-wide suggestions.
+        }
+      }
+      return localEditor;
     } else {
       let editor: vscode.TextEditor | undefined;
 
@@ -589,6 +626,19 @@ export async function openScriptInTextEditor(
         window.setStatusBarMessage(`$(check) ${processedScript.message}`, 5000);
       }
 
+      // Register the document → vizId mapping so the language server can provide
+      // context-aware completions (FindSubContainer, FindSuperContainer, etc.).
+      if (editor) {
+        try {
+          await client.sendRequest("registerDocumentVizId", {
+            uri: editor.document.uri.toString(),
+            vizId,
+          });
+        } catch {
+          // Non-fatal: completions will fall back to scene-wide suggestions.
+        }
+      }
+
       return editor;
     }
   } catch (error) {
@@ -688,18 +738,27 @@ export async function openScriptInTextEditorForceRefresh(
         const currentPosition = existingEditor.selection.active;
 
         // Simply focus the editor - the WorkspaceEdit should be sufficient for most cases
-        await window.showTextDocument(existingEditor.document);
+        const refreshedEditor = await window.showTextDocument(existingEditor.document);
 
         // Restore cursor position
         existingEditor.selection = new vscode.Selection(currentPosition, currentPosition);
 
         window.setStatusBarMessage(`$(check) "${scriptObject.name}" content refreshed`, 5000);
+
+        try {
+          await client.sendRequest("registerDocumentVizId", {
+            uri: refreshedEditor.document.uri.toString(),
+            vizId,
+          });
+        } catch {
+          // Non-fatal.
+        }
       } else {
         window.showErrorMessage(`Failed to refresh content for "${scriptObject.name}"`);
       }
     } else {
       // No existing editor found, open normally
-      await showUntitledWindow(
+      const newEditor = await showUntitledWindow(
         vizIdStripped,
         scriptObject.name,
         scriptObject.extension,
@@ -708,6 +767,17 @@ export async function openScriptInTextEditorForceRefresh(
         scriptObject,
       );
       window.setStatusBarMessage(`$(check) "${scriptObject.name}" opened`, 5000);
+
+      if (newEditor) {
+        try {
+          await client.sendRequest("registerDocumentVizId", {
+            uri: newEditor.document.uri.toString(),
+            vizId,
+          });
+        } catch {
+          // Non-fatal.
+        }
+      }
     }
 
     // Show metadata processing result in status bar if present

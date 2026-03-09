@@ -402,8 +402,6 @@ export function getVizScripts(
           nonSceneItems.sort((a, b) => getTreeOrder(a) - getTreeOrder(b));
           scriptObjects = [...sceneItems, ...nonSceneItems];
 
-          console.log("Scripts fetched successfully without tree path enrichment");
-
           // Do something with scriptObjects, e.g., send them back to the client
           await saveToStorage(context, scriptObjects);
 

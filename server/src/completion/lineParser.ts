@@ -6,6 +6,7 @@ const STRING_ARG_METHODS = [
   "FindContainer",
   "FindSiblingSubContainer",
   "FindSubContainers",
+  "FindSuperContainer",
   "GetFunctionPluginInstance",
 ];
 

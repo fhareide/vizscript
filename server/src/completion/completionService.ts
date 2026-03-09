@@ -46,6 +46,14 @@ export class CompletionService {
     this.strategyFactory.updateSceneTree(tree);
   }
 
+  /**
+   * Register which container vizId a document URI belongs to,
+   * enabling context-aware completions for container scripts.
+   */
+  public updateDocumentVizId(uri: string, vizId: string): void {
+    this.strategyFactory.updateDocumentVizId(uri, vizId);
+  }
+
   public getSceneTree(): any {
     return this.sceneTreeCache;
   }
@@ -59,6 +67,7 @@ export class CompletionService {
     character: number,
     documentUri: string,
     languageId: string,
+    documentText?: string,
   ): ls.CompletionItem[] {
     try {
       console.log("=== NEW COMPLETION SERVICE DEBUG ===");
@@ -71,6 +80,12 @@ export class CompletionService {
         console.log("Auto-complete is disabled");
         return [];
       }
+
+      // Update the resolver with the current document URI and script type so that
+      // document-symbol lookups (e.g. `dim test as Container` → `test.`) use the
+      // correct per-document cache entry instead of the stale construction-time URI.
+      const resolvedScriptType = languageId.includes("con") ? "Container" : "Scene";
+      this.symbolResolver.setContext(documentUri, resolvedScriptType);
 
       // Parse the line to get context
       const parseResult = this.lineParser.parse(line, character);
@@ -88,6 +103,7 @@ export class CompletionService {
           languageId,
         },
         stringArgumentInfo: parseResult.stringArgumentInfo,
+        documentText,
       };
 
       console.log("Context type:", context.type);

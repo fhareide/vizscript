@@ -55,6 +55,7 @@ export interface CompletionContext {
     languageId: string;
   };
   stringArgumentInfo?: StringArgumentInfo;
+  documentText?: string;
 }
 
 export interface SymbolResolutionResult {

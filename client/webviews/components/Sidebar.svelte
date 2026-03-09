@@ -359,6 +359,13 @@
       console.log(`[sidebar timing] receiveState: ${message.value?.length ?? 0} scripts`);
       vizscripts = [...message.value];
       console.log(`[sidebar timing] vizscripts reactive update done in ${(performance.now() - tState).toFixed(1)}ms`);
+
+      // Cache a lightweight copy (no code) in webview state so the next
+      // resolveWebviewView call can restore the list instantly without waiting
+      // for the loadFromStorage roundtrip.
+      const cachedScripts = (message.value as any[]).map(({ code: _code, ...rest }) => rest);
+      const stateToSave = tsvscode.getState() || {};
+      tsvscode.setState({ ...stateToSave, cachedScripts });
     } else if (message.type === "getSelectedScript") {
       // Respond with selected script data
       const script = selectedScript;
@@ -552,10 +559,20 @@
     // Always get settings to populate the sidebar settings and conditionally the connection info
     tsvscode.postMessage({ type: "getSettings" });
     console.log(`[sidebar timing] getSettings posted at +${(performance.now() - mountStart).toFixed(1)}ms`);
-    tsvscode.postMessage({ type: "loadState" });
-    console.log(`[sidebar timing] loadState posted at +${(performance.now() - mountStart).toFixed(1)}ms`);
 
     const currentState = tsvscode.getState() || {};
+
+    // Restore the script list immediately from cached webview state so the
+    // sidebar is usable while the full loadState roundtrip completes in the
+    // background (avoids the ~900ms blank-sidebar on every re-open).
+    if (currentState.cachedScripts?.length) {
+      vizscripts = [...currentState.cachedScripts];
+      console.log(`[sidebar timing] restored ${vizscripts.length} scripts from cache at +${(performance.now() - mountStart).toFixed(1)}ms`);
+    }
+
+    // Request fresh state from extension host (updates the list in the background)
+    tsvscode.postMessage({ type: "loadState" });
+    console.log(`[sidebar timing] loadState posted at +${(performance.now() - mountStart).toFixed(1)}ms`);
     console.log(`[sidebar timing] getState done at +${(performance.now() - mountStart).toFixed(1)}ms`);
     console.log("Current state", currentState);
 

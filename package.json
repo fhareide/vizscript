@@ -132,6 +132,10 @@
 		{
 			"command": "vizscript.fetchSceneTree",
 			"title": "Viz Script: Fetch Scene Tree"
+		},
+		{
+			"command": "vizscript.refreshSceneTreeForActiveScript",
+			"title": "Viz Script: Refresh Scene Tree for Active Script"
 		}
 		],
 		"menus": {
