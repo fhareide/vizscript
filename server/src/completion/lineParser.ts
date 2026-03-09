@@ -1,5 +1,13 @@
 import * as ls from "vscode-languageserver/node";
-import { ParseResult, CompletionType } from "./types";
+import { ParseResult, CompletionType, StringArgumentInfo } from "./types";
+
+const STRING_ARG_METHODS = [
+  "FindSubContainer",
+  "FindContainer",
+  "FindSiblingSubContainer",
+  "FindSubContainers",
+  "GetFunctionPluginInstance",
+];
 
 /**
  * Clean, modular line parsing to replace the complex 170-line getLineAt function
@@ -14,6 +22,19 @@ export class LineParser {
    */
   public parse(line: string, position: number, isSignatureHelp: boolean = false): ParseResult {
     try {
+      // Step 0: Check for string argument context BEFORE stripping strings
+      const stringArgInfo = this.detectStringArgument(line, position);
+      if (stringArgInfo && !isSignatureHelp) {
+        return {
+          cleanLine: line,
+          memberChain: [],
+          context: CompletionType.STRING_ARGUMENT,
+          hasOpenBracket: true,
+          bracketContent: "",
+          stringArgumentInfo: stringArgInfo,
+        };
+      }
+
       // Step 1: Preprocess the line (remove comments, strings)
       const preprocessed = this.preprocessLine(line);
 
@@ -318,6 +339,40 @@ export class LineParser {
    */
   private replaceBySpaces(match: string): string {
     return " ".repeat(match.length);
+  }
+
+  /**
+   * Detect if the cursor is inside a string argument of a known method.
+   * Scans the raw line (before string stripping) to find patterns like:
+   *   FindSubContainer("partialText
+   *   .GetFunctionPluginInstance("partial
+   *
+   * Returns info about the method and partial string value, or null.
+   */
+  private detectStringArgument(line: string, position: number): StringArgumentInfo | null {
+    const textUpToCursor = line.substring(0, position);
+
+    for (const methodName of STRING_ARG_METHODS) {
+      // Look for: [optional chain.]MethodName(" with cursor inside the string
+      const pattern = new RegExp(
+        `(?:^|[\\s=,(&])(?:([a-zA-Z0-9_\\.]+)\\.)?${methodName}\\s*\\(\\s*"([^"]*)$`,
+        "i",
+      );
+      const match = pattern.exec(textUpToCursor);
+      if (match) {
+        const objectChainStr = match[1] || "";
+        const partialValue = match[2] || "";
+        const objectChain = objectChainStr ? objectChainStr.split(".").filter((s) => s) : [];
+
+        return {
+          methodName,
+          objectChain,
+          partialValue,
+        };
+      }
+    }
+
+    return null;
   }
 
   /**

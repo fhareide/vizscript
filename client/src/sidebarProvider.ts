@@ -18,6 +18,8 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     _context: vscode.WebviewViewResolveContext,
     _token: vscode.CancellationToken,
   ) {
+    const t0 = Date.now();
+    console.log("[sidebar timing] resolveWebviewView start");
     this._view = webviewView;
 
     // Determine viewId based on the webviewView title
@@ -44,6 +46,7 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
     };
 
     webviewView.webview.html = this._getHtmlForWebview(webviewView.webview, this.viewId);
+    console.log(`[sidebar timing] HTML set at +${Date.now() - t0}ms`);
 
     webviewView.webview.onDidReceiveMessage(async (data) => {
       switch (data.type) {
@@ -61,11 +64,15 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           vscode.window.showErrorMessage(data.value);
           break;
         }
-        case "loadState":
+        case "loadState": {
+          const tLoad = Date.now();
+          console.log(`[sidebar timing] loadState requested at +${Date.now() - t0}ms`);
           const state = await loadFromStorage(this._context);
+          console.log(`[sidebar timing] loadFromStorage done in ${Date.now() - tLoad}ms, ${state.length} scripts`);
           webviewView.webview.postMessage({ type: "receiveState", value: state });
-
+          console.log(`[sidebar timing] receiveState posted at +${Date.now() - t0}ms`);
           break;
+        }
         case "fetchscripts": {
           vscode.commands.executeCommand("vizscript.fetchscripts", data.value);
           break;

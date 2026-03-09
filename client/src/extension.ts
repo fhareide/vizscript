@@ -13,8 +13,12 @@ import { SidebarProvider } from "./sidebarProvider";
 import { VizScriptObject } from "./shared/types";
 import { MetadataService } from "./metadataService";
 import { FileService } from "./fileService";
+import { getFullSceneTree, cacheTree } from "./sceneTreeService";
+import { SceneService } from "./sceneService";
 
 let client: LanguageClient;
+let cachedSceneTreePath: string | null = null;
+let sceneTreeFetchInProgress = false;
 
 // Interface for completion system toggle response
 interface CompletionSystemState {
@@ -98,6 +102,66 @@ async function getSelectedScriptNameFromSidebar(sidebarProvider: SidebarProvider
       resolve(null);
     }, 1000);
   });
+}
+
+async function ensureSceneTreeForScript(
+  context: vscode.ExtensionContext,
+  lspClient: LanguageClient,
+  vizId: string,
+): Promise<void> {
+  const scripts = await Commands.loadFromStorage(context);
+  const script = scripts.find((s) => s.vizId === vizId);
+  if (!script?.scenePath) {
+    return;
+  }
+
+  if (cachedSceneTreePath === script.scenePath) {
+    return;
+  }
+
+  if (sceneTreeFetchInProgress) {
+    return;
+  }
+
+  sceneTreeFetchInProgress = true;
+
+  try {
+    const config = await Commands.getConfig();
+    const layer = "MAIN_SCENE";
+
+    const sceneService = new SceneService();
+    const validation = await sceneService.validateScenePath(script.scenePath, config.hostName, config.hostPort, layer);
+    if (!validation.isValid) {
+      return;
+    }
+
+    const tree = await getFullSceneTree(config.hostName, config.hostPort, layer, true);
+    await cacheTree(context, tree);
+
+    try {
+      await lspClient.sendRequest("updateSceneTree", {
+        scenePath: tree.scenePath,
+        sceneObjectId: tree.sceneObjectId,
+        layer: tree.layer,
+        fetchedAt: tree.fetchedAt,
+        root: tree.root,
+        flatMap: tree.flatMap,
+      });
+    } catch (err) {
+      console.warn("Failed to send scene tree to language server:", err);
+    }
+
+    cachedSceneTreePath = tree.scenePath;
+    const nodeCount = Object.keys(tree.flatMap).length;
+    vscode.window.setStatusBarMessage(
+      `$(check) Scene tree loaded: ${nodeCount} containers from ${tree.scenePath}`,
+      5000,
+    );
+  } catch (error) {
+    console.warn("Failed to auto-fetch scene tree:", error);
+  } finally {
+    sceneTreeFetchInProgress = false;
+  }
 }
 
 function registerCommands(client: LanguageClient, context: vscode.ExtensionContext) {
@@ -325,12 +389,14 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand("vizscript.previewscript", async (vizId: string) => {
       await Commands.openScriptInTextEditor.bind(this)(context, client, vizId, true, true);
+      ensureSceneTreeForScript(context, client, vizId).catch(() => {});
     }),
   );
 
   context.subscriptions.push(
     vscode.commands.registerCommand("vizscript.editscript", async (vizId: string) => {
       await Commands.openScriptInTextEditor.bind(this)(context, client, vizId, true);
+      ensureSceneTreeForScript(context, client, vizId).catch(() => {});
     }),
   );
 
@@ -564,6 +630,59 @@ export function activate(context: vscode.ExtensionContext) {
     }),
   );
 
+  context.subscriptions.push(
+    vscode.commands.registerCommand("vizscript.fetchSceneTree", async () => {
+      try {
+        await vscode.window.withProgress(
+          {
+            location: vscode.ProgressLocation.Notification,
+            title: "Fetching scene tree...",
+            cancellable: false,
+          },
+          async (progress) => {
+            const config = await Commands.getConfig();
+            const layer = "MAIN_SCENE";
+
+            progress.report({ increment: 10, message: "Connecting to Viz Engine..." });
+
+            const tree = await getFullSceneTree(config.hostName, config.hostPort, layer, true);
+
+            progress.report({ increment: 70, message: "Caching tree..." });
+
+            await cacheTree(context, tree);
+
+            progress.report({ increment: 10, message: "Sending tree to language server..." });
+
+            try {
+              await client.sendRequest("updateSceneTree", {
+                scenePath: tree.scenePath,
+                sceneObjectId: tree.sceneObjectId,
+                layer: tree.layer,
+                fetchedAt: tree.fetchedAt,
+                root: tree.root,
+                flatMap: tree.flatMap,
+              });
+            } catch (err) {
+              console.warn("Failed to send scene tree to language server:", err);
+            }
+
+            cachedSceneTreePath = tree.scenePath;
+
+            progress.report({ increment: 10, message: "Done!" });
+
+            const nodeCount = Object.keys(tree.flatMap).length;
+            vscode.window.setStatusBarMessage(
+              `$(check) Scene tree fetched: ${nodeCount} containers from ${tree.scenePath}`,
+              10000,
+            );
+          },
+        );
+      } catch (error) {
+        vscode.window.showErrorMessage(`Failed to fetch scene tree: ${error}`);
+      }
+    }),
+  );
+
   // Sidebar context menu commands
   context.subscriptions.push(
     vscode.commands.registerCommand("vizscript.sidebar.editScript", async (contextData?: any) => {
@@ -740,36 +859,32 @@ export function activate(context: vscode.ExtensionContext) {
     }),
   );
 
-  //TODO: This should only happen in devmode
+  if (context.extensionMode === vscode.ExtensionMode.Development) {
+    const extensionDevPath = context.extensionPath;
 
-  const extensionDevPath = context.extensionPath;
+    const clientPattern = new vscode.RelativePattern(`${extensionDevPath}`, "**/client/out/extension.js");
+    const serverPattern = new vscode.RelativePattern(`${extensionDevPath}`, "**/server/out/**/*.js");
+    const webviewPattern = new vscode.RelativePattern(`${extensionDevPath}`, "**/client/out/app.js");
 
-  const clientPattern = new vscode.RelativePattern(`${extensionDevPath}`, "**/client/out/extension.js");
-  const serverPattern = new vscode.RelativePattern(`${extensionDevPath}`, "**/server/out/**/*.js");
-  const webviewPattern = new vscode.RelativePattern(`${extensionDevPath}`, "**/client/out/app.js");
+    const clientWatcher = vscode.workspace.createFileSystemWatcher(clientPattern);
+    clientWatcher.onDidChange(handleChange);
 
-  // Watcher for client files
-  const clientWatcher = vscode.workspace.createFileSystemWatcher(clientPattern);
-  clientWatcher.onDidChange(handleChange);
+    const serverWatcher = vscode.workspace.createFileSystemWatcher(serverPattern);
+    serverWatcher.onDidChange(handleChange);
 
-  // Watcher for server files
-  const serverWatcher = vscode.workspace.createFileSystemWatcher(serverPattern);
-  serverWatcher.onDidChange(handleChange);
+    const webviewWatcher = vscode.workspace.createFileSystemWatcher(webviewPattern);
+    webviewWatcher.onDidChange(() => {
+      console.info(`Webview changed. Reloading VSCode...`);
+      vscode.commands.executeCommand("workbench.action.webview.reloadWebviewAction");
+    });
 
-  // Watcher for webview files
-  const webviewWatcher = vscode.workspace.createFileSystemWatcher(webviewPattern);
-  webviewWatcher.onDidChange(() => {
-    console.info(`Webview changed. Reloading VSCode...`);
-    vscode.commands.executeCommand("workbench.action.webview.reloadWebviewAction");
-  });
+    function handleChange({ scheme, path }) {
+      console.info(`${scheme} ${path} changed. Reloading VSCode...`);
+      vscode.commands.executeCommand("workbench.action.reloadWindow");
+    }
 
-  function handleChange({ scheme, path }) {
-    console.info(`${scheme} ${path} changed. Reloading VSCode...`);
-    vscode.commands.executeCommand("workbench.action.reloadWindow");
+    context.subscriptions.push(clientWatcher, serverWatcher, webviewWatcher);
   }
-
-  // Clean up watchers on extension deactivation
-  context.subscriptions.push(clientWatcher, serverWatcher, webviewWatcher);
 
   /*   vscode.workspace.onDidChangeTextDocument(async (event) => {
     const {

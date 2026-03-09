@@ -16,6 +16,7 @@ export class CompletionService {
   private lineParser: LineParser;
   private symbolResolver: SymbolResolver;
   private strategyFactory: CompletionStrategyFactory;
+  private sceneTreeCache: any = null;
 
   constructor(
     symbolCache: { [id: string]: any[] },
@@ -35,6 +36,18 @@ export class CompletionService {
    */
   public updateSettings(settings: VizScriptSettings): void {
     this.config.updateSettings(settings);
+  }
+
+  /**
+   * Update the cached scene tree data used for context-aware completions.
+   */
+  public updateSceneTree(tree: any): void {
+    this.sceneTreeCache = tree;
+    this.strategyFactory.updateSceneTree(tree);
+  }
+
+  public getSceneTree(): any {
+    return this.sceneTreeCache;
   }
 
   /**
@@ -74,6 +87,7 @@ export class CompletionService {
           uri: documentUri,
           languageId,
         },
+        stringArgumentInfo: parseResult.stringArgumentInfo,
       };
 
       console.log("Context type:", context.type);

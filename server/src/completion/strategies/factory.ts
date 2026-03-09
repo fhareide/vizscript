@@ -4,6 +4,7 @@ import { BaseCompletionStrategy } from "./base";
 import { VariableDeclarationStrategy } from "./variableDeclaration";
 import { MemberAccessStrategy } from "./memberAccess";
 import { RootLevelStrategy } from "./rootLevel";
+import { StringArgumentStrategy } from "./stringArgument";
 import { SymbolSelector } from "../symbolSelector";
 import { SymbolResolver } from "../symbolResolver";
 
@@ -108,17 +109,28 @@ class TypeAnnotationStrategy extends BaseCompletionStrategy {
  */
 export class CompletionStrategyFactory {
   private strategies: CompletionStrategy[] = [];
+  private stringArgumentStrategy: StringArgumentStrategy;
 
   constructor(symbolSelector: SymbolSelector, symbolResolver: SymbolResolver) {
+    this.stringArgumentStrategy = new StringArgumentStrategy();
+
     this.strategies = [
       new VariableDeclarationStrategy(),
       new FunctionDeclarationStrategy(),
       new EventDeclarationStrategy(symbolSelector),
       new AssignmentStrategy(symbolSelector),
       new TypeAnnotationStrategy(symbolSelector),
+      this.stringArgumentStrategy,
       new MemberAccessStrategy(symbolResolver),
       new RootLevelStrategy(symbolSelector),
     ];
+  }
+
+  /**
+   * Update the scene tree cache on the string argument strategy.
+   */
+  public updateSceneTree(tree: any): void {
+    this.stringArgumentStrategy.updateSceneTree(tree);
   }
 
   /**

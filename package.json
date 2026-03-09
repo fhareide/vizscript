@@ -125,10 +125,14 @@
 				"command": "vizscript.toggleDefinition",
 				"title": "VizScript: Toggle Definition Handler"
 			},
-			{
-				"command": "vizscript.getCompletionSystemStatus",
-				"title": "VizScript: Get Completion System Status"
-			}
+		{
+			"command": "vizscript.getCompletionSystemStatus",
+			"title": "VizScript: Get Completion System Status"
+		},
+		{
+			"command": "vizscript.fetchSceneTree",
+			"title": "Viz Script: Fetch Scene Tree"
+		}
 		],
 		"menus": {
 			"webview/context": [
@@ -533,7 +537,7 @@
 		"webpack-dev-server": "webpack --mode development --config ./server/webpack.config.js --watch",
 		"vite-build": "vite build -c ./client/webviews/vite.config.mts",
 		"vite-watch": "vite build -c ./client/webviews/vite.config.mts --watch",
-		"development": "npm run clean && concurrently \"npm run webpack-dev-client\" \"npm run webpack-dev-server\" \"npm run vite-watch\"",
+		"development": "concurrently \"npm run webpack-dev-client\" \"npm run webpack-dev-server\" \"npm run vite-watch\"",
 		"patch": "npm version patch",
 		"minor": "npm version minor",
 		"major": "npm version major"

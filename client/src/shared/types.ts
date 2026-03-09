@@ -54,3 +54,32 @@ export type ScriptParametersData = {
   parameters: ScriptParameter[];
   currentValues: { [key: string]: any };
 };
+
+export type VizPluginRef = {
+  type: string;
+  name?: string;
+  vizId: string;
+};
+
+export type VizContainerNode = {
+  treePath: string;
+  vizId: string;
+  name: string;
+  flags: number[];
+  active: boolean;
+  visible: boolean;
+  plugins: VizPluginRef[];
+  geometryVizId?: string;
+  imageVizId?: string;
+  children: VizContainerNode[];
+  geometryTree?: VizContainerNode[];
+};
+
+export type VizSceneTree = {
+  scenePath: string;
+  sceneObjectId: string;
+  layer: string;
+  fetchedAt: number;
+  root: VizContainerNode[];
+  flatMap: { [vizId: string]: VizContainerNode };
+};

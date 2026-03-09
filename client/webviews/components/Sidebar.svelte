@@ -319,6 +319,7 @@
 
   const handleMessage = (event: any) => {
     const message = event.data;
+    console.log(`[sidebar timing] message received: ${message.type} at ${performance.now().toFixed(1)}ms`);
     if (message.type === "receiveScripts") {
       console.log("Scripts received", message.value);
 
@@ -354,8 +355,10 @@
         port = message.value.hostPort;
       }
     } else if (message.type === "receiveState") {
-      console.log("State received", message.value);
+      const tState = performance.now();
+      console.log(`[sidebar timing] receiveState: ${message.value?.length ?? 0} scripts`);
       vizscripts = [...message.value];
+      console.log(`[sidebar timing] vizscripts reactive update done in ${(performance.now() - tState).toFixed(1)}ms`);
     } else if (message.type === "getSelectedScript") {
       // Respond with selected script data
       const script = selectedScript;
@@ -543,11 +546,17 @@
   };
 
   onMount(() => {
+    const mountStart = performance.now();
+    console.log("[sidebar timing] onMount start");
+
     // Always get settings to populate the sidebar settings and conditionally the connection info
     tsvscode.postMessage({ type: "getSettings" });
+    console.log(`[sidebar timing] getSettings posted at +${(performance.now() - mountStart).toFixed(1)}ms`);
     tsvscode.postMessage({ type: "loadState" });
+    console.log(`[sidebar timing] loadState posted at +${(performance.now() - mountStart).toFixed(1)}ms`);
 
     const currentState = tsvscode.getState() || {};
+    console.log(`[sidebar timing] getState done at +${(performance.now() - mountStart).toFixed(1)}ms`);
     console.log("Current state", currentState);
 
     selectedScriptId = currentState.selectedScriptId;
@@ -585,6 +594,7 @@
     }
 
     window.addEventListener("message", handleMessage);
+    console.log(`[sidebar timing] onMount complete at +${(performance.now() - mountStart).toFixed(1)}ms`);
     return () => window.removeEventListener("message", handleMessage);
   });
 </script>

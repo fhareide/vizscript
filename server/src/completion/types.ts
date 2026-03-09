@@ -9,6 +9,7 @@ export enum CompletionType {
   TYPE_ANNOTATION = "type_annotation",
   MEMBER_ACCESS = "member_access",
   ROOT_LEVEL = "root_level",
+  STRING_ARGUMENT = "string_argument",
 }
 
 export enum BuiltinSymbolType {
@@ -28,12 +29,19 @@ export enum ResolutionMode {
 }
 
 // Interfaces for better structure
+export interface StringArgumentInfo {
+  methodName: string;
+  objectChain: string[];
+  partialValue: string;
+}
+
 export interface ParseResult {
   cleanLine: string;
   memberChain: string[];
   context: CompletionType;
   hasOpenBracket: boolean;
   bracketContent: string;
+  stringArgumentInfo?: StringArgumentInfo;
 }
 
 export interface CompletionContext {
@@ -46,6 +54,7 @@ export interface CompletionContext {
     uri: string;
     languageId: string;
   };
+  stringArgumentInfo?: StringArgumentInfo;
 }
 
 export interface SymbolResolutionResult {

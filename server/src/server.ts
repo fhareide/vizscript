@@ -45,9 +45,6 @@ connection.onInitialize((params): ls.InitializeResult => {
   hasConfigurationCapability = !!(capabilities.workspace && !!capabilities.workspace.configuration);
 
   workspaceRoot = params.rootPath;
-  //Initialize built in symbols
-  if (symbolCache["builtin"] == null) GetBuiltinSymbols();
-  if (symbolCache["builtin_events"] == null) GetVizEvents();
 
   return {
     capabilities: {
@@ -74,6 +71,15 @@ connection.onInitialized(() => {
     // Register for all configuration changes.
     connection.client.register(ls.DidChangeConfigurationNotification.type, undefined);
   }
+
+  // Defer heavy symbol loading so the initialization handshake completes first.
+  // The ~1.5 MB of completion JSON across three Viz versions is processed here
+  // instead of blocking onInitialize.
+  setImmediate(() => {
+    GetBuiltinSymbols();
+    GetVizEvents();
+    console.log("VizScript builtin symbols loaded");
+  });
 });
 
 // Settings interface
@@ -1454,7 +1460,17 @@ function PositionInRange(range: ls.Range, position: ls.Position): boolean {
   return true;
 }
 
-let symbolCache: { [id: string]: VizSymbol[] } = {};
+let symbolCache: { [id: string]: VizSymbol[] } = {
+  builtin: [],
+  builtin_root: [],
+  builtin_global: [],
+  builtin_keywords: [],
+  builtin_events: [],
+  builtin_root_this: [],
+  builtin_root_this_children: [],
+};
+
+let sceneTreeCache: any = null;
 
 // NEW MODULAR COMPLETION SYSTEM INSTANCE
 let newCompletionService: CompletionService | null = null;
@@ -1475,6 +1491,9 @@ function RefreshDocumentsSymbols(uri: string) {
 function initializeNewCompletionService() {
   try {
     newCompletionService = new CompletionService(symbolCache, settings, documentUri, scriptType);
+    if (sceneTreeCache) {
+      newCompletionService.updateSceneTree(sceneTreeCache);
+    }
     console.log("New modular completion service initialized");
   } catch (error) {
     console.error("Error initializing new completion service:", error);
@@ -1538,7 +1557,6 @@ connection.onDocumentRangeFormatting((params: ls.DocumentRangeFormattingParams):
 function CollectSymbols(document: TextDocument): VizSymbol[] {
   let symbols: Set<VizSymbol> = new Set<VizSymbol>();
   let lines = document.getText().split(/\r?\n/g);
-  GetVizEvents();
 
   metadataProcessor.extractMetadata(lines);
   currentMetaJson = metadataProcessor.getCurrentMetaJson();
@@ -2970,6 +2988,21 @@ connection.onRequest(
     return CompletionToggle.getSystemState();
   },
 );
+
+connection.onRequest("updateSceneTree", (tree: any) => {
+  sceneTreeCache = tree;
+  if (newCompletionService) {
+    newCompletionService.updateSceneTree(tree);
+  }
+  console.log(
+    `Scene tree cached: ${Object.keys(tree?.flatMap || {}).length} containers from ${tree?.scenePath || "unknown"}`,
+  );
+  return { success: true };
+});
+
+connection.onRequest("getSceneTree", () => {
+  return sceneTreeCache;
+});
 
 // Initialize new completion service on startup
 setTimeout(() => {
