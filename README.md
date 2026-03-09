@@ -2,6 +2,21 @@
 
 > A complete language extension for Viz Script development in Visual Studio Code
 
+## New Features - Viz Script 1.0.0
+
+* **Reworked Group System** - Fully reworked the entire group logic
+  * Groups are now collapsible and give direct access to all group children
+  * Set multiple scripts at the same time by shift-selecting them, effectively making them a group and overwriting the content of all of them simultaneously
+  * Removed split and merge group logic — this can now be done by simply setting a different script on a single child container
+
+* **Search Script Content** - Added search within script content with the ability to jump directly to code in the editor
+
+* **Script Parameters Panel (BETA)** - Completely reworked parameters panel with more feature support (still in progress)
+
+* **UI Improvements** - Cleaned up modals, dialogs and toasts; moved notifications to the status bar at the bottom to reduce interruptions
+  
+
+
 ## New Features - Viz Script 0.6.0
 
 * **Metadata System** - Enhanced script management and tracking
