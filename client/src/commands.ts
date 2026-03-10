@@ -1319,10 +1319,11 @@ async function validateAndHandleMetadataForScriptSetting(
               const edit = new vscode.WorkspaceEdit();
               const fullRange = new vscode.Range(
                 editor.document.positionAt(0),
-                editor.document.positionAt(content.length),
+                editor.document.positionAt(editor.document.getText().length),
               );
               edit.replace(editor.document.uri, fullRange, updateResult.content);
               await vscode.workspace.applyEdit(edit);
+              content = editor.document.getText();
             }
           }
         }
@@ -1355,15 +1356,15 @@ async function validateAndHandleMetadataForScriptSetting(
 
               updatedMetadata = metadataService.mergeMetadata({}, updatedMetadata);
 
-              const updateResult = await metadataService.updateMetadataInContent(content, updatedMetadata);
+              const editor = vscode.window.activeTextEditor;
+              const currentContent = editor ? editor.document.getText() : content;
+              const updateResult = await metadataService.updateMetadataInContent(currentContent, updatedMetadata);
               if (updateResult.success) {
-                content = updateResult.content;
-                const editor = vscode.window.activeTextEditor;
                 if (editor) {
                   const edit = new vscode.WorkspaceEdit();
                   const fullRange = new vscode.Range(
                     editor.document.positionAt(0),
-                    editor.document.positionAt(content.length),
+                    editor.document.positionAt(editor.document.getText().length),
                   );
                   edit.replace(editor.document.uri, fullRange, updateResult.content);
                   await vscode.workspace.applyEdit(edit);
@@ -1375,15 +1376,15 @@ async function validateAndHandleMetadataForScriptSetting(
 
               updatedMetadata = metadataService.mergeMetadata({}, updatedMetadata);
 
-              const updateResult = await metadataService.updateMetadataInContent(content, updatedMetadata);
+              const editor = vscode.window.activeTextEditor;
+              const currentContent = editor ? editor.document.getText() : content;
+              const updateResult = await metadataService.updateMetadataInContent(currentContent, updatedMetadata);
               if (updateResult.success) {
-                content = updateResult.content;
-                const editor = vscode.window.activeTextEditor;
                 if (editor) {
                   const edit = new vscode.WorkspaceEdit();
                   const fullRange = new vscode.Range(
                     editor.document.positionAt(0),
-                    editor.document.positionAt(content.length),
+                    editor.document.positionAt(editor.document.getText().length),
                   );
                   edit.replace(editor.document.uri, fullRange, updateResult.content);
                   await vscode.workspace.applyEdit(edit);

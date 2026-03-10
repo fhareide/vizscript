@@ -315,6 +315,13 @@ export class MetadataProcessor {
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
 
+      if (line.includes("VSCODE-META-START") && line.includes("VSCODE-META-END")) {
+        // Single-line format: both START and END on the same line — replace the whole line
+        newLines.push(...this.generateMetadataBlock(newMetadata));
+        metadataReplaced = true;
+        continue;
+      }
+
       if (line.includes("VSCODE-META-START")) {
         inMetaSection = true;
         // Add the new metadata block
