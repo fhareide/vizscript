@@ -1,3 +1,10 @@
+
+### 1.0.2
+  - **Fix**: Fixed error where adding metadata could sometimes scramble the entire file
+
+### 1.0.1
+  - **New**: Started work on a new optional enhanced completion system that can query names and plugins from the scenes in Viz
+
 ### 1.0.0
   - **New**: Fully reworked the entire group logic to be collapsible and give access to all group children directly.
   - **New**: Added search script content feature with the ability to jump to code in editor.
