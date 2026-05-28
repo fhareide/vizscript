@@ -440,6 +440,45 @@ export class MetadataService {
   }
 
   /**
+   * Replaces the UUID in the active document's metadata with the deterministic UUID
+   * for the given vizId and applies the change as a workspace edit.
+   * Used when the user chooses "Update Metadata to Selected" in the container mismatch dialog.
+   */
+  async replaceUUIDForVizId(
+    document: vscode.TextDocument,
+    vizId: string,
+  ): Promise<{ success: boolean; newUUID?: string; error?: string }> {
+    try {
+      const content = document.getText();
+      const metadataResult = await this.extractMetadataFromContent(content);
+
+      if (!metadataResult.success || !metadataResult.metadata) {
+        return { success: false, error: "No metadata found in document" };
+      }
+
+      const newUUID = this.generateDeterministicUUID(vizId);
+      const updatedMetadata = { ...metadataResult.metadata, UUID: newUUID };
+
+      const updateResult = await this.updateMetadataInContent(content, updatedMetadata);
+      if (!updateResult.success) {
+        return { success: false, error: updateResult.error };
+      }
+
+      const edit = new vscode.WorkspaceEdit();
+      const fullRange = new vscode.Range(
+        document.positionAt(0),
+        document.positionAt(document.getText().length),
+      );
+      edit.replace(document.uri, fullRange, updateResult.content);
+      await vscode.workspace.applyEdit(edit);
+
+      return { success: true, newUUID };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
    * Determines viz version from script object properties
    */
   private getVizVersionFromScript(scriptObject: VizScriptObject): string {

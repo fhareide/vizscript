@@ -44,6 +44,7 @@ import {
   showScenePathMismatchDialog,
   showNoMetadataSetFlowDialog,
   showFilePathDialog,
+  showContainerMismatchDialog,
   MetadataDialogOptions,
 } from "./metadataDialog";
 
@@ -54,6 +55,17 @@ async function fileExists(uri: Uri): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+/**
+ * Returns a human-readable label for a vizId by looking it up in a list of
+ * VizScriptObjects. Falls back to the raw vizId if no match is found.
+ */
+function labelFor(vizId: string, scripts: VizScriptObject[]): string {
+  const script = scripts.find((s) => s.vizId === vizId);
+  if (!script) return vizId;
+  const treePath = Array.isArray(script.treePath) ? script.treePath.join(" / ") : script.treePath;
+  return treePath ? `${script.name} (${treePath})` : script.name;
 }
 
 /**
@@ -1514,9 +1526,11 @@ export async function compileCurrentScript(
     const metadataResult = await metadataService.extractMetadataFromContent(content);
 
     let vizId = config?.vizId;
+    const sidebarVizId = config?.vizId;
 
-    if (metadataResult.success && metadataResult.metadata) {
-      // Resolve UUID to current vizId if UUID exists
+    if (metadataResult.success && metadataResult.metadata?.UUID) {
+      // Metadata UUID is the source of truth — resolve it to the live vizId.
+      // The sidebar selection is only used as a fallback when nothing resolves.
       const resolvedVizId = await resolveScriptVizIdByUUID(
         metadataResult.metadata,
         hostName,
@@ -1527,11 +1541,17 @@ export async function compileCurrentScript(
       );
 
       if (resolvedVizId) {
-        // Don't override an explicitly provided vizId with a group (#c...) vizId —
-        // the sidebar passes the real container vizId which should always win over
-        // a synthetic group reference derived from shared metadata.
         const resolvedIsGroup = resolvedVizId.startsWith("#c");
-        if (!resolvedIsGroup || !vizId) {
+
+        if (resolvedIsGroup && sidebarVizId && sidebarVizId !== resolvedVizId) {
+          // Group exception: metadata resolves to a synthetic group container.
+          // The sidebar's explicit selection is preferred, but the user is informed.
+          window.showWarningMessage(
+            "Metadata UUID resolves to a group container. Using your selected container instead.",
+          );
+          vizId = sidebarVizId;
+        } else {
+          // Metadata wins — use the resolved container regardless of sidebar selection.
           vizId = resolvedVizId;
         }
       }
@@ -1614,6 +1634,57 @@ export async function setScriptInBackLayer(
   sidebarProvider?: SidebarProvider,
 ) {
   await compileCurrentScript(context, client, { selectedLayer: "BACK_LAYER" }, sidebarProvider);
+}
+
+/**
+ * Sets the current editor's script directly to the container that is selected in the
+ * sidebar, bypassing metadata UUID resolution entirely. Use this when you want to push
+ * the open script to a specific container regardless of what the metadata says.
+ */
+export async function setScriptOnSelected(
+  context: ExtensionContext,
+  client: LanguageClient,
+  config: { vizId: string; selectedLayer: string; hostname: string; port: number },
+  sidebarProvider?: SidebarProvider,
+) {
+  try {
+    const { vizId, selectedLayer, hostname, port } = config;
+
+    if (!vizId) {
+      throw new Error("No container selected. Please select a script in the sidebar first.");
+    }
+
+    if (!window.activeTextEditor) {
+      throw new Error("No active text editor. Please open a script first.");
+    }
+
+    const content = window.activeTextEditor.document.getText();
+
+    try {
+      await syntaxCheckCurrentScript(context, client, selectedLayer);
+    } catch {
+      throw new Error("Syntax error in script. Please correct before trying to set again.");
+    }
+
+    await compileScriptId(context, content, hostname, port, vizId, selectedLayer);
+
+    compileMessage.text = "$(check) Script set in Viz";
+    compileMessage.backgroundColor = new ThemeColor("statusBarItem.successBackground");
+    showStatusMessage(compileMessage);
+
+    if (sidebarProvider) {
+      try {
+        const scripts = await getVizScripts(hostname, port, context, selectedLayer);
+        if (sidebarProvider._view?.webview) {
+          sidebarProvider._view.webview.postMessage({ type: "receiveScripts", value: scripts });
+        }
+      } catch (refreshError) {
+        console.warn("Post-set sidebar refresh failed:", refreshError);
+      }
+    }
+  } catch (error) {
+    showMessage(error);
+  }
 }
 
 /**

@@ -1,4 +1,9 @@
 
+### 1.1.0
+  - **New**: Added "Set on selected" button in the sidebar — sends the current editor script directly to the selected container, bypassing metadata entirely
+  - **Update**: "Set script in Viz" is now metadata-first. It resolves the script's UUID from the file's metadata and sends to the correct container regardless of sidebar selection
+  - **Update**: If "Set script in Viz" is clicked on a file with no metadata, the user is prompted to add metadata first
+
 ### 1.0.2
   - **Fix**: Fixed error where adding metadata could sometimes scramble the entire file
 

@@ -171,6 +171,37 @@ export async function showScenePathMismatchDialog(
 }
 
 /**
+ * Shows a blocking modal when the sidebar-selected container differs from the
+ * container the file's metadata UUID resolves to.
+ */
+export async function showContainerMismatchDialog(
+  metadataContainerLabel: string,
+  selectedContainerLabel: string,
+): Promise<{ action: "updateMetadata" | "useMetadata" | "cancel" }> {
+  const choice = await vscode.window.showWarningMessage(
+    "Container Mismatch",
+    {
+      modal: true,
+      detail:
+        `The script's metadata points to "${metadataContainerLabel}" but you selected "${selectedContainerLabel}" in the sidebar.\n\n` +
+        `Update the metadata to track the selected container, or use the container the metadata already points to?`,
+    },
+    { title: "Update Metadata to Selected" },
+    { title: "Use Metadata Container" },
+    { title: "Cancel", isCloseAffordance: true },
+  );
+
+  switch (choice?.title) {
+    case "Update Metadata to Selected":
+      return { action: "updateMetadata" };
+    case "Use Metadata Container":
+      return { action: "useMetadata" };
+    default:
+      return { action: "cancel" };
+  }
+}
+
+/**
  * Shows a non-modal toast when no metadata is found during the set/compile flow.
  * Replaces the inline showInformationMessage in commands.ts.
  */

@@ -101,6 +101,10 @@ export class SidebarProvider implements vscode.WebviewViewProvider {
           vscode.commands.executeCommand("vizscript.setscript", data.value);
           break;
         }
+        case "setScriptOnSelected": {
+          vscode.commands.executeCommand("vizscript.setscript.onselected", data.value);
+          break;
+        }
         case "setScripts": {
           vscode.commands.executeCommand("vizscript.setscript.multi", data.value);
           break;

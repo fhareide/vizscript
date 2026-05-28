@@ -550,6 +550,15 @@ export function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     vscode.commands.registerCommand(
+      "vizscript.setscript.onselected",
+      async (config: { vizId: string; selectedLayer: string; hostname: string; port: number }) => {
+        await Commands.setScriptOnSelected.bind(this)(context, client, config, sidebarProvider);
+      },
+    ),
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand(
       "vizscript.setscript.multi",
       async (config: { vizIds: string[]; selectedLayer: string; hostname: string; port: number }) => {
         await Commands.setMultipleScripts.bind(this)(context, client, config, sidebarProvider);

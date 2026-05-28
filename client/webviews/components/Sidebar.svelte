@@ -209,6 +209,22 @@
     }, 1500);
   };
 
+  const handleScriptSetOnSelected = () => {
+    if (!selectedScript) return;
+    tsvscode.postMessage({
+      type: "setScriptOnSelected",
+      value: { vizId: selectedScript.vizId, selectedLayer, hostname, port },
+    });
+    setTimeout(() => {
+      if (selectedScript && hostname && port) {
+        tsvscode.postMessage({
+          type: "getScriptParameters",
+          value: { scriptId: selectedScript.vizId, hostname, port },
+        });
+      }
+    }, 1500);
+  };
+
   const handleResetScripts = () => {
     tsvscode.postMessage({
       type: "resetScripts",
@@ -870,12 +886,22 @@
                 </button>
               </div>
               
-              <button 
-                onclick={handleScriptSet}
-                class="w-full bg-vscode-button-background text-vscode-button-foreground border-0 px-2 py-1 rounded text-md cursor-pointer hover:bg-vscode-button-hoverBackground transition-colors"
-              >
-                Set script in Viz
-              </button>
+              <div class="flex gap-2">
+                <button 
+                  onclick={handleScriptSet}
+                  title="Set the script to the container tracked in the file's metadata (UUID). If no metadata is found, you will be prompted to add it."
+                  class="flex-1 bg-vscode-button-background text-vscode-button-foreground border-0 px-2 py-1 rounded text-md cursor-pointer hover:bg-vscode-button-hoverBackground transition-colors"
+                >
+                  Set script in Viz
+                </button>
+                <button 
+                  onclick={handleScriptSetOnSelected}
+                  title="Set the script directly to the container selected in the sidebar, ignoring metadata."
+                  class="flex-1 bg-vscode-button-background text-vscode-button-foreground border-0 px-2 py-1 rounded text-md cursor-pointer hover:bg-vscode-button-hoverBackground transition-colors"
+                >
+                  Set on selected
+                </button>
+              </div>
             {:else}
               <div class="flex justify-between items-start gap-2 mb-2">
                 <div class="flex-1 overflow-hidden">
@@ -903,12 +929,22 @@
                 </button>
               </div>
               
-              <button 
-                disabled
-                class="w-full bg-vscode-button-background text-vscode-button-foreground border-0 px-2 py-1 rounded text-md opacity-50 cursor-not-allowed"
-              >
-                Set script in Viz
-              </button>
+              <div class="flex gap-2">
+                <button
+                  onclick={handleScriptSet}
+                  title="Set the script to the container tracked in the file's metadata (UUID). If no metadata is found, you will be prompted to add it."
+                  class="flex-1 bg-vscode-button-background text-vscode-button-foreground border-0 px-2 py-1 rounded text-md cursor-pointer hover:bg-vscode-button-hoverBackground transition-colors"
+                >
+                  Set script in Viz
+                </button>
+                <button
+                  disabled
+                  title="Select a container in the sidebar first."
+                  class="flex-1 bg-vscode-button-background text-vscode-button-foreground border-0 px-2 py-1 rounded text-md opacity-50 cursor-not-allowed"
+                >
+                  Set on selected
+                </button>
+              </div>
             {/if}
           </div>
         </div>
