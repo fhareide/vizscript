@@ -327,7 +327,7 @@ function getLineAt(str, pos, isSignatureHelp) {
 
   result = GetRegexResult(line, /.+[\+\-\*\/](.+)$/gi); //Split on "+ - * /"
 
-  if (result != null) {
+  if (result != null && !isSignatureHelp) {
     if (result[1] != undefined) {
       line = result[1];
     }

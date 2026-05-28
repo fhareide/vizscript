@@ -159,9 +159,11 @@ export class LineParser {
     }
 
     // Split on arithmetic operators
-    const arithmeticMatch = result.match(/.+[\+\-\*\/](.+)$/);
-    if (arithmeticMatch && arithmeticMatch[1]) {
-      result = arithmeticMatch[1];
+    if (!isSignatureHelp) {
+      const arithmeticMatch = result.match(/.+[\+\-\*\/](.+)$/);
+      if (arithmeticMatch && arithmeticMatch[1]) {
+        result = arithmeticMatch[1];
+      }
     }
 
     return result.trim();
