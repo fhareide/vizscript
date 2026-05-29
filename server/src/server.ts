@@ -72,14 +72,17 @@ connection.onInitialized(() => {
     connection.client.register(ls.DidChangeConfigurationNotification.type, undefined);
   }
 
-  // Defer heavy symbol loading so the initialization handshake completes first.
-  // The ~1.5 MB of completion JSON across three Viz versions is processed here
-  // instead of blocking onInitialize.
-  setImmediate(() => {
+  // Load builtin symbols synchronously here so that any subsequent message
+  // (textDocument/didOpen → SetScriptType, completion requests, etc.) sees a
+  // fully-populated symbolCache. Deferring via setImmediate raced with
+  // didOpen and left builtin_global / builtin_events empty.
+  if (!symbolCache["builtin_v3"] || symbolCache["builtin_v3"].length === 0) {
     GetBuiltinSymbols();
+  }
+  if (!symbolCache["builtin_events"] || symbolCache["builtin_events"].length === 0) {
     GetVizEvents();
-    console.log("VizScript builtin symbols loaded");
-  });
+  }
+  console.log("VizScript builtin symbols loaded");
 });
 
 // Settings interface
@@ -1559,6 +1562,16 @@ function CollectSymbols(document: TextDocument): VizSymbol[] {
   let symbols: Set<VizSymbol> = new Set<VizSymbol>();
   let lines = document.getText().split(/\r?\n/g);
 
+  // Safety net: if builtin symbols/events somehow weren't loaded during
+  // initialization, populate them now so completions don't silently return
+  // empty results for global procedures and event snippets.
+  if (!symbolCache["builtin_v3"] || symbolCache["builtin_v3"].length === 0) {
+    GetBuiltinSymbols();
+  }
+  if (!symbolCache["builtin_events"] || symbolCache["builtin_events"].length === 0) {
+    GetVizEvents();
+  }
+
   metadataProcessor.extractMetadata(lines);
   currentMetaJson = metadataProcessor.getCurrentMetaJson();
   //connection.console.info("Current Meta: " + JSON.stringify(currentMetaJson));
@@ -1951,21 +1964,31 @@ function GetBuiltinSymbols() {
 }
 
 function SetScriptType(languageId: string) {
+  // Pick the version-specific cache slots, but only overwrite the active
+  // entries when the per-version slot is actually populated. This prevents
+  // SetScriptType from clobbering a valid cache with undefined when called
+  // before the builtin symbols have finished loading.
+  const assignIfReady = (versionSuffix: string) => {
+    const map: Array<[string, string]> = [
+      ["builtin", `builtin${versionSuffix}`],
+      ["builtin_root", `builtin_root${versionSuffix}`],
+      ["builtin_global", `builtin_global${versionSuffix}`],
+      ["builtin_keywords", `builtin_keywords${versionSuffix}`],
+    ];
+    for (const [target, source] of map) {
+      const value = symbolCache[source];
+      if (value && value.length > 0) {
+        symbolCache[target] = value;
+      }
+    }
+  };
+
   if (languageId == "viz" || languageId == "viz-con") {
-    symbolCache["builtin"] = symbolCache["builtin_v3"];
-    symbolCache["builtin_root"] = symbolCache["builtin_root_v3"];
-    symbolCache["builtin_global"] = symbolCache["builtin_global_v3"];
-    symbolCache["builtin_keywords"] = symbolCache["builtin_keywords_v3"];
+    assignIfReady("_v3");
   } else if (languageId == "viz4" || languageId == "viz4-con") {
-    symbolCache["builtin"] = symbolCache["builtin_v4"];
-    symbolCache["builtin_root"] = symbolCache["builtin_root_v4"];
-    symbolCache["builtin_global"] = symbolCache["builtin_global_v4"];
-    symbolCache["builtin_keywords"] = symbolCache["builtin_keywords_v4"];
+    assignIfReady("_v4");
   } else if (languageId == "viz5" || languageId == "viz5-con") {
-    symbolCache["builtin"] = symbolCache["builtin_v5"];
-    symbolCache["builtin_root"] = symbolCache["builtin_root_v5"];
-    symbolCache["builtin_global"] = symbolCache["builtin_global_v5"];
-    symbolCache["builtin_keywords"] = symbolCache["builtin_keywords_v5"];
+    assignIfReady("_v5");
   }
 
   let lScriptType = "";
