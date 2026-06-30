@@ -552,7 +552,7 @@
 		"@rollup/plugin-node-resolve": "^15.2.3",
 		"@rollup/plugin-terser": "0.4.4",
 		"@rollup/plugin-typescript": "^11.1.6",
-		"@sveltejs/vite-plugin-svelte": "^5.1.1",
+		"@sveltejs/vite-plugin-svelte": "^7.1.2",
 		"@tsconfig/svelte": "^5.0.4",
 		"@types/mocha": "^8.2.0",
 		"@types/node": "^18.14.6",
@@ -579,7 +579,7 @@
 		"tailwindcss": "^3.4.4",
 		"ts-loader": "^8.0.17",
 		"typescript": "^5.4.5",
-		"vite": "^6.4.2",
+		"vite": "^8.1.0",
 		"webpack": "^5.105.0",
 		"webpack-cli": "^4.5.0"
 	},
